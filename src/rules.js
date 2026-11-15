@@ -507,8 +507,12 @@ function dayNumber(date) {
   return Math.floor(Date.parse(date) / 86400000);
 }
 
+// Today's date on the server's own clock, written as YYYY-MM-DD.
+// It is built from the year, month and day directly so it does not depend on language settings.
 function todayDate() {
-  return new Date().toLocaleDateString('en-CA');
+  const now = new Date();
+  const two = (number) => String(number).padStart(2, '0');
+  return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
 }
 
 // Picks the numbers for one curve of the given family.

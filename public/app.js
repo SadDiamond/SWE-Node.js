@@ -518,6 +518,14 @@ async function todayPage() {
   const date = new Date(`${game.date}T00:00`);
   find('#today-date').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   showRound();
+  // A tab left open overnight would still be showing yesterday's curves.
+  // Whenever the tab is looked at again, the date is checked and the page reloads if the day has changed.
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    const latest = await request('/api/today').catch(() => null);
+    if (latest && latest.date !== game.date) location.reload();
+  });
+
   // If all three were finished on an earlier visit, go straight to the end screen.
   if (rounds.every((item) => item.result)) showSummary();
 }

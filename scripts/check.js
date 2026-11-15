@@ -177,11 +177,11 @@ assert.strictEqual(rules.scoreFor(92, 3, 2), 420, 'each hint costs 150');
 assert.strictEqual(rules.scoreFor(40, 5, 3), 0, 'a score never goes below zero');
 
 // Mixed curves: two kinds added together.
-const waveOnLine = {
-  family_id: LINE, a: 1, b: 2, c: 0, extra_family_id: WAVE, extra_a: 2, extra_b: 4, extra_c: 0
+const tiltedRoot = {
+  family_id: CUBE_ROOT, a: 2, b: 0, c: 1, extra_family_id: LINE, extra_a: 2, extra_b: 0, extra_c: 0
 };
-assert.strictEqual(rules.evaluate(waveOnLine, 2), 5, 'the two parts are added: (0.5 x 2 + 2) + 2 sin(90 degrees)');
-assert.strictEqual(rules.describe(waveOnLine), 'y = \\frac{1}{2}x + 2 + 2\\sin\\left(\\frac{\\pi x}{4}\\right)');
+assert.strictEqual(rules.evaluate(tiltedRoot, 8), 13, 'the two parts are added: (2 x 2 + 1) + 8');
+assert.strictEqual(rules.describe(tiltedRoot), 'y = 2\\sqrt[3]{x} + 1 + x');
 const tiltedV = {
   family_id: V_SHAPE, a: 2, b: 1, c: -3, extra_family_id: LINE, extra_a: -1, extra_b: 0, extra_c: 0
 };
@@ -221,12 +221,22 @@ for (let day = 0; day < 365; day += 1) {
     seen.add(machine.family_id);
     if (machine.extra_family_id) {
       mixes += 1;
+      assert.notStrictEqual(machine.extra_family_id, WAVE, 'a wave is never the second part of a mix');
       assert.ok(machine.extra_a !== 0 && Math.abs(machine.extra_a) <= 9, 'the second part has valid numbers');
     }
   }
   assert.strictEqual(rules.makeMachine(date, 1).extra_family_id, null, 'the easy curve is always a single kind');
 }
 assert.strictEqual(seen.size, 9, 'every family turns up during the year');
-assert.ok(mixes > 200 && mixes < 600, `a good share of medium and hard curves are mixes, got ${mixes}`);
+assert.ok(mixes > 150 && mixes < 600, `a good share of medium and hard curves are mixes, got ${mixes}`);
+
+// Endless mode: any seed gives a valid curve, and the same seed gives the same one.
+for (let seed = 1; seed < 3000; seed += 37) {
+  for (const slot of [1, 2, 3]) {
+    const machine = rules.machineFromSeed(seed, slot);
+    assert.deepStrictEqual(rules.machineFromSeed(seed, slot), machine);
+    assert.ok(rules.visibleCurve(machine).filter((output) => output !== null).length >= COLUMNS * 0.5);
+  }
+}
 
 console.log('All rule checks passed.');

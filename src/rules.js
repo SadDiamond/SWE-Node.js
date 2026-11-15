@@ -552,11 +552,11 @@ function randomMachine(next, familyId) {
 // A recipe is a main kind on its own, or a main kind with a second kind added to it.
 const RECIPES_FOR_SLOT = {
   1: [[LINE], [PARABOLA], [V_SHAPE]],
-  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL],
-    [LINE, WAVE], [PARABOLA, WAVE], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
-  3: [[HYPERBOLA], [SLANTED],
-    [HYPERBOLA, PARABOLA], [HYPERBOLA, WAVE], [HYPERBOLA, V_SHAPE], [CUBIC, WAVE], [EXPONENTIAL, LINE]]
+  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
+  3: [[HYPERBOLA], [SLANTED], [HYPERBOLA, PARABOLA], [HYPERBOLA, V_SHAPE], [EXPONENTIAL, LINE]]
 };
+// A wave is never used as the second part. A small ripple on a big shape sits inside the
+// marking's tolerance, so the plain shape would pass and the wave would never need finding.
 
 // Picks the numbers for a second part. They are kept small so the main shape still shows through,
 // and the part has no number added on the end, which keeps the formula tidy.
@@ -567,8 +567,6 @@ function randomExtra(next, familyId) {
   switch (familyId) {
     case LINE:
       return { extra_a: pick([-3, -2, -1, 1, 2, 3]), extra_b: 0, extra_c: 0 };
-    case WAVE:
-      return { extra_a: between(1, 2), extra_b: between(2, 4), extra_c: 0 };
     case PARABOLA:
       return { extra_a: pick([-1, 1]), extra_b: between(-3, 3), extra_c: 0 };
     default:
@@ -578,8 +576,14 @@ function randomExtra(next, familyId) {
 }
 
 // Builds one of the three curves for a date. slot is 1 (easy), 2 (medium) or 3 (hard).
+// The seed comes from the date, so everyone gets the same curves on the same day.
 function makeMachine(date, slot) {
-  const next = numberMaker(dayNumber(date) * 7919 + slot * 104729);
+  return machineFromSeed(dayNumber(date) * 7919 + slot * 104729, slot);
+}
+
+// Builds a curve from a seed number. The same seed and slot always give the same curve.
+function machineFromSeed(seed, slot) {
+  const next = numberMaker(seed);
   const recipes = RECIPES_FOR_SLOT[slot];
   const [familyId, extraFamilyId] = recipes[next(recipes.length)];
 
@@ -645,6 +649,6 @@ async function fillHistory() {
 module.exports = {
   COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
-  asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machinesFor, makeMachine,
+  asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
   hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
 };

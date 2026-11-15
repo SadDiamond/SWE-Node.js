@@ -207,6 +207,7 @@ for (let day = 0; day < 365; day += 1) {
   for (const slot of [1, 2, 3]) {
     const machine = rules.makeMachine(date, slot);
     const visible = rules.visibleCurve(machine).filter((output) => output !== null).length;
+    assert.ok(!rules.stopsShort(machine), 'no curve ends in mid-air beside its asymptote');
 
     assert.deepStrictEqual(rules.makeMachine(date, slot), machine);
     assert.ok(machine.a !== 0 && Math.abs(machine.a) <= 9 && Math.abs(machine.b) <= 9 && Math.abs(machine.c) <= 9);

@@ -92,14 +92,25 @@ function evaluate(machine, x) {
 
 // The curve as a list with one output for each column.
 // A column is null where the curve does not exist or is off the top or bottom of the graph.
+// The first column off the graph is kept at the edge, so the line runs all the way to the edge.
 function visibleCurve(machine) {
-  const curve = [];
-  for (let column = 0; column < COLUMNS; column += 1) {
-    const output = evaluate(machine, inputFor(column));
-    const onScreen = output !== null && Math.abs(output) <= LIMIT;
-    curve.push(onScreen ? Math.round(output * 100) / 100 : null);
-  }
-  return curve;
+  const whole = wholeCurve(machine);
+  const onGraph = (output) => output !== null && output !== undefined && Math.abs(output) <= LIMIT;
+
+  return whole.map((output, column) => {
+    if (output === null) return null;
+    if (onGraph(output)) return Math.round(output * 100) / 100;
+    const besideGraph = onGraph(whole[column - 1]) || onGraph(whole[column + 1]);
+    return besideGraph ? Math.sign(output) * LIMIT : null;
+  });
+}
+
+// True when the curve is still on the graph right beside a gap, so it would end in mid-air.
+function stopsShort(machine) {
+  const whole = wholeCurve(machine);
+  const onGraph = (output) => output !== null && output !== undefined && Math.abs(output) <= LIMIT;
+  return whole.some((output, column) => output === null
+    && (onGraph(whole[column - 1]) || onGraph(whole[column + 1])));
 }
 
 // The places where the curve leaves or comes back onto the graph, through the top or the bottom.
@@ -604,6 +615,7 @@ function machineFromSeed(seed, slot) {
       machine = { ...machine, extra_family_id: extraFamilyId, ...randomExtra(next, extraFamilyId) };
     }
     onScreen = visibleCurve(machine).filter((output) => output !== null).length;
+    if (stopsShort(machine)) onScreen = 0;
   }
   return machine;
 }
@@ -650,5 +662,5 @@ module.exports = {
   COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
   asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
-  hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
+  hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve
 };

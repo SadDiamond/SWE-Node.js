@@ -26,6 +26,11 @@ app.use((_request, response, next) => {
 });
 app.use(express.static(publicDirectory, { extensions: ['html'] }));
 // Works out who is logged in before any route runs. request.user is undefined for a guest.
+// Answers from the API change all the time, so the browser must never reuse an old one.
+app.use('/api', (request, response, next) => {
+  response.set('Cache-Control', 'no-store');
+  next();
+});
 app.use(auth.loadUser);
 
 // Turns a curve's LaTeX formula into MathML, the markup browsers use to draw maths.

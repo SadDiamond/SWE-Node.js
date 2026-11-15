@@ -1,10 +1,6 @@
 // Draws the graph: grid, the player's strokes, marking, and the real curve at the end.
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
-// The real curve is broken where it jumps more than this between neighbouring columns,
-// so the two halves of a hyperbola are not joined by a vertical line.
-const BIGGEST_STEP = 6;
-
 function svgElement(name, attributes, text) {
   const item = document.createElementNS(SVG_NAMESPACE, name);
   for (const [key, value] of Object.entries(attributes)) {
@@ -130,7 +126,7 @@ function drawNudges(group, nudges, scale) {
 }
 
 // The real curve arrives as one output for each column across the graph, null where there is nothing.
-// This splits it into separate lines at the gaps and at big jumps.
+// This splits it into separate lines at the gaps.
 function curvePaths(curve, scale, limit) {
   const xForColumn = (column) => scale.xFor((column / (curve.length - 1)) * 2 * limit - limit);
   const paths = [];
@@ -143,7 +139,7 @@ function curvePaths(curve, scale, limit) {
       return;
     }
     const point = `${xForColumn(column).toFixed(1)} ${scale.yFor(value).toFixed(1)}`;
-    const joined = previous !== null && Math.abs(value - previous) <= BIGGEST_STEP;
+    const joined = previous !== null;
     if (current === null || !joined) {
       current = paths.push(`M${point} L${point}`) - 1;
     } else {

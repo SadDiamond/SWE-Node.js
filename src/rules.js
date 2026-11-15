@@ -15,8 +15,6 @@ const BANDS = [0.5, 1, 1.5, 2.5];
 // The pen must travel at least this far (in graph units) for a stroke to count,
 // so a stray tap does not use up a go.
 const SHORTEST_STROKE = 1.5;
-// The real curve is treated as broken where it jumps more than this between neighbouring columns.
-const BIGGEST_STEP = 6;
 // How many columns either side to look when measuring how far a point is from the curve.
 const REACH = 30;
 // A drawing that misses the pass mark is still accepted if moving it by one of these amounts
@@ -174,7 +172,7 @@ function nearestOnCurve(x, y, curve) {
     const here = curve[column];
     if (here === null) continue;
     const next = column < last ? curve[column + 1] : null;
-    const joined = next !== null && Math.abs(next - here) <= BIGGEST_STEP;
+    const joined = next !== null;
 
     const spot = joined
       ? closestOnPiece(x, y, inputFor(column), here, inputFor(column + 1), next)
@@ -368,7 +366,7 @@ function inkFor(machine) {
   for (let column = 1; column < COLUMNS; column += 1) {
     const here = visible[column];
     const before = visible[column - 1];
-    if (here !== null && before !== null && Math.abs(here - before) <= BIGGEST_STEP) {
+    if (here !== null && before !== null) {
       length += Math.hypot(1 / STEPS_PER_UNIT, here - before);
     }
   }

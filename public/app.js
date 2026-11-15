@@ -50,6 +50,8 @@ function send(url, body) {
   });
 }
 
+// The name the endless-mode running total is kept under in the browser tab's storage.
+const ENDLESS_TOTAL = 'endlessTotal';
 const SLOT_NAMES = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
 // A new pen position is only kept once the pen has moved this far (in graph units),
 // which keeps a drawing to a sensible size however slowly it is drawn.
@@ -64,8 +66,11 @@ function rounded(position) {
 // Who is logged in, or null for a guest. Set once when the page loads.
 let currentUser = null;
 
-async function todayPage() {
-  const game = await request('/api/today');
+// The game. With endless set to true it plays one random curve after another instead of
+// the day's three, and nothing is saved.
+async function playPage(endless) {
+  // In endless mode the address can ask for a difficulty, e.g. /endless.html?slot=2
+  const game = await request(endless ? `/api/endless${location.search}` : '/api/today');
   const graph = find('#graph');
 
   // Everything about one of the day's curves, so switching tabs loses nothing.
@@ -169,12 +174,15 @@ async function todayPage() {
     requestAnimationFrame(step);
   }
 
+  // Endless mode keeps a running total for this browser tab, so it survives moving to the next curve.
+  const earlier = endless ? Number(sessionStorage.getItem(ENDLESS_TOTAL)) || 0 : 0;
+
   function totalScore() {
-    return rounds.reduce((total, item) => total + (item.result ? item.result.score : 0), 0);
+    return earlier + rounds.reduce((total, item) => total + (item.result ? item.result.score : 0), 0);
   }
 
   // The total in the header. It is remembered so the next change can count up from it.
-  let totalOnScreen = 0;
+  let totalOnScreen = earlier;
   function showTotal() {
     countUp(find('#total'), totalOnScreen, totalScore());
     totalOnScreen = totalScore();
@@ -187,6 +195,8 @@ async function todayPage() {
   let summarySeen = false;
 
   function showProgress() {
+    // Endless mode has no steps to show, only links for choosing the difficulty.
+    if (endless) return;
     const list = find('#tabs');
     const allDone = rounds.every((item) => item.result);
     list.replaceChildren();
@@ -280,6 +290,7 @@ async function todayPage() {
       const more = rounds.some((item) => !item.result);
       let nextLabel = 'Next curve';
       if (!more) nextLabel = summarySeen ? "Back to today's result" : "See today's result";
+      if (endless) nextLabel = 'Another curve';
       find('#next-curve').textContent = nextLabel;
     }
     showProgress();
@@ -327,6 +338,11 @@ async function todayPage() {
   }
 
   find('#next-curve').addEventListener('click', () => {
+    // In endless mode the total is put aside and the page loads again with a new curve.
+    if (endless) {
+      sessionStorage.setItem(ENDLESS_TOTAL, totalScore());
+      return location.reload();
+    }
     const next = rounds.find((item) => !item.result);
     if (!next) return showSummary();
 
@@ -515,6 +531,17 @@ async function todayPage() {
   // The graph is drawn at its real size, so it needs redrawing when the window changes.
   window.addEventListener('resize', showGraph);
 
+  if (endless) {
+    // Mark the difficulty link that matches the curve on screen.
+    const asked = new URLSearchParams(location.search).get('slot') || '';
+    document.querySelectorAll('#levels a').forEach((choice) => {
+      if (new URL(choice.href).searchParams.get('slot') === (asked || null)) choice.setAttribute('aria-current', 'true');
+    });
+    find('#today-date').textContent = `${SLOT_NAMES[round.slot]} curve`;
+    showRound();
+    return;
+  }
+
   const date = new Date(`${game.date}T00:00`);
   find('#today-date').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   showRound();
@@ -696,7 +723,13 @@ async function savePendingRun() {
 
 /* Starting the right page */
 
-const pages = { today: todayPage, account: accountPage, history: historyPage, stats: statsPage };
+const pages = {
+  today: () => playPage(false),
+  endless: () => playPage(true),
+  account: accountPage,
+  history: historyPage,
+  stats: statsPage
+};
 
 async function start() {
   const me = await request('/api/me');

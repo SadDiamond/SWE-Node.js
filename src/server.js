@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
 const katex = require('katex');
@@ -98,10 +99,30 @@ app.post('/api/logout', route(async (request, response) => {
 
 /* The game */
 
+// Finds a curve from the id in the address.
+// A plain number is a daily curve kept in the database.
+// An id like "r123456s2" is an endless-mode curve: it is not stored, but rebuilt from its
+// seed (123456) and difficulty (2) each time, which always gives the same curve.
 async function findMachine(id) {
+  const endless = /^r(\d{1,10})s([123])$/.exec(id);
+  if (endless) {
+    const slot = Number(endless[2]);
+    const machine = rules.machineFromSeed(Number(endless[1]), slot);
+    const names = await all('SELECT id, name FROM families');
+    const nameOf = (familyId) => (names.find((family) => family.id === familyId) || {}).name;
+    return {
+      ...machine,
+      id,
+      slot,
+      endless: true,
+      family_name: nameOf(machine.family_id),
+      extra_name: machine.extra_family_id ? nameOf(machine.extra_family_id) : null
+    };
+  }
+
   const machines = await all(
     `${rules.MACHINE_SELECT} WHERE machines.id = ? AND machines.play_date <= ?`,
-    [id, rules.todayDate()]
+    [Number.parseInt(id, 10), rules.todayDate()]
   );
   return machines[0];
 }
@@ -168,6 +189,20 @@ async function savedState(userId, machine) {
   return saved;
 }
 
+// The numbers the page needs to run the game, the same for every curve.
+function settings() {
+  return {
+    limit: rules.LIMIT,
+    maxGoes: rules.MAX_GOES,
+    maxHints: rules.MAX_HINTS,
+    topScore: rules.TOP_SCORE,
+    goPenalty: rules.GO_PENALTY,
+    hintPenalty: rules.HINT_PENALTY,
+    shortestStroke: rules.SHORTEST_STROKE,
+    mostPoints: rules.MOST_POINTS
+  };
+}
+
 // Today's three curves. Only what the page needs to set up the game; nothing about the curves themselves.
 app.get('/api/today', route(async (request, response) => {
   const machines = await rules.machinesFor(rules.todayDate());
@@ -186,17 +221,28 @@ app.get('/api/today', route(async (request, response) => {
     });
   }
 
+  response.json({ date: rules.todayDate(), ...settings(), curves });
+}));
+
+// One fresh random curve for endless mode. /api/endless?slot=2 asks for a medium one;
+// without a slot the difficulty is random too.
+app.get('/api/endless', route(async (request, response) => {
+  const asked = Number.parseInt(request.query.slot, 10);
+  const slot = [1, 2, 3].includes(asked) ? asked : crypto.randomInt(1, 4);
+  const seed = crypto.randomInt(1, 2000000000);
+  const machine = rules.machineFromSeed(seed, slot);
+
   response.json({
-    date: rules.todayDate(),
-    limit: rules.LIMIT,
-    maxGoes: rules.MAX_GOES,
-    maxHints: rules.MAX_HINTS,
-    topScore: rules.TOP_SCORE,
-    goPenalty: rules.GO_PENALTY,
-    hintPenalty: rules.HINT_PENALTY,
-    shortestStroke: rules.SHORTEST_STROKE,
-    mostPoints: rules.MOST_POINTS,
-    curves
+    date: null,
+    ...settings(),
+    curves: [{
+      id: `r${seed}s${slot}`,
+      slot,
+      strokesPerGo: rules.pieces(machine),
+      ink: rules.inkFor(machine),
+      exits: rules.exits(machine),
+      saved: null
+    }]
   });
 }));
 
@@ -210,7 +256,7 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   if (!rules.validDrawing(drawing)) {
     return response.status(400).json({ error: 'That drawing is not in the right format.' });
   }
-  const machine = await findMachine(Number.parseInt(request.params.id, 10));
+  const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: 'Curve not found.' });
 
   // The page stops the pen when the ink runs out. This catches a drawing sent some other way.
@@ -220,7 +266,8 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   }
 
   let play = null;
-  if (request.user) {
+  // Endless curves are never saved, even for a logged-in player.
+  if (request.user && !machine.endless) {
     const opened = await openPlay(request.user.id, machine);
     if (opened.error) return response.status(409).json({ error: opened.error });
     play = opened.play;
@@ -268,12 +315,13 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
 // Gives one hint: a spot that is on the curve.
 // For a logged-in player the server counts the hints. A guest's page says which number it wants.
 app.post('/api/machines/:id/hint', route(async (request, response) => {
-  const machine = await findMachine(Number.parseInt(request.params.id, 10));
+  const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: 'Curve not found.' });
 
   let { number } = request.body;
   let play = null;
-  if (request.user) {
+  // Endless curves are never saved, even for a logged-in player.
+  if (request.user && !machine.endless) {
     const opened = await openPlay(request.user.id, machine);
     if (opened.error) return response.status(409).json({ error: opened.error });
     play = opened.play;

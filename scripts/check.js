@@ -123,6 +123,26 @@ for (const slot of [1, 2, 3]) {
   assert.ok(rules.inkFor(machine) < 400, 'there is never enough to fill the graph');
 }
 
+// The right shape in nearly the right place is accepted, but scores less than a spot-on drawing.
+const bowl = { family_id: PARABOLA, a: 2, b: 0, c: -5 };
+const bowlCurve = rules.visibleCurve(bowl);
+const shifted = rules.judge(traced(bowlCurve, 1.5, 1), bowl);
+assert.ok(shifted.accuracy < 85, `a parabola drawn 1.5 across and 1 up misses the pass mark, got ${shifted.accuracy}`);
+assert.strictEqual(shifted.closeEnough, true, 'but it is the right shape, so it is accepted');
+assert.strictEqual(shifted.solved, true);
+assert.ok(rules.scoreFor(shifted.accuracy, 1, 0) < rules.scoreFor(100, 1, 0), 'and it scores less than a perfect one');
+
+const spotOn = rules.judge(traced(bowlCurve), bowl);
+assert.strictEqual(spotOn.closeEnough, false, 'a drawing that passes outright is not marked as close enough');
+
+// A parabola the wrong way up, a far-off copy and a straight line are not the right shape.
+const upsideDown = rules.judge(traced(bowlCurve.map((value) => (value === null ? null : -value))), bowl);
+assert.strictEqual(upsideDown.solved, false, 'an upside-down parabola is not accepted');
+const farOff = rules.judge(traced(bowlCurve, 5, 0), bowl);
+assert.strictEqual(farOff.solved, false, 'the right shape five units to one side is not accepted');
+assert.strictEqual(rules.judge(flatLine(-5), bowl).solved, false, 'a flat line is not a parabola');
+assert.strictEqual(rules.judge(flatLine(9), gentle).solved, false);
+
 // Drawings do not have to be functions: a vertical line and a loop are both accepted and marked.
 const vertical = rules.judge([[[0, -9], [0, 9]]], steep);
 assert.ok(vertical.accuracy > flat.accuracy, 'a vertical line through a steep curve beats a flat one');

@@ -19,6 +19,12 @@ const SHORTEST_STROKE = 1.5;
 const BIGGEST_STEP = 6;
 // How many columns either side to look when measuring how far a point is from the curve.
 const REACH = 30;
+// A drawing that misses the pass mark is still accepted if moving it by one of these amounts
+// (in graph units, across and up) and resizing it by one of these factors makes it pass.
+const SHAPE_SHIFTS = [-2, -1, 0, 1, 2];
+const SHAPE_SIZES = [0.85, 1, 1.15];
+// The drawing must be at least this accurate as it stands before its shape is considered.
+const SHAPE_FLOOR = 30;
 // Nudges appear on parts of a drawing at this level or worse, one for every so many units of line.
 const NUDGE_FROM_LEVEL = 3;
 const NUDGE_SPACING = 1.5;
@@ -246,7 +252,63 @@ function judge(strokes, machine) {
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
-  return { levels, nudges, missed, accuracy, solved: accuracy >= SOLVED_AT };
+
+  // A drawing that is not accurate enough can still be accepted if it is the right shape
+  // in nearly the right place. The score still comes from the real accuracy, so it costs points.
+  const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible);
+  return { levels, nudges, missed, accuracy, closeEnough, solved: accuracy >= SOLVED_AT || closeEnough };
+}
+
+// Just the accuracy of a drawing, worked out the same way as in judge but without the colours
+// and nudges. It is used many times over when looking for the right shape, so it is kept light.
+function accuracyOf(strokes, whole, visible) {
+  let inkLength = 0;
+  let inkOnCurve = 0;
+  for (const stroke of strokes) {
+    for (let index = 1; index < stroke.length; index += 1) {
+      const [x, y] = stroke[index];
+      const length = Math.hypot(x - stroke[index - 1][0], y - stroke[index - 1][1]);
+      inkLength += length;
+      inkOnCurve += length * (1 - levelFor(nearestOnCurve(x, y, whole).distance) / BANDS.length);
+    }
+  }
+
+  let curvePoints = 0;
+  let curveCovered = 0;
+  visible.forEach((output, column) => {
+    if (output === null) return;
+    curvePoints += 1;
+    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes)) / BANDS.length;
+  });
+
+  const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
+  const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
+  return ((precision + coverage) / 2) * 100;
+}
+
+// Is the drawing the right shape, only shifted or resized a little?
+// The drawing is tried in a range of nearby positions and sizes. If any of them matches
+// the curve well enough to pass, the player clearly found the shape.
+function rightShape(strokes, whole, visible) {
+  // Every few pen positions is plenty for this, and makes the search much quicker.
+  const light = strokes.map((stroke) => stroke.filter((_point, index) => index % 4 === 0 || index === stroke.length - 1));
+  const points = light.flat();
+  // Resizing happens about the middle of the drawing, so it grows or shrinks in place.
+  const middleX = (Math.min(...points.map(([x]) => x)) + Math.max(...points.map(([x]) => x))) / 2;
+  const middleY = (Math.min(...points.map(([, y]) => y)) + Math.max(...points.map(([, y]) => y))) / 2;
+
+  for (const scale of SHAPE_SIZES) {
+    for (const across of SHAPE_SHIFTS) {
+      for (const up of SHAPE_SHIFTS) {
+        const moved = light.map((stroke) => stroke.map(([x, y]) => [
+          middleX + (x - middleX) * scale + across,
+          middleY + (y - middleY) * scale + up
+        ]));
+        if (accuracyOf(moved, whole, visible) >= SOLVED_AT) return true;
+      }
+    }
+  }
+  return false;
 }
 
 // Checks that a drawing sent by the browser is the right shape before it is marked:

@@ -174,6 +174,7 @@ assert.strictEqual(rules.pieces({ family_id: EXPONENTIAL, a: 1, b: 1, c: 0 }), 1
 const swapped = { family_id: HYPERBOLA, a: -5, b: 0, c: -2 };
 const wrongSide = rules.judge([[[0.3, 9], [0.3, 3]], [[-0.3, -3], [-0.3, -9]]], swapped);
 assert.ok(wrongSide.levels.flat().every((level) => level === 4), 'branches drawn on the wrong side of the asymptote are way off');
+assert.strictEqual(wrongSide.solved, false, 'the wrong-side drawing is not even close enough');
 const rightSide = rules.judge([[[-0.6, 9], [-0.8, 4]], [[0.8, -8], [0.6, -10]]], swapped);
 assert.ok(rightSide.levels.flat().every((level) => level === 0), 'branches drawn on the right side are spot on');
 const bridge = rules.judge([[[-0.5, 8], [0.5, -9]], [[5, -3], [6, -3]]], swapped);

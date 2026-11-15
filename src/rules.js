@@ -276,13 +276,13 @@ function judge(strokes, machine) {
 
   // A drawing that is not accurate enough can still be accepted if it is the right shape
   // in nearly the right place. The score still comes from the real accuracy, so it costs points.
-  const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible);
+  const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
   return { levels, nudges, missed, accuracy, closeEnough, solved: accuracy >= SOLVED_AT || closeEnough };
 }
 
 // Just the accuracy of a drawing, worked out the same way as in judge but without the colours
 // and nudges. It is used many times over when looking for the right shape, so it is kept light.
-function accuracyOf(strokes, whole, visible) {
+function accuracyOf(strokes, whole, visible, walls) {
   let inkLength = 0;
   let inkOnCurve = 0;
   for (const stroke of strokes) {
@@ -290,7 +290,8 @@ function accuracyOf(strokes, whole, visible) {
       const [x, y] = stroke[index];
       const length = Math.hypot(x - stroke[index - 1][0], y - stroke[index - 1][1]);
       inkLength += length;
-      inkOnCurve += length * (1 - levelFor(nearestOnCurve(x, y, whole).distance) / BANDS.length);
+      if (sideOf(stroke[index - 1][0], walls) !== sideOf(x, walls)) continue;
+      inkOnCurve += length * (1 - levelFor(nearestOnCurve(x, y, whole, walls).distance) / BANDS.length);
     }
   }
 
@@ -299,7 +300,7 @@ function accuracyOf(strokes, whole, visible) {
   visible.forEach((output, column) => {
     if (output === null) return;
     curvePoints += 1;
-    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes)) / BANDS.length;
+    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes, walls)) / BANDS.length;
   });
 
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
@@ -310,7 +311,7 @@ function accuracyOf(strokes, whole, visible) {
 // Is the drawing the right shape, only shifted or resized a little?
 // The drawing is tried in a range of nearby positions and sizes. If any of them matches
 // the curve well enough to pass, the player clearly found the shape.
-function rightShape(strokes, whole, visible) {
+function rightShape(strokes, whole, visible, walls) {
   // Every few pen positions is plenty for this, and makes the search much quicker.
   const light = strokes.map((stroke) => stroke.filter((_point, index) => index % 4 === 0 || index === stroke.length - 1));
   const points = light.flat();
@@ -325,7 +326,7 @@ function rightShape(strokes, whole, visible) {
           middleX + (x - middleX) * scale + across,
           middleY + (y - middleY) * scale + up
         ]));
-        if (accuracyOf(moved, whole, visible) >= SOLVED_AT) return true;
+        if (accuracyOf(moved, whole, visible, walls) >= SOLVED_AT) return true;
       }
     }
   }

@@ -263,6 +263,9 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   }
   const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: 'Curve not found.' });
+  if (drawing.length > rules.pieces(machine)) {
+    return response.status(400).json({ error: 'That drawing has more strokes than the curve has pieces.' });
+  }
 
   // The page stops the pen when the ink runs out. This catches a drawing sent some other way.
   // The small allowance covers rounding of pen positions.

@@ -162,7 +162,9 @@ function distanceToPiece(x, y, x1, y1, x2, y2) {
 // Measuring straight up and down would be unfair on steep curves, where being a little
 // to one side looks like a huge error.
 // curve is a list with one output for each column. Gives { distance, x, y }.
-function nearestOnCurve(x, y, curve) {
+// Only the branch on the point's own side of every vertical asymptote counts: the curve never
+// crosses one, so being near the other branch is not being near the curve.
+function nearestOnCurve(x, y, curve, walls) {
   const nearest = Math.round((x + LIMIT) * STEPS_PER_UNIT);
   const first = Math.max(0, nearest - REACH);
   const last = Math.min(COLUMNS - 1, nearest + REACH);
@@ -170,7 +172,7 @@ function nearestOnCurve(x, y, curve) {
 
   for (let column = first; column <= last; column += 1) {
     const here = curve[column];
-    if (here === null) continue;
+    if (here === null || sideOf(inputFor(column), walls) !== sideOf(x, walls)) continue;
     const next = column < last ? curve[column + 1] : null;
     const joined = next !== null;
 
@@ -183,14 +185,21 @@ function nearestOnCurve(x, y, curve) {
   return best;
 }
 
-// The shortest distance from a point to anything the player drew.
-// strokes is a list of strokes, and each stroke is a list of [x, y] pen positions.
-function distanceToDrawing(x, y, strokes) {
+// Which gap between vertical asymptotes an input is in: how many of them lie to its left.
+function sideOf(x, walls) {
+  return walls.filter((wall) => wall < x).length;
+}
+
+// The shortest distance from a point to anything the player drew on the same side of every
+// vertical asymptote. strokes is a list of strokes, and each stroke is a list of [x, y] pen positions.
+function distanceToDrawing(x, y, strokes, walls) {
+  const side = sideOf(x, walls);
   let best = Infinity;
   for (const stroke of strokes) {
     for (let index = 0; index < stroke.length - 1; index += 1) {
       const [x1, y1] = stroke[index];
       const [x2, y2] = stroke[index + 1];
+      if (sideOf(x1, walls) !== side || sideOf(x2, walls) !== side) continue;
       best = Math.min(best, distanceToPiece(x, y, x1, y1, x2, y2));
     }
   }
@@ -214,6 +223,7 @@ function levelFor(distance) {
 function judge(strokes, machine) {
   const whole = wholeCurve(machine);
   const visible = visibleCurve(machine);
+  const walls = asymptotes(machine).filter((line) => line.kind === 'vertical').map((line) => line.input);
 
   // Part one: the drawing. Each piece of line counts by its length, so drawing slowly
   // (which makes more pen positions) is worth no more than drawing quickly.
@@ -224,10 +234,12 @@ function judge(strokes, machine) {
   let sinceNudge = NUDGE_SPACING / 2;
 
   const levels = strokes.map((stroke) => stroke.map(([x, y], index) => {
-    const spot = nearestOnCurve(x, y, whole);
-    const level = levelFor(spot.distance);
+    const spot = nearestOnCurve(x, y, whole, walls);
+    let level = levelFor(spot.distance);
     if (index > 0) {
       const [previousX, previousY] = stroke[index - 1];
+      // A piece of line that jumps across a vertical asymptote is never on the curve.
+      if (sideOf(previousX, walls) !== sideOf(x, walls)) level = BANDS.length;
       const length = Math.hypot(x - previousX, y - previousY);
       inkLength += length;
       inkOnCurve += length * (1 - level / BANDS.length);
@@ -252,7 +264,7 @@ function judge(strokes, machine) {
   let curveCovered = 0;
   const missed = visible.map((output, column) => {
     if (output === null) return false;
-    const level = levelFor(distanceToDrawing(inputFor(column), output, strokes));
+    const level = levelFor(distanceToDrawing(inputFor(column), output, strokes, walls));
     curvePoints += 1;
     curveCovered += 1 - level / BANDS.length;
     return level === BANDS.length;

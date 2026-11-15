@@ -169,6 +169,19 @@ assert.strictEqual(rules.pieces(steep), 1);
 assert.strictEqual(rules.pieces(hyperbola), 2, 'a hyperbola is in two pieces');
 assert.strictEqual(rules.pieces({ family_id: EXPONENTIAL, a: 1, b: 1, c: 0 }), 1, 'a flat asymptote does not split a curve');
 
+// A hyperbola's two branches never cross the vertical asymptote, so a drawing must not be matched
+// to the branch on the other side. y = -5/x - 2 goes up on the left of 0 and down on the right.
+const swapped = { family_id: HYPERBOLA, a: -5, b: 0, c: -2 };
+const wrongSide = rules.judge([[[0.3, 9], [0.3, 3]], [[-0.3, -3], [-0.3, -9]]], swapped);
+assert.ok(wrongSide.levels.flat().every((level) => level === 4), 'branches drawn on the wrong side of the asymptote are way off');
+const rightSide = rules.judge([[[-0.6, 9], [-0.8, 4]], [[0.8, -8], [0.6, -10]]], swapped);
+assert.ok(rightSide.levels.flat().every((level) => level === 0), 'branches drawn on the right side are spot on');
+const bridge = rules.judge([[[-0.5, 8], [0.5, -9]], [[5, -3], [6, -3]]], swapped);
+assert.strictEqual(bridge.levels[0][1], 4, 'a line jumping across the asymptote is never on the curve');
+const [whole] = traced(rules.visibleCurve(swapped));
+const branches = [whole.filter(([x]) => x < 0), whole.filter(([x]) => x > 0)];
+assert.strictEqual(rules.judge(branches, swapped).accuracy, 100, 'tracing each branch is still perfect');
+
 // Scores out of 1000: accuracy sets the start, extra goes and hints take points off.
 assert.strictEqual(rules.scoreFor(100, 1, 0), 1000, 'a perfect first go with no hints is full marks');
 assert.strictEqual(rules.scoreFor(92, 1, 0), 920);

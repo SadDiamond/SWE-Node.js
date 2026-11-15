@@ -256,9 +256,12 @@ async function todayPage() {
     find('#result').hidden = !round.result;
     if (round.result) {
       const result = round.result;
-      find('#result-heading').textContent = result.solved
-        ? `Cracked it in ${goesText(round.goes)}`
-        : 'Out of goes';
+      let heading = 'Out of goes';
+      if (result.solved) heading = `Cracked it in ${goesText(round.goes)}`;
+      // The right shape, a little out of place, is accepted but scores less.
+      if (result.closeEnough) heading = `Close enough in ${goesText(round.goes)}`;
+      find('#result-heading').textContent = heading;
+      find('#result-close').hidden = !result.closeEnough;
       find('#result-top').textContent = `/ ${game.topScore}`;
       // The score counts up from zero. The total in the header climbs too, further down.
       countUp(find('#result-score'), 0, result.score);

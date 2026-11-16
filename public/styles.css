@@ -63,7 +63,8 @@ nav ul {
 .faded { opacity: 0.3; }
 .truth { stroke: black; stroke-width: 3; }
 .asymptote { stroke: #888; stroke-width: 1; stroke-dasharray: 6 4; }
-.percent { fill: black; pointer-events: none; }
+.percent { fill: black; pointer-events: none; animation: fade 1.8s forwards; }
+@keyframes fade { 50% { opacity: 1; } 100% { opacity: 0; } }
 .exit { fill: black; }
 .missed { fill: #bbb; }
 .pen { fill: none; stroke: #333; }

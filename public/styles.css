@@ -978,3 +978,30 @@ main > h2,
 .how-to-play h2:focus {
   outline: none;
 }
+
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--page);
+  border-left: 2px dashed var(--grid-major);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 9px 6px 8px 5px / 40px 28px 36px 24px;
+  background: var(--ink) padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fresh);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-color: var(--ink) var(--page);
+    scrollbar-width: thin;
+  }
+}

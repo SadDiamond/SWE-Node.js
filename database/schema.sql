@@ -120,4 +120,7 @@ INSERT OR IGNORE INTO families (id, name, difficulty, description) VALUES
   (11, 'S-curve', 2, 'Flat on one side, a smooth climb or drop in the middle, then flat again at a new level.'),
   (12, 'Quartic', 2, 'A W shape, or an upside-down W, with two dips and a bump in between.'),
   (13, 'Inverse square', 3, 'Two pieces that both shoot up, or both shoot down, beside a vertical line.'),
-  (14, 'Tangent', 3, 'Repeating S shapes, each squeezed between two vertical lines it never touches.');
+  (14, 'Tangent', 3, 'Repeating S shapes, each squeezed between two vertical lines it never touches.'),
+  (15, 'Circle', 3, 'A round loop that is the same distance from its middle all the way round.'),
+  (16, 'Ellipse', 3, 'A stretched loop, wider than it is tall or taller than it is wide.'),
+  (17, 'Sideways parabola', 3, 'A U shape lying on its side, opening to the left or the right.');

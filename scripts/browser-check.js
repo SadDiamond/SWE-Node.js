@@ -134,16 +134,19 @@ async function main() {
       assert.notStrictEqual(background, 'rgb(251, 250, 246)', 'the page is not the light background');
     });
 
-    await check('double-clicking hint only uses one hint', async () => {
+    await check('the first hint says what kind of curve it is, and double-clicking only uses one', async () => {
       const hinted = await newPage(await browser.newContext());
       await hinted.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
       await hinted.goto(SITE);
       await hinted.waitForSelector('#tabs li');
       await hinted.locator('#hint').dblclick();
-      await hinted.waitForSelector('circle.dot');
+      await hinted.waitForSelector('#shape-text:not([hidden])');
       await hinted.waitForTimeout(500);
-      assert.strictEqual(await hinted.locator('circle.dot').count(), 1);
+      assert.strictEqual(await hinted.locator('circle.dot').count(), 0, 'no dot yet');
       assert.match(await hinted.locator('#hint-text').textContent(), /2 left/);
+      await hinted.click('#hint');
+      await hinted.waitForSelector('circle.dot');
+      assert.match(await hinted.locator('#hint-text').textContent(), /1 left/, 'the second hint is a dot');
     });
 
     await check('a guest keeps their attempts and hints after reloading', async () => {
@@ -152,6 +155,8 @@ async function main() {
       await guestPage.goto(SITE);
       await guestPage.waitForSelector('#tabs li');
       await guestPage.click('#hint');
+      await guestPage.waitForSelector('#shape-text:not([hidden])');
+      await guestPage.click('#hint');
       await guestPage.waitForSelector('circle.dot');
       await draw(guestPage, across);
       await guestPage.waitForFunction(() => document.querySelectorAll('#goes .used').length === 1);
@@ -159,6 +164,7 @@ async function main() {
       await guestPage.waitForSelector('#tabs li');
       assert.strictEqual(await guestPage.locator('#goes .used').count(), 1, 'the attempt is still used');
       assert.strictEqual(await guestPage.locator('circle.dot').count(), 1, 'the hint dot is still there');
+      assert.ok(await guestPage.locator('#shape-text').isVisible(), 'and so is the kind of curve');
     });
 
     await check('a second tab catches up instead of getting stuck', async () => {
@@ -181,6 +187,21 @@ async function main() {
       }
       await draw(second, across);
       await second.waitForFunction(() => document.querySelector('.tab.current')?.textContent.includes('Medium'));
+    });
+
+    await check('a loop can be played in endless mode and is revealed in full', async () => {
+      const loops = await newPage(await browser.newContext({ viewport: { width: 1280, height: 900 } }));
+      await loops.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
+      await loops.goto(`${SITE}/endless.html?slot=4`);
+      await loops.waitForFunction(() => document.querySelector('#today-date').textContent === 'Loops and turns');
+      for (let attempt = 0; attempt < 5 && !(await loops.locator('#result').isVisible()); attempt += 1) {
+        await draw(loops, across);
+        await loops.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+          || !document.querySelector('#result').hidden, attempt + 1);
+      }
+      await loops.waitForSelector('#result:not([hidden])');
+      assert.ok(await loops.locator('path.truth').count() >= 2, 'both halves of the shape are drawn');
+      assert.match(await loops.locator('#result-family').textContent(), /Circle|Ellipse|Sideways parabola/);
     });
 
     await check('the theme button switches modes and remembers the choice', async () => {

@@ -153,6 +153,13 @@ function drawGraph(svg, picture, limit) {
       class: 'missed', x: column * columnWidth - columnWidth / 2, y: scale.size - 7, width: columnWidth + 0.5, height: 7
     }));
   });
+  const rowHeight = scale.size / Math.max(1, picture.missedRows.length - 1);
+  picture.missedRows.forEach((isMissed, row) => {
+    if (!isMissed) return;
+    svg.append(svgElement('rect', {
+      class: 'missed', x: 0, y: scale.size - row * rowHeight - rowHeight / 2, width: 7, height: rowHeight + 0.5
+    }));
+  });
 
   if (picture.shown) {
     const group = svgElement('g', { class: picture.curve ? 'faded' : '' });
@@ -186,18 +193,23 @@ function drawGraph(svg, picture, limit) {
         };
       answer.append(svgElement('line', { class: 'asymptote', ...line }));
     });
-    curvePaths(picture.curve, scale, limit).forEach((path) => {
+    picture.curve.forEach((branch) => curvePaths(branch, scale, limit).forEach((path) => {
       answer.append(svgElement('path', { class: 'truth', d: path }));
-    });
+    }));
     svg.append(filter, answer);
   }
 
   picture.exits.forEach((exit) => {
-    const x = scale.xFor(exit.input);
-    const points = exit.side === 'top'
-      ? `${x - 8},16 ${x + 8},16 ${x},3`
-      : `${x - 8},${scale.size - 16} ${x + 8},${scale.size - 16} ${x},${scale.size - 3}`;
-    svg.append(svgElement('polygon', { class: 'exit', points }));
+    const x = exit.input === undefined ? null : scale.xFor(exit.input);
+    const y = exit.output === undefined ? null : scale.yFor(exit.output);
+    const edge = scale.size;
+    const shapes = {
+      top: `${x - 8},16 ${x + 8},16 ${x},3`,
+      bottom: `${x - 8},${edge - 16} ${x + 8},${edge - 16} ${x},${edge - 3}`,
+      left: `16,${y - 8} 16,${y + 8} 3,${y}`,
+      right: `${edge - 16},${y - 8} ${edge - 16},${y + 8} ${edge - 3},${y}`
+    };
+    svg.append(svgElement('polygon', { class: 'exit', points: shapes[exit.side] }));
   });
 
   picture.dots.forEach(([x, y]) => {

@@ -59,7 +59,9 @@ assert.strictEqual(curve[0], null, 'y = 3x is off the bottom at the left edge');
 
 assert.deepStrictEqual(rules.exits(steep).map((exit) => exit.side), ['bottom', 'top']);
 const hyperbola = { family_id: HYPERBOLA, a: 3, b: 0, c: 0 };
-assert.deepStrictEqual(rules.exits(hyperbola).map((exit) => exit.side), ['bottom', 'top']);
+assert.deepStrictEqual(rules.exits(hyperbola).map((exit) => exit.side), ['bottom', 'top', 'left', 'right']);
+assert.deepStrictEqual(rules.exits(hyperbola).find((exit) => exit.side === 'left'), { output: -0.3, side: 'left' },
+  'side arrows sit at the height where the curve meets the edge');
 assert.strictEqual(rules.asymptotes(hyperbola).length, 2);
 assert.strictEqual(rules.asymptotes(steep).length, 0);
 
@@ -179,6 +181,36 @@ assert.ok(crossed.every((level, index) => (Math.abs(crossingStroke[index][0]) <=
 const [whole] = traced(rules.visibleCurve(swapped));
 const branches = [whole.filter(([x]) => x < 0), whole.filter(([x]) => x > 0)];
 assert.strictEqual(rules.judge(branches, swapped).accuracy, 100, 'tracing each branch is still perfect');
+
+const { CIRCLE, ELLIPSE, SIDEWAYS } = rules;
+const circle = { family_id: CIRCLE, a: 5, b: 1, c: -2 };
+assert.strictEqual(rules.describe(circle), '(x - 1)^2 + (y + 2)^2 = 25');
+assert.strictEqual(rules.describe({ family_id: ELLIPSE, a: 4, b: 0, c: 1, d: 2 }), '\\frac{x^2}{16} + \\frac{(y - 1)^2}{4} = 1');
+assert.strictEqual(rules.describe({ family_id: SIDEWAYS, a: -2, b: 3, c: 0 }), 'x = -\\frac{1}{2}y^2 + 3');
+assert.strictEqual(rules.pieces(circle), 1, 'a circle is drawn in one stroke');
+assert.deepStrictEqual(rules.exits(circle), [], 'a circle inside the graph touches no edge');
+const ring = [];
+for (let step = 0; step <= 200; step += 1) {
+  const angle = (step / 200) * 2 * Math.PI;
+  ring.push([1 + 5 * Math.cos(angle), -2 + 5 * Math.sin(angle)]);
+}
+assert.strictEqual(rules.judge([ring], circle).accuracy, 100, 'tracing the circle is perfect');
+const halfLoop = rules.judge([ring.slice(0, 101)], circle);
+assert.ok(halfLoop.accuracy < 85, `half a circle does not pass, got ${halfLoop.accuracy}`);
+assert.ok(halfLoop.missedRows.some(Boolean), 'missing the bottom half shows grey bars down the side');
+assert.ok(rules.judge([ring], { family_id: CIRCLE, a: 3, b: 1, c: -2 }).accuracy < 85, 'a circle the wrong size does not pass');
+for (let seed = 1; seed <= 300; seed += 1) {
+  const relation = rules.machineFromSeed(seed * 9973, 4);
+  assert.ok(rules.isRelation(relation));
+  assert.strictEqual(rules.pieces(relation), 1);
+  assert.ok(rules.inkFor(relation) >= 30);
+  assert.doesNotThrow(() => katex.renderToString(rules.describe(relation), { output: 'mathml' }));
+  const dots = rules.hintDots(relation);
+  assert.strictEqual(new Set(dots.map((dot) => dot.join())).size, 3, 'three different hint dots');
+  if (relation.family_id !== SIDEWAYS) {
+    assert.deepStrictEqual(rules.exits(relation), [], 'loops stay inside the graph');
+  }
+}
 
 assert.strictEqual(rules.scoreFor(100, 1, 0), 1000, 'a perfect first go with no hints is full marks');
 assert.strictEqual(rules.scoreFor(92, 1, 0), 920);

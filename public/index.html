@@ -61,6 +61,7 @@
           <button type="button" id="hint">Hint</button>
         </div>
         <p id="hint-text" class="help"></p>
+        <p id="shape-text" class="shape-text" hidden></p>
 
         <p id="form-status" class="status" role="status" aria-live="polite"></p>
 
@@ -104,9 +105,9 @@
         <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
         <ul>
           <li><strong>● Dot</strong>: a spot that's on the curve, which you get from a hint.</li>
-          <li><strong>▲ Arrow on the edge</strong>: the curve leaves the graph here.</li>
+          <li><strong>▲ Arrow on an edge</strong>: the curve leaves the graph here.</li>
           <li><strong>→ Arrow on your line</strong>: you're way off here and the curve is in that direction.</li>
-          <li><strong>Grey bar at the bottom</strong>: you missed the curve somewhere above it.</li>
+          <li><strong>Grey bars on the edges</strong>: you missed the curve somewhere above the bar, or somewhere level with it.</li>
           <li><strong>Grey line</strong>: your line joins two pieces of the curve that aren't connected.</li>
         </ul>
 
@@ -152,7 +153,7 @@
           <li>
             <strong>Fix it up.</strong> You get 5 attempts per curve and your last one stays on the graph, so
             you can keep the good bits and redraw the rest. Get 85% or more and you've cracked it. If you're
-            stuck, a hint shows you one spot that's on the curve.
+            stuck, your first hint tells you what kind of curve it is and the next ones show you spots on it.
           </li>
           <li>
             <strong>Scoring.</strong> Each curve is out of 1000 depending on how close you get, and you lose

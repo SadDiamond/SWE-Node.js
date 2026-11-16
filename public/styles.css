@@ -1105,3 +1105,10 @@ a {
 .day-note {
   color: var(--muted);
 }
+
+.shape-text {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--fresh);
+  background: var(--card);
+}

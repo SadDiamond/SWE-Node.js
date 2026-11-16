@@ -37,6 +37,10 @@ const S_CURVE = 11;
 const QUARTIC = 12;
 const INVERSE_SQUARE = 13;
 const TANGENT = 14;
+const CIRCLE = 15;
+const ELLIPSE = 16;
+const SIDEWAYS = 17;
+const RELATIONS = [CIRCLE, ELLIPSE, SIDEWAYS];
 
 function inputFor(column) {
   return column / STEPS_PER_UNIT - LIMIT;
@@ -83,8 +87,7 @@ function evaluate(machine, x) {
   return extra === null ? null : main + extra;
 }
 
-function visibleCurve(machine) {
-  const whole = wholeCurve(machine);
+function visibleBranch(whole) {
   const onGraph = (output) => output !== null && output !== undefined && Math.abs(output) <= LIMIT;
 
   return whole.map((output, column) => {
@@ -93,6 +96,14 @@ function visibleCurve(machine) {
     const besideGraph = onGraph(whole[column - 1]) || onGraph(whole[column + 1]);
     return besideGraph ? Math.sign(output) * LIMIT : null;
   });
+}
+
+function visibleCurve(machine) {
+  return visibleBranch(wholeCurve(machine));
+}
+
+function visibleBranches(machine) {
+  return wholeBranches(machine).map(visibleBranch);
 }
 
 function stopsShort(machine) {
@@ -104,21 +115,26 @@ function stopsShort(machine) {
 
 function exits(machine) {
   const found = [];
-  let before = null;
+  for (const whole of wholeBranches(machine)) {
+    let before = null;
+    for (let column = 0; column < COLUMNS; column += 1) {
+      const output = whole[column];
+      let now = 'on';
+      if (output === null) now = 'none';
+      else if (output > LIMIT) now = 'top';
+      else if (output < -LIMIT) now = 'bottom';
 
-  for (let column = 0; column < COLUMNS; column += 1) {
-    const output = evaluate(machine, inputFor(column));
-    let now = 'on';
-    if (output === null) now = 'none';
-    else if (output > LIMIT) now = 'top';
-    else if (output < -LIMIT) now = 'bottom';
-
-    const offEdge = now === 'on' ? before : now;
-    const crossed = before !== null && now !== before && (now === 'on' || before === 'on');
-    if (crossed && (offEdge === 'top' || offEdge === 'bottom')) {
-      found.push({ input: Math.round(inputFor(column) * 10) / 10, side: offEdge });
+      const offEdge = now === 'on' ? before : now;
+      const crossed = before !== null && now !== before && (now === 'on' || before === 'on');
+      if (crossed && (offEdge === 'top' || offEdge === 'bottom')) {
+        found.push({ input: Math.round(inputFor(column) * 10) / 10, side: offEdge });
+      }
+      before = now;
     }
-    before = now;
+    for (const [column, side] of [[0, 'left'], [COLUMNS - 1, 'right']]) {
+      const output = whole[column];
+      if (output !== null && Math.abs(output) <= LIMIT) found.push({ output: Math.round(output * 10) / 10, side });
+    }
   }
   return found;
 }
@@ -129,6 +145,38 @@ function wholeCurve(machine) {
     curve.push(evaluate(machine, inputFor(column)));
   }
   return curve;
+}
+
+function isRelation(machine) {
+  return RELATIONS.includes(machine.family_id);
+}
+
+// A relation such as a circle has two outputs for most inputs, so it is split into two
+// branches (top and bottom, or upper and lower arm). Each branch has at most one output per input.
+function relationSpread(machine, x) {
+  const { a, b, c } = machine;
+  if (machine.family_id === CIRCLE) {
+    const left = a * a - (x - b) ** 2;
+    return left < 0 ? null : { middle: c, spread: Math.sqrt(left) };
+  }
+  if (machine.family_id === ELLIPSE) {
+    const left = 1 - ((x - b) / a) ** 2;
+    return left < 0 ? null : { middle: c, spread: machine.d * Math.sqrt(left) };
+  }
+  const left = (4 * (x - b)) / a;
+  return left < 0 ? null : { middle: c, spread: Math.sqrt(left) };
+}
+
+function wholeBranches(machine) {
+  if (!isRelation(machine)) return [wholeCurve(machine)];
+  const upper = [];
+  const lower = [];
+  for (let column = 0; column < COLUMNS; column += 1) {
+    const found = relationSpread(machine, inputFor(column));
+    upper.push(found ? found.middle + found.spread : null);
+    lower.push(found ? found.middle - found.spread : null);
+  }
+  return [upper, lower];
 }
 
 function closestOnPiece(x, y, x1, y1, x2, y2) {
@@ -147,23 +195,24 @@ function distanceToPiece(x, y, x1, y1, x2, y2) {
 // to one side looks like a huge error.
 // Only the branch on the point's own side of every vertical asymptote counts: the curve never
 // crosses one, so being near the other branch is not being near the curve.
-function nearestOnCurve(x, y, curve, walls) {
+function nearestOnCurve(x, y, branches, walls) {
   const nearest = Math.round((x + LIMIT) * STEPS_PER_UNIT);
   const first = Math.max(0, nearest - REACH);
   const last = Math.min(COLUMNS - 1, nearest + REACH);
   let best = { distance: Infinity, x: null, y: null };
 
-  for (let column = first; column <= last; column += 1) {
-    const here = curve[column];
-    if (here === null || sideOf(inputFor(column), walls) !== sideOf(x, walls)) continue;
-    const next = column < last ? curve[column + 1] : null;
-    const joined = next !== null;
+  for (const curve of branches) {
+    for (let column = first; column <= last; column += 1) {
+      const here = curve[column];
+      if (here === null || sideOf(inputFor(column), walls) !== sideOf(x, walls)) continue;
+      const next = column < last ? curve[column + 1] : null;
 
-    const spot = joined
-      ? closestOnPiece(x, y, inputFor(column), here, inputFor(column + 1), next)
-      : { x: inputFor(column), y: here };
-    const distance = Math.hypot(x - spot.x, y - spot.y);
-    if (distance < best.distance) best = { distance, ...spot };
+      const spot = next !== null
+        ? closestOnPiece(x, y, inputFor(column), here, inputFor(column + 1), next)
+        : { x: inputFor(column), y: here };
+      const distance = Math.hypot(x - spot.x, y - spot.y);
+      if (distance < best.distance) best = { distance, ...spot };
+    }
   }
   return best;
 }
@@ -194,8 +243,8 @@ function levelFor(distance) {
 }
 
 function judge(strokes, machine) {
-  const whole = wholeCurve(machine);
-  const visible = visibleCurve(machine);
+  const whole = wholeBranches(machine);
+  const visible = whole.map(visibleBranch);
   const walls = asymptotes(machine).filter((line) => line.kind === 'vertical').map((line) => line.input);
 
   let inkLength = 0;
@@ -234,20 +283,37 @@ function judge(strokes, machine) {
 
   let curvePoints = 0;
   let curveCovered = 0;
-  const missed = visible.map((output, column) => {
-    if (output === null) return false;
-    const level = levelFor(distanceToDrawing(inputFor(column), output, strokes, walls));
-    curvePoints += 1;
-    curveCovered += 1 - level / BANDS.length;
-    return level === BANDS.length;
-  });
+  const missed = new Array(COLUMNS).fill(false);
+  const missedRows = new Array(COLUMNS).fill(false);
+  const rowFor = (output) => Math.round((output + LIMIT) * STEPS_PER_UNIT);
+  for (const branch of visible) {
+    let before = null;
+    branch.forEach((output, column) => {
+      if (output === null) {
+        before = null;
+        return;
+      }
+      const level = levelFor(distanceToDrawing(inputFor(column), output, strokes, walls));
+      curvePoints += 1;
+      curveCovered += 1 - level / BANDS.length;
+      if (level === BANDS.length) {
+        missed[column] = true;
+        const from = before === null ? rowFor(output) : Math.min(rowFor(before), rowFor(output));
+        const to = before === null ? rowFor(output) : Math.max(rowFor(before), rowFor(output));
+        for (let row = from; row <= to; row += 1) missedRows[row] = true;
+        before = output;
+      } else {
+        before = null;
+      }
+    });
+  }
 
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
 
   const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
-  return { levels, nudges, missed, accuracy, closeEnough, solved: accuracy >= SOLVED_AT || closeEnough };
+  return { levels, nudges, missed, missedRows, accuracy, closeEnough, solved: accuracy >= SOLVED_AT || closeEnough };
 }
 
 function accuracyOf(strokes, whole, visible, walls) {
@@ -265,11 +331,11 @@ function accuracyOf(strokes, whole, visible, walls) {
 
   let curvePoints = 0;
   let curveCovered = 0;
-  visible.forEach((output, column) => {
+  visible.forEach((branch) => branch.forEach((output, column) => {
     if (output === null) return;
     curvePoints += 1;
     curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes, walls)) / BANDS.length;
-  });
+  }));
 
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
@@ -316,25 +382,30 @@ const MAX_HINTS = 3;
 
 function hintDots(machine) {
   const visible = [];
-  visibleCurve(machine).forEach((output, column) => {
-    if (output !== null) visible.push([Math.round(inputFor(column) * 10) / 10, output]);
+  visibleBranches(machine).forEach((branch, index) => {
+    const points = [];
+    branch.forEach((output, column) => {
+      if (output !== null) points.push([Math.round(inputFor(column) * 10) / 10, output]);
+    });
+    visible.push(...(index % 2 === 1 ? points.reverse() : points));
   });
 
   const dots = [];
-  for (let index = 1; index <= MAX_HINTS; index += 1) {
-    dots.push(visible[Math.floor((visible.length * index) / (MAX_HINTS + 1))]);
+  for (let index = 1; index <= 3; index += 1) {
+    dots.push(visible[Math.floor((visible.length * index) / 4)]);
   }
   return [dots[1], dots[0], dots[2]];
 }
 
 function inkFor(machine) {
-  const visible = visibleCurve(machine);
   let length = 0;
-  for (let column = 1; column < COLUMNS; column += 1) {
-    const here = visible[column];
-    const before = visible[column - 1];
-    if (here !== null && before !== null) {
-      length += Math.hypot(1 / STEPS_PER_UNIT, here - before);
+  for (const visible of visibleBranches(machine)) {
+    for (let column = 1; column < COLUMNS; column += 1) {
+      const here = visible[column];
+      const before = visible[column - 1];
+      if (here !== null && before !== null) {
+        length += Math.hypot(1 / STEPS_PER_UNIT, here - before);
+      }
     }
   }
   return Math.round(Math.max(SMALLEST_INK, length * INK_TO_SPARE));
@@ -432,7 +503,21 @@ function expression(familyId, a, b, c) {
   }
 }
 
+function yBracket(amount) {
+  return bracket(amount).replace('x', 'y');
+}
+
+function describeRelation(machine) {
+  const { a, b, c, d } = machine;
+  if (machine.family_id === CIRCLE) return `${bracket(b)}^2 + ${yBracket(c)}^2 = ${a * a}`;
+  if (machine.family_id === ELLIPSE) {
+    return `\\frac{${bracket(b)}^2}{${a * a}} + \\frac{${yBracket(c)}^2}{${d * d}} = 1`;
+  }
+  return `x = ${multiplier(a, 4)}${yBracket(c)}^2${plus(b)}`;
+}
+
 function describe(machine) {
+  if (isRelation(machine)) return describeRelation(machine);
   const main = expression(machine.family_id, machine.a, machine.b, machine.c);
   if (!machine.extra_family_id) return `y = ${main}`;
 
@@ -529,6 +614,18 @@ function randomMachine(next, familyId) {
       return { a: nonZero(-6, 6), b: between(-5, 5), c: between(-5, 5) };
     case TANGENT:
       return { a: pick([-2, -1, 1, 2]), b: pick([7, 8]), c: between(-3, 3) };
+    case CIRCLE: {
+      const radius = between(3, 7);
+      return { a: radius, b: between(radius - 9, 9 - radius), c: between(radius - 9, 9 - radius) };
+    }
+    case ELLIPSE: {
+      const across = between(3, 8);
+      let down = across;
+      while (down === across) down = between(2, 8);
+      return { a: across, b: between(across - 9, 9 - across), c: between(down - 9, 9 - down), d: down };
+    }
+    case SIDEWAYS:
+      return { a: pick([-4, -2, -1, 1, 2, 4]), b: between(-6, 6), c: between(-5, 5) };
     default:
       return { a: pick([-6, -4, -2, 2, 4, 6]), b: between(-4, 4), c: pick([-2, -1, 1, 2]) };
   }
@@ -538,7 +635,8 @@ const RECIPES_FOR_SLOT = {
   1: [[LINE], [PARABOLA], [V_SHAPE]],
   2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL], [BELL], [S_CURVE], [QUARTIC], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
   3: [[HYPERBOLA], [SLANTED], [INVERSE_SQUARE], [TANGENT], [HYPERBOLA, PARABOLA], [HYPERBOLA, V_SHAPE],
-    [EXPONENTIAL, LINE], [S_CURVE, LINE]]
+    [EXPONENTIAL, LINE], [S_CURVE, LINE]],
+  4: [[CIRCLE], [ELLIPSE], [SIDEWAYS]]
 };
 // A wave is never used as the second part. A small ripple on a big shape sits inside the
 // marking's tolerance, so the plain shape would pass and the wave would never need finding.
@@ -580,6 +678,7 @@ function machineFromSeed(seed, slot) {
     if (extraFamilyId) {
       machine = { ...machine, extra_family_id: extraFamilyId, ...randomExtra(next, extraFamilyId) };
     }
+    if (isRelation(machine)) break;
     onScreen = visibleCurve(machine).filter((output) => output !== null).length;
     if (stopsShort(machine)) onScreen = 0;
   }
@@ -587,7 +686,8 @@ function machineFromSeed(seed, slot) {
 }
 
 const MACHINE_SELECT = `
-  SELECT machines.*, families.name AS family_name, families.difficulty, extras.name AS extra_name
+  SELECT machines.*, families.name AS family_name, families.description AS family_description,
+    families.difficulty, extras.name AS extra_name
   FROM machines
   INNER JOIN families ON families.id = machines.family_id
   LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
@@ -597,6 +697,11 @@ function kindName(machine) {
   return machine.extra_name
     ? `${machine.family_name} + ${machine.extra_name.toLowerCase()}`
     : machine.family_name;
+}
+
+function shapeOf(machine) {
+  const added = machine.extra_name ? ` It has a ${machine.extra_name.toLowerCase()} added on to it.` : '';
+  return `${kindName(machine)}. ${machine.family_description}${added}`;
 }
 
 async function machinesFor(date) {
@@ -629,7 +734,7 @@ async function fillHistory() {
 module.exports = {
   COLUMNS, CROSSED, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
-  BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT,
+  BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT, CIRCLE, ELLIPSE, SIDEWAYS,
   asymptotes, describe, numberMaker, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
-  hintDots, inkFor, inkUsed, kindName, pastDates, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve
+  hintDots, inkFor, inkUsed, isRelation, kindName, pastDates, pieces, scoreFor, shapeOf, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve
 };

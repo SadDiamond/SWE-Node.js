@@ -93,19 +93,20 @@ app.post('/api/logout', route(async (request, response) => {
 }));
 
 async function findMachine(id) {
-  const endless = /^r(\d{1,10})s([123])$/.exec(id);
+  const endless = /^r(\d{1,10})s([1234])$/.exec(id);
   if (endless) {
     const slot = Number(endless[2]);
     const machine = rules.machineFromSeed(Number(endless[1]), slot);
-    const names = await all('SELECT id, name FROM families');
-    const nameOf = (familyId) => (names.find((family) => family.id === familyId) || {}).name;
+    const families = await all('SELECT id, name, description FROM families');
+    const familyOf = (familyId) => families.find((family) => family.id === familyId) || {};
     return {
       ...machine,
       id,
       slot,
       endless: true,
-      family_name: nameOf(machine.family_id),
-      extra_name: machine.extra_family_id ? nameOf(machine.extra_family_id) : null
+      family_name: familyOf(machine.family_id).name,
+      family_description: familyOf(machine.family_id).description,
+      extra_name: machine.extra_family_id ? familyOf(machine.extra_family_id).name : null
     };
   }
 
@@ -143,7 +144,7 @@ function reveal(machine, accuracy, solved, goes, hints) {
     solved,
     finished: true,
     score: rules.scoreFor(accuracy, goes, hints),
-    curve: rules.visibleCurve(machine),
+    curve: rules.visibleBranches(machine),
     familyName: rules.kindName(machine),
     formula: rules.describe(machine),
     formulaMath: formulaMath(machine, true),
@@ -157,7 +158,8 @@ async function savedState(userId, machine) {
 
   const saved = {
     goes: play.goes,
-    dots: rules.hintDots(machine).slice(0, play.hints),
+    shape: play.hints > 0 ? rules.shapeOf(machine) : null,
+    dots: rules.hintDots(machine).slice(0, Math.max(0, play.hints - 1)),
     result: null,
     last: null
   };
@@ -168,7 +170,7 @@ async function savedState(userId, machine) {
   if (goes.length > 0) {
     const strokes = JSON.parse(goes[0].drawing);
     const marked = rules.judge(strokes, machine);
-    saved.last = { strokes, levels: marked.levels, nudges: marked.nudges, missed: marked.missed };
+    saved.last = { strokes, levels: marked.levels, nudges: marked.nudges, missed: marked.missed, missedRows: marked.missedRows };
   }
   return saved;
 }
@@ -232,7 +234,7 @@ app.get('/api/days', route(async (request, response) => {
 
 app.get('/api/endless', route(async (request, response) => {
   const asked = Number.parseInt(request.query.slot, 10);
-  const slot = [1, 2, 3].includes(asked) ? asked : crypto.randomInt(1, 4);
+  const slot = [1, 2, 3, 4].includes(asked) ? asked : crypto.randomInt(1, 4);
   const seed = crypto.randomInt(1, 2000000000);
   const machine = rules.machineFromSeed(seed, slot);
 
@@ -293,6 +295,7 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   reply.levels = result.levels;
   reply.nudges = result.nudges;
   reply.missed = result.missed;
+  reply.missedRows = result.missedRows;
 
   if (play) {
     await run(
@@ -330,7 +333,8 @@ app.post('/api/machines/:id/hint', route(async (request, response) => {
   }
 
   if (play) await run('UPDATE plays SET hints = ? WHERE id = ?', [number, play.id]);
-  response.json({ dot: rules.hintDots(machine)[number - 1] });
+  if (number === 1) return response.json({ shape: rules.shapeOf(machine) });
+  response.json({ dot: rules.hintDots(machine)[number - 2] });
 }));
 
 app.get('/api/families', route(async (_request, response) => {

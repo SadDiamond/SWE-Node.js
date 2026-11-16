@@ -52,7 +52,11 @@ function send(url, body) {
 }
 
 const ENDLESS_TOTAL = 'endlessTotal';
-const SLOT_NAMES = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
+const SLOT_NAMES = { 1: 'Easy', 2: 'Medium', 3: 'Hard', 4: 'Loops and turns' };
+
+function hintsUsed(round) {
+  return round.dots.length + (round.shape ? 1 : 0);
+}
 const PEN_SPACING = 0.05;
 
 function rounded(position) {
@@ -97,6 +101,8 @@ async function playPage(endless) {
       shown: saved && saved.last ? saved.last : null,
       ghost: null,
       missed: saved && saved.last ? saved.last.missed : [],
+      missedRows: saved && saved.last && saved.last.missedRows ? saved.last.missedRows : [],
+      shape: saved && saved.shape ? saved.shape : null,
       dots: saved ? saved.dots : [],
       goes: saved ? saved.goes : 0,
       history: saved && saved.history ? saved.history : [],
@@ -113,7 +119,8 @@ async function playPage(endless) {
       dots: item.dots,
       history: item.history,
       result: item.result,
-      last: item.shown ? { ...item.shown, missed: item.missed } : null
+      shape: item.shape,
+      last: item.shown ? { ...item.shown, missed: item.missed, missedRows: item.missedRows } : null
     })));
   }
 
@@ -130,6 +137,7 @@ async function playPage(endless) {
       ghost: round.result ? null : round.ghost,
       percent,
       missed: round.missed,
+      missedRows: round.missedRows,
       exits: round.exits,
       dots: round.dots,
       curve: round.result ? round.result.curve : null,
@@ -249,12 +257,15 @@ async function playPage(endless) {
     }
     find('#goes-text').textContent = `${goesText(game.maxGoes - round.goes)} left`;
 
-    const hintsLeft = game.maxHints - round.dots.length;
+    const hintsLeft = game.maxHints - hintsUsed(round);
     find('#hint').disabled = hintsLeft === 0;
-    find('#hint-text').textContent = hintsLeft === 0
-      ? "You've used all your hints for this curve."
-      : `A hint shows you one spot on the curve but costs ${game.hintPenalty} points (${hintsLeft} left).`;
+    let hintText = `Your first hint tells you what kind of curve this is and the next ones show you spots on it. Each costs ${game.hintPenalty} points (${hintsLeft} left).`;
+    if (round.shape) hintText = `Another hint shows you a spot on the curve but costs ${game.hintPenalty} points (${hintsLeft} left).`;
+    if (hintsLeft === 0) hintText = "You've used all your hints for this curve.";
+    find('#hint-text').textContent = hintText;
     find('#hint-text').hidden = Boolean(round.result);
+    find('#shape-text').textContent = round.shape || '';
+    find('#shape-text').hidden = !round.shape || Boolean(round.result);
 
     find('#stroke-info').textContent = round.strokesPerGo === 1
       ? "You get one stroke per attempt and it's marked when you lift your pen."
@@ -277,8 +288,9 @@ async function playPage(endless) {
       const extraGoes = round.goes - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
       if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: −${extraGoes * game.goPenalty}`);
-      if (round.dots.length > 0) {
-        lines.push(`${round.dots.length === 1 ? '1 hint' : `${round.dots.length} hints`}: −${round.dots.length * game.hintPenalty}`);
+      const hints = hintsUsed(round);
+      if (hints > 0) {
+        lines.push(`${hints === 1 ? '1 hint' : `${hints} hints`}: −${hints * game.hintPenalty}`);
       }
       find('#result-working').replaceChildren(...lines.map((line) => element('li', line)));
       find('#result-family').textContent = result.familyName;
@@ -303,7 +315,7 @@ async function playPage(endless) {
       const row = document.createElement('li');
       row.style.setProperty('--order', index);
       const detail = `${item.result.familyName} · ${goesText(item.goes)}`
-        + (item.dots.length > 0 ? ` · ${item.dots.length === 1 ? '1 hint' : `${item.dots.length} hints`}` : '');
+        + (hintsUsed(item) > 0 ? ` · ${hintsUsed(item) === 1 ? '1 hint' : `${hintsUsed(item)} hints`}` : '');
       row.append(
         element('span', SLOT_NAMES[item.slot], 'summary-name'),
         element('span', detail, 'summary-detail'),
@@ -315,7 +327,7 @@ async function playPage(endless) {
     find('#save-prompt').hidden = Boolean(currentUser);
     if (!currentUser) {
       const pending = readStored(PENDING_RUN) || {};
-      pending[game.date] = rounds.map((item) => ({ id: item.id, hints: item.dots.length, goes: item.history }));
+      pending[game.date] = rounds.map((item) => ({ id: item.id, hints: hintsUsed(item), goes: item.history }));
       writeStored(PENDING_RUN, pending);
     }
 
@@ -361,8 +373,9 @@ async function playPage(endless) {
     waiting = true;
     const asking = round;
     try {
-      const hint = await send(`/api/machines/${asking.id}/hint`, { number: asking.dots.length + 1 });
-      asking.dots.push(hint.dot);
+      const hint = await send(`/api/machines/${asking.id}/hint`, { number: hintsUsed(asking) + 1 });
+      if (hint.shape) asking.shape = hint.shape;
+      else asking.dots.push(hint.dot);
       saveGuestRun();
       showRound();
     } catch (error) {
@@ -375,11 +388,12 @@ async function playPage(endless) {
 
   function startStroke(position) {
     if (round.result || waiting) return false;
-    beforeMarks = { shown: round.shown, ghost: round.ghost, missed: round.missed };
+    beforeMarks = { shown: round.shown, ghost: round.ghost, missed: round.missed, missedRows: round.missedRows };
     if (round.strokes.length === 0 && round.shown) {
       round.ghost = round.shown;
       round.shown = null;
       round.missed = [];
+      round.missedRows = [];
     }
     clearTimeout(percentTimer);
     percent = null;
@@ -417,6 +431,7 @@ async function playPage(endless) {
       round.shown = beforeMarks.shown;
       round.ghost = beforeMarks.ghost;
       round.missed = beforeMarks.missed;
+      round.missedRows = beforeMarks.missedRows;
       showGraph();
       if (round.strokes.length === 0 || !outOfInk()) {
         return message("That line was too short to count, so try drawing a longer one.");
@@ -431,12 +446,13 @@ async function playPage(endless) {
     const marking = round;
     try {
       const result = await send(`/api/machines/${marking.id}/go`, {
-        drawing: marking.strokes, go: marking.goes + 1, hints: marking.dots.length
+        drawing: marking.strokes, go: marking.goes + 1, hints: hintsUsed(marking)
       });
       marking.goes += 1;
       marking.history.push(marking.strokes);
       marking.shown = { strokes: marking.strokes, levels: result.levels, nudges: result.nudges };
       marking.missed = result.missed;
+      marking.missedRows = result.missedRows;
       if (result.finished) {
         marking.result = result;
         message('');
@@ -519,7 +535,7 @@ async function playPage(endless) {
     document.querySelectorAll('#levels a').forEach((choice) => {
       if (new URL(choice.href).searchParams.get('slot') === (asked || null)) choice.setAttribute('aria-current', 'true');
     });
-    find('#today-date').textContent = `${SLOT_NAMES[round.slot]} curve`;
+    find('#today-date').textContent = round.slot === 4 ? SLOT_NAMES[4] : `${SLOT_NAMES[round.slot]} curve`;
     showRound();
     return;
   }

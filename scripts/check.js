@@ -224,6 +224,14 @@ const arm = (side) => {
 assert.ok(rules.judge([arm(1), arm(-1)], sidewaysHyperbola).accuracy >= 98, 'tracing both halves scores full marks');
 assert.ok(rules.judge([arm(1)], sidewaysHyperbola).accuracy < 85, 'drawing only one half does not pass');
 
+const square = { family_id: ROUNDED_SQUARE, a: 5, b: 1, c: -3 };
+const squashed = [];
+for (let t = 0; t <= 1.0001; t += 0.01) squashed.push([5.4 - 9.4 * t, 3.5 * Math.sin(Math.PI * t)]);
+for (let t = 0; t <= 1.0001; t += 0.01) squashed.push([-4 + 9 * t, -1.5 * Math.sin(Math.PI * t)]);
+const lowerArrows = rules.judge([squashed], square).nudges.filter((nudge) => nudge.y < 0 && nudge.x > -3 && nudge.x < 4);
+assert.ok(lowerArrows.length > 0 && lowerArrows.every((nudge) => nudge.up < 0),
+  'on a squashed loop, the arrows on its bottom line point down to the bottom of the shape, not up to the nearest edge');
+
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
   const relation = rules.machineFromSeed(seed * 9973, 4);

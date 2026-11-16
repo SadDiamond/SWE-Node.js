@@ -267,6 +267,65 @@ function levelFor(distance) {
   return level === -1 ? BANDS.length : level;
 }
 
+const LOOPS = [CIRCLE, ELLIPSE, DIAMOND, ROUNDED_SQUARE];
+const MATCH_POINTS = 120;
+
+function resample(points, count) {
+  const lengths = [0];
+  for (let index = 1; index < points.length; index += 1) {
+    const [x1, y1] = points[index - 1];
+    const [x2, y2] = points[index];
+    lengths.push(lengths[index - 1] + Math.hypot(x2 - x1, y2 - y1));
+  }
+  const total = lengths[lengths.length - 1];
+  const samples = [];
+  let segment = 1;
+  for (let step = 0; step < count; step += 1) {
+    const wanted = (total * step) / count;
+    while (segment < points.length - 1 && lengths[segment] < wanted) segment += 1;
+    const span = lengths[segment] - lengths[segment - 1] || 1;
+    const along = (wanted - lengths[segment - 1]) / span;
+    const [x1, y1] = points[segment - 1];
+    const [x2, y2] = points[segment];
+    samples.push([x1 + (x2 - x1) * along, y1 + (y2 - y1) * along]);
+  }
+  return { samples, lengths, total };
+}
+
+// When a loop is drawn as a loop, each part of the drawing is paired with the part of the real
+// loop it stands for (top with top, bottom with bottom), so the arrows say where that part should go.
+// Pointing at the nearest part of the curve instead would tell the bottom of a squashed loop to move up.
+function loopTargets(stroke, machine) {
+  if (!LOOPS.includes(machine.family_id) || stroke.length < 3) return null;
+  const drawn = resample(stroke, MATCH_POINTS);
+  const [startX, startY] = stroke[0];
+  const [endX, endY] = stroke[stroke.length - 1];
+  if (drawn.total === 0 || Math.hypot(endX - startX, endY - startY) > drawn.total / 4) return null;
+
+  const [upper, lower] = visibleBranches(machine).map((branch) => branch
+    .map((output, column) => (output === null ? null : [inputFor(column), output]))
+    .filter(Boolean));
+  const outlinePoints = [...upper, ...lower.reverse()];
+  const outline = resample([...outlinePoints, outlinePoints[0]], MATCH_POINTS).samples;
+
+  let best = { cost: Infinity, shift: 0, turn: 1 };
+  for (const turn of [1, -1]) {
+    for (let shift = 0; shift < MATCH_POINTS; shift += 1) {
+      let cost = 0;
+      for (let step = 0; step < MATCH_POINTS; step += 1) {
+        const [x1, y1] = drawn.samples[step];
+        const [x2, y2] = outline[(shift + turn * step + MATCH_POINTS) % MATCH_POINTS];
+        cost += Math.hypot(x2 - x1, y2 - y1);
+      }
+      if (cost < best.cost) best = { cost, shift, turn };
+    }
+  }
+  return stroke.map((_point, index) => {
+    const step = Math.min(MATCH_POINTS - 1, Math.round((drawn.lengths[index] / drawn.total) * MATCH_POINTS));
+    return outline[(best.shift + best.turn * step + MATCH_POINTS) % MATCH_POINTS];
+  });
+}
+
 function judge(strokes, machine) {
   const whole = wholeBranches(machine);
   const visible = whole.map(visibleBranch);
@@ -280,6 +339,7 @@ function judge(strokes, machine) {
   const levels = strokes.map((stroke) => {
     const crossedWalls = walls.filter((wall) => stroke.some(([x], index) => index > 0
       && sideOf(stroke[index - 1][0], [wall]) !== sideOf(x, [wall])));
+    const targets = loopTargets(stroke, machine);
     return stroke.map(([x, y], index) => {
       const spot = nearestOnCurve(x, y, whole, walls);
       const level = levelFor(spot.distance);
@@ -293,12 +353,14 @@ function judge(strokes, machine) {
         sinceNudge += length;
       }
       if (crossing) return CROSSED;
-      if (level >= NUDGE_FROM_LEVEL && sinceNudge >= NUDGE_SPACING && spot.distance < Infinity) {
+      const aim = targets ? { x: targets[index][0], y: targets[index][1] } : spot;
+      const away = Math.hypot(aim.x - x, aim.y - y);
+      if (level >= NUDGE_FROM_LEVEL && sinceNudge >= NUDGE_SPACING && away > 0 && away < Infinity) {
         nudges.push({
           x,
           y,
-          across: Math.round(((spot.x - x) / spot.distance) * 100) / 100,
-          up: Math.round(((spot.y - y) / spot.distance) * 100) / 100
+          across: Math.round(((aim.x - x) / away) * 100) / 100,
+          up: Math.round(((aim.y - y) / away) * 100) / 100
         });
         sinceNudge = 0;
       }

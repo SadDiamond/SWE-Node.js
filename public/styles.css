@@ -29,7 +29,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --page: #16181b;
     --card: #1f2226;
     --ink: #e9e6df;
@@ -44,6 +44,28 @@
     --level-3: #f08b3d;
     --level-4: #f2665c;
   }
+}
+
+:root[data-theme="dark"] {
+  --page: #16181b;
+  --card: #1f2226;
+  --ink: #e9e6df;
+  --muted: #a3aab3;
+  --grid: #2b2f35;
+  --grid-major: #474e57;
+  --fresh: #5585ec;
+  --wrong: #f2665c;
+  --level-0: #3fba60;
+  --level-1: #a4cb3a;
+  --level-2: #e8b726;
+  --level-3: #f08b3d;
+  --level-4: #f2665c;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 * {
@@ -152,6 +174,22 @@ nav a {
   color: var(--ink);
   font: 400 1.1875rem var(--hand);
   text-decoration: none;
+}
+
+.theme-button {
+  min-height: 0;
+  padding: 0.375rem 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font: 400 1.1875rem var(--hand);
+}
+
+.theme-button:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline wavy;
+  text-underline-offset: 0.3em;
 }
 
 nav a:hover,

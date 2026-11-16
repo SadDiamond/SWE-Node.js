@@ -134,6 +134,21 @@ async function main() {
       assert.notStrictEqual(background, 'rgb(251, 250, 246)', 'the page is not the light background');
     });
 
+    await check('the theme button switches modes and remembers the choice', async () => {
+      const themed = await newPage(await browser.newContext({ colorScheme: 'light' }));
+      const background = () => themed.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      await themed.goto(`${SITE}/past.html`);
+      const light = await background();
+      assert.strictEqual(await themed.locator('#theme-button').textContent(), 'Dark mode');
+      await themed.click('#theme-button');
+      assert.notStrictEqual(await background(), light, 'the page turns dark');
+      await themed.goto(`${SITE}/stats.html`);
+      assert.notStrictEqual(await background(), light, 'the choice is kept on the next page');
+      assert.strictEqual(await themed.locator('#theme-button').textContent(), 'Light mode');
+      await themed.click('#theme-button');
+      assert.strictEqual(await background(), light, 'and it switches back');
+    });
+
     assert.deepStrictEqual(errors, [], 'no errors on any page');
     console.log('All browser checks passed.');
   } finally {

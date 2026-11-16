@@ -40,7 +40,13 @@ const TANGENT = 14;
 const CIRCLE = 15;
 const ELLIPSE = 16;
 const SIDEWAYS = 17;
-const RELATIONS = [CIRCLE, ELLIPSE, SIDEWAYS];
+const DIAMOND = 18;
+const ROUNDED_SQUARE = 19;
+const SIDEWAYS_V = 20;
+const SIDEWAYS_HYPERBOLA = 21;
+const UPRIGHT_HYPERBOLA = 22;
+const RELATIONS = [CIRCLE, ELLIPSE, SIDEWAYS, DIAMOND, ROUNDED_SQUARE, SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA];
+const TWO_PIECE_RELATIONS = [SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA];
 
 function inputFor(column) {
   return column / STEPS_PER_UNIT - LIMIT;
@@ -162,6 +168,25 @@ function relationSpread(machine, x) {
   if (machine.family_id === ELLIPSE) {
     const left = 1 - ((x - b) / a) ** 2;
     return left < 0 ? null : { middle: c, spread: machine.d * Math.sqrt(left) };
+  }
+  if (machine.family_id === DIAMOND) {
+    const left = 1 - Math.abs(x - b) / a;
+    return left < 0 ? null : { middle: c, spread: machine.d * left };
+  }
+  if (machine.family_id === ROUNDED_SQUARE) {
+    const left = a ** 4 - (x - b) ** 4;
+    return left < 0 ? null : { middle: c, spread: left ** 0.25 };
+  }
+  if (machine.family_id === SIDEWAYS_V) {
+    const left = (2 * (x - b)) / a;
+    return left < 0 ? null : { middle: c, spread: left };
+  }
+  if (machine.family_id === SIDEWAYS_HYPERBOLA) {
+    const left = ((x - b) / a) ** 2 - 1;
+    return left < 0 ? null : { middle: c, spread: machine.d * Math.sqrt(left) };
+  }
+  if (machine.family_id === UPRIGHT_HYPERBOLA) {
+    return { middle: c, spread: machine.d * Math.sqrt(1 + ((x - b) / a) ** 2) };
   }
   const left = (4 * (x - b)) / a;
   return left < 0 ? null : { middle: c, spread: Math.sqrt(left) };
@@ -422,6 +447,7 @@ function inkUsed(strokes) {
 }
 
 function pieces(machine) {
+  if (isRelation(machine)) return TWO_PIECE_RELATIONS.includes(machine.family_id) ? 2 : 1;
   return 1 + asymptotes(machine).filter((line) => line.kind === 'vertical').length;
 }
 
@@ -507,11 +533,30 @@ function yBracket(amount) {
   return bracket(amount).replace('x', 'y');
 }
 
+function over(top, bottom) {
+  return bottom === 1 ? top : `\\frac{${top}}{${bottom}}`;
+}
+
 function describeRelation(machine) {
   const { a, b, c, d } = machine;
   if (machine.family_id === CIRCLE) return `${bracket(b)}^2 + ${yBracket(c)}^2 = ${a * a}`;
   if (machine.family_id === ELLIPSE) {
     return `\\frac{${bracket(b)}^2}{${a * a}} + \\frac{${yBracket(c)}^2}{${d * d}} = 1`;
+  }
+  if (machine.family_id === DIAMOND) {
+    const across = `\\left|${shifted(b)}\\right|`;
+    const down = `\\left|${shifted(c).replace('x', 'y')}\\right|`;
+    return a === d ? `${across} + ${down} = ${a}` : `\\frac{${across}}{${a}} + \\frac{${down}}{${d}} = 1`;
+  }
+  if (machine.family_id === ROUNDED_SQUARE) return `${bracket(b)}^4 + ${yBracket(c)}^4 = ${a ** 4}`;
+  if (machine.family_id === SIDEWAYS_V) {
+    return `x = ${multiplier(a, 2)}\\left|${shifted(c).replace('x', 'y')}\\right|${plus(b)}`;
+  }
+  if (machine.family_id === SIDEWAYS_HYPERBOLA) {
+    return `${over(`${bracket(b)}^2`, a * a)} - ${over(`${yBracket(c)}^2`, d * d)} = 1`;
+  }
+  if (machine.family_id === UPRIGHT_HYPERBOLA) {
+    return `${over(`${yBracket(c)}^2`, d * d)} - ${over(`${bracket(b)}^2`, a * a)} = 1`;
   }
   return `x = ${multiplier(a, 4)}${yBracket(c)}^2${plus(b)}`;
 }
@@ -545,6 +590,10 @@ function asymptotes(machine) {
   }
   if (machine.family_id === S_CURVE) lines.push({ kind: 'sloped', slope: tilt, start: a + c });
   if (machine.family_id === BELL) lines.push({ kind: 'sloped', slope: tilt, start: 0 });
+  if (TWO_PIECE_RELATIONS.includes(machine.family_id)) {
+    const slope = machine.d / a;
+    lines.push({ kind: 'sloped', slope, start: c - slope * b }, { kind: 'sloped', slope: -slope, start: c + slope * b });
+  }
   if (machine.family_id === SLANTED) {
     lines.push({ kind: 'sloped', slope: c / 2 + tilt, start: 0 });
   }
@@ -626,6 +675,21 @@ function randomMachine(next, familyId) {
     }
     case SIDEWAYS:
       return { a: pick([-4, -2, -1, 1, 2, 4]), b: between(-6, 6), c: between(-5, 5) };
+    case DIAMOND: {
+      const across = between(3, 8);
+      const down = between(3, 8);
+      return { a: across, b: between(across - 9, 9 - across), c: between(down - 9, 9 - down), d: down };
+    }
+    case ROUNDED_SQUARE: {
+      const size = between(3, 7);
+      return { a: size, b: between(size - 9, 9 - size), c: between(size - 9, 9 - size) };
+    }
+    case SIDEWAYS_V:
+      return { a: pick([-4, -2, -1, 1, 2, 4]), b: between(-6, 6), c: between(-5, 5) };
+    case SIDEWAYS_HYPERBOLA:
+      return { a: between(1, 4), b: between(-3, 3), c: between(-4, 4), d: between(1, 4) };
+    case UPRIGHT_HYPERBOLA:
+      return { a: between(1, 4), b: between(-4, 4), c: between(-3, 3), d: between(1, 4) };
     default:
       return { a: pick([-6, -4, -2, 2, 4, 6]), b: between(-4, 4), c: pick([-2, -1, 1, 2]) };
   }
@@ -636,7 +700,8 @@ const RECIPES_FOR_SLOT = {
   2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL], [BELL], [S_CURVE], [QUARTIC], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
   3: [[HYPERBOLA], [SLANTED], [INVERSE_SQUARE], [TANGENT], [HYPERBOLA, PARABOLA], [HYPERBOLA, V_SHAPE],
     [EXPONENTIAL, LINE], [S_CURVE, LINE]],
-  4: [[CIRCLE], [ELLIPSE], [SIDEWAYS]]
+  4: [[CIRCLE], [ELLIPSE], [SIDEWAYS], [DIAMOND], [ROUNDED_SQUARE], [SIDEWAYS_V], [SIDEWAYS_HYPERBOLA],
+    [UPRIGHT_HYPERBOLA]]
 };
 // A wave is never used as the second part. A small ripple on a big shape sits inside the
 // marking's tolerance, so the plain shape would pass and the wave would never need finding.
@@ -735,6 +800,7 @@ module.exports = {
   COLUMNS, CROSSED, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
   BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT, CIRCLE, ELLIPSE, SIDEWAYS,
+  DIAMOND, ROUNDED_SQUARE, SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA,
   asymptotes, describe, numberMaker, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
   hintDots, inkFor, inkUsed, isRelation, kindName, pastDates, pieces, scoreFor, shapeOf, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve
 };

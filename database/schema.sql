@@ -123,4 +123,9 @@ INSERT OR IGNORE INTO families (id, name, difficulty, description) VALUES
   (14, 'Tangent', 3, 'Repeating S shapes, each squeezed between two vertical lines it never touches.'),
   (15, 'Circle', 3, 'A round loop that is the same distance from its middle all the way round.'),
   (16, 'Ellipse', 3, 'A stretched loop, wider than it is tall or taller than it is wide.'),
-  (17, 'Sideways parabola', 3, 'A U shape lying on its side, opening to the left or the right.');
+  (17, 'Sideways parabola', 3, 'A U shape lying on its side, opening to the left or the right.'),
+  (18, 'Diamond', 3, 'A loop with four straight sides and four sharp corners, like a square standing on one corner.'),
+  (19, 'Rounded square', 3, 'A loop like a square with its corners rounded off.'),
+  (20, 'Sideways V', 3, 'Two straight lines meeting at a sharp point, opening to the left or the right.'),
+  (21, 'Sideways hyperbola', 3, 'Two separate U shapes lying on their sides and opening away from each other.'),
+  (22, 'Up and down hyperbola', 3, 'Two separate U shapes, one opening upwards and one opening downwards.');

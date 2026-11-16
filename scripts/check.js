@@ -182,7 +182,9 @@ const [whole] = traced(rules.visibleCurve(swapped));
 const branches = [whole.filter(([x]) => x < 0), whole.filter(([x]) => x > 0)];
 assert.strictEqual(rules.judge(branches, swapped).accuracy, 100, 'tracing each branch is still perfect');
 
-const { CIRCLE, ELLIPSE, SIDEWAYS } = rules;
+const {
+  CIRCLE, ELLIPSE, SIDEWAYS, DIAMOND, ROUNDED_SQUARE, SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA
+} = rules;
 const circle = { family_id: CIRCLE, a: 5, b: 1, c: -2 };
 assert.strictEqual(rules.describe(circle), '(x - 1)^2 + (y + 2)^2 = 25');
 assert.strictEqual(rules.describe({ family_id: ELLIPSE, a: 4, b: 0, c: 1, d: 2 }), '\\frac{x^2}{16} + \\frac{(y - 1)^2}{4} = 1');
@@ -199,18 +201,45 @@ const halfLoop = rules.judge([ring.slice(0, 101)], circle);
 assert.ok(halfLoop.accuracy < 85, `half a circle does not pass, got ${halfLoop.accuracy}`);
 assert.ok(halfLoop.missedRows.some(Boolean), 'missing the bottom half shows grey bars down the side');
 assert.ok(rules.judge([ring], { family_id: CIRCLE, a: 3, b: 1, c: -2 }).accuracy < 85, 'a circle the wrong size does not pass');
+assert.strictEqual(rules.describe({ family_id: DIAMOND, a: 4, b: 1, c: 0, d: 4 }), '\\left|x - 1\\right| + \\left|y\\right| = 4');
+assert.strictEqual(rules.describe({ family_id: ROUNDED_SQUARE, a: 3, b: 0, c: -2 }), 'x^4 + (y + 2)^4 = 81');
+assert.strictEqual(rules.describe({ family_id: SIDEWAYS_V, a: -2, b: 3, c: 1 }), 'x = -\\left|y - 1\\right| + 3');
+assert.strictEqual(rules.describe({ family_id: UPRIGHT_HYPERBOLA, a: 2, b: 4, c: -1, d: 1 }), '(y + 1)^2 - \\frac{(x - 4)^2}{4} = 1');
+
+const diamond = { family_id: DIAMOND, a: 4, b: 0, c: 0, d: 6 };
+const diamondTrace = [[4, 0], [0, 6], [-4, 0], [0, -6], [4, 0]].flatMap(([x, y], index, corners) => {
+  if (index === corners.length - 1) return [[x, y]];
+  const [nextX, nextY] = corners[index + 1];
+  return Array.from({ length: 40 }, (_, step) => [x + ((nextX - x) * step) / 40, y + ((nextY - y) * step) / 40]);
+});
+assert.strictEqual(rules.judge([diamondTrace], diamond).accuracy, 100, 'tracing the diamond is perfect');
+
+const sidewaysHyperbola = { family_id: SIDEWAYS_HYPERBOLA, a: 2, b: 0, c: 0, d: 2 };
+assert.strictEqual(rules.pieces(sidewaysHyperbola), 2, 'a sideways hyperbola is two strokes');
+const arm = (side) => {
+  const points = [];
+  for (let y = -9; y <= 9.001; y += 0.2) points.push([side * 2 * Math.sqrt(1 + (y / 2) ** 2), y]);
+  return points.filter(([x]) => Math.abs(x) <= 10);
+};
+assert.ok(rules.judge([arm(1), arm(-1)], sidewaysHyperbola).accuracy >= 98, 'tracing both halves scores full marks');
+assert.ok(rules.judge([arm(1)], sidewaysHyperbola).accuracy < 85, 'drawing only one half does not pass');
+
+const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
   const relation = rules.machineFromSeed(seed * 9973, 4);
+  relationsSeen.add(relation.family_id);
   assert.ok(rules.isRelation(relation));
-  assert.strictEqual(rules.pieces(relation), 1);
+  const twoPieces = [SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA].includes(relation.family_id);
+  assert.strictEqual(rules.pieces(relation), twoPieces ? 2 : 1);
   assert.ok(rules.inkFor(relation) >= 30);
   assert.doesNotThrow(() => katex.renderToString(rules.describe(relation), { output: 'mathml' }));
   const dots = rules.hintDots(relation);
   assert.strictEqual(new Set(dots.map((dot) => dot.join())).size, 3, 'three different hint dots');
-  if (relation.family_id !== SIDEWAYS) {
+  if ([CIRCLE, ELLIPSE, DIAMOND, ROUNDED_SQUARE].includes(relation.family_id)) {
     assert.deepStrictEqual(rules.exits(relation), [], 'loops stay inside the graph');
   }
 }
+assert.strictEqual(relationsSeen.size, 8, 'every kind of loop and turn comes up');
 
 assert.strictEqual(rules.scoreFor(100, 1, 0), 1000, 'a perfect first go with no hints is full marks');
 assert.strictEqual(rules.scoreFor(92, 1, 0), 920);

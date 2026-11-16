@@ -6,7 +6,7 @@ const COLUMNS = 2 * LIMIT * STEPS_PER_UNIT + 1;
 
 const MAX_GOES = 5;
 const SOLVED_AT = 85;
-const BANDS = [0.75, 1.5, 2.25, 3];
+const BANDS = [0.6, 1.25, 1.9, 2.6];
 const SHORTEST_STROKE = 1.5;
 const REACH = 30;
 const SHAPE_SHIFTS = [-2, -1, 0, 1, 2];

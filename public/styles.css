@@ -80,9 +80,6 @@ footer {
 
 .key {
   grid-area: key;
-  width: 100%;
-  max-width: calc(100vh - 8rem);
-  margin-inline: auto;
 }
 
 @media (min-width: 60rem) {
@@ -92,7 +89,7 @@ footer {
     grid-template-areas:
       "board lead"
       "board rest"
-      "key rest";
+      "board key";
     align-items: start;
   }
 
@@ -579,7 +576,7 @@ math {
 }
 
 .key {
-  margin-top: 2rem;
+  margin-top: 1rem;
   padding-top: 1rem;
   border-top: 2px dashed var(--grid-major);
 }

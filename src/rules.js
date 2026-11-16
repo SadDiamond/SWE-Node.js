@@ -32,6 +32,11 @@ const CUBE_ROOT = 6;
 const EXPONENTIAL = 7;
 const HYPERBOLA = 8;
 const SLANTED = 9;
+const BELL = 10;
+const S_CURVE = 11;
+const QUARTIC = 12;
+const INVERSE_SQUARE = 13;
+const TANGENT = 14;
 
 function inputFor(column) {
   return column / STEPS_PER_UNIT - LIMIT;
@@ -55,6 +60,16 @@ function partValue(familyId, a, b, c, x) {
       return a * 2 ** (x / b) + c;
     case HYPERBOLA:
       return x === b ? null : a / (x - b) + c;
+    case BELL:
+      return a * 2 ** (-((x - b) ** 2) / c);
+    case S_CURVE:
+      return a / (1 + 2 ** (b - x)) + c;
+    case QUARTIC:
+      return (a / 64) * ((x - b) ** 2 - c * c) ** 2;
+    case INVERSE_SQUARE:
+      return x === b ? null : a / (x - b) ** 2 + c;
+    case TANGENT:
+      return Math.abs(Math.cos((Math.PI * x) / b)) < 1e-9 ? null : a * Math.tan((Math.PI * x) / b) + c;
     default:
       return x === b ? null : (c / 2) * x + a / (x - b);
   }
@@ -398,6 +413,20 @@ function expression(familyId, a, b, c) {
     }
     case HYPERBOLA:
       return `${a < 0 ? '-' : ''}\\frac{${Math.abs(a)}}{${shifted(b)}}${plus(c)}`;
+    case BELL: {
+      const front = Math.abs(a) === 1 ? multiplier(a, 1) : `${a} \\times `;
+      return `${front}2^{-\\frac{${bracket(b)}^2}{${c}}}`;
+    }
+    case S_CURVE: {
+      const power = b === 0 ? '-x' : `-${bracket(b)}`;
+      return `${a < 0 ? '-' : ''}\\frac{${Math.abs(a)}}{1 + 2^{${power}}}${plus(c)}`;
+    }
+    case QUARTIC:
+      return `${multiplier(a, 64)}\\left(${bracket(b)}^2 - ${c * c}\\right)^2`;
+    case INVERSE_SQUARE:
+      return `${a < 0 ? '-' : ''}\\frac{${Math.abs(a)}}{${bracket(b)}^2}${plus(c)}`;
+    case TANGENT:
+      return `${multiplier(a, 1)}\\tan\\left(\\frac{\\pi x}{${b}}\\right)${plus(c)}`;
     default:
       return `${multiplier(c, 2)}x ${a > 0 ? '+' : '-'} \\frac{${Math.abs(a)}}{${shifted(b)}}`;
   }
@@ -412,18 +441,25 @@ function describe(machine) {
 }
 
 function asymptotes(machine) {
-  const { b, c } = machine;
+  const { a, b, c } = machine;
   const lines = [];
-  const hugsVertical = machine.family_id === HYPERBOLA || machine.family_id === SLANTED;
+  const hugsVertical = [HYPERBOLA, SLANTED, INVERSE_SQUARE].includes(machine.family_id);
   if (hugsVertical) lines.push({ kind: 'vertical', input: b });
+  if (machine.family_id === TANGENT) {
+    for (let input = b / 2 - Math.ceil(LIMIT / b) * b; input < LIMIT; input += b) {
+      if (input > -LIMIT) lines.push({ kind: 'vertical', input });
+    }
+  }
 
   let tilt = 0;
   if (machine.extra_family_id === LINE) tilt = machine.extra_a / 2;
   else if (machine.extra_family_id) return lines;
 
-  if (machine.family_id === HYPERBOLA || machine.family_id === EXPONENTIAL) {
+  if ([HYPERBOLA, EXPONENTIAL, INVERSE_SQUARE, S_CURVE].includes(machine.family_id)) {
     lines.push({ kind: 'sloped', slope: tilt, start: c });
   }
+  if (machine.family_id === S_CURVE) lines.push({ kind: 'sloped', slope: tilt, start: a + c });
+  if (machine.family_id === BELL) lines.push({ kind: 'sloped', slope: tilt, start: 0 });
   if (machine.family_id === SLANTED) {
     lines.push({ kind: 'sloped', slope: c / 2 + tilt, start: 0 });
   }
@@ -483,6 +519,16 @@ function randomMachine(next, familyId) {
       return { a: nonZero(-3, 3), b: nonZero(-3, 3), c: between(-6, 6) };
     case HYPERBOLA:
       return { a: nonZero(-6, 6), b: between(-5, 5), c: between(-5, 5) };
+    case BELL:
+      return { a: pick([-8, -6, -4, 4, 6, 8]), b: between(-5, 5), c: pick([2, 4, 8]) };
+    case S_CURVE:
+      return { a: pick([-8, -6, -4, 4, 6, 8]), b: between(-4, 4), c: between(-4, 4) };
+    case QUARTIC:
+      return { a: pick([-4, -2, -1, 1, 2, 4]), b: between(-3, 3), c: pick([2, 3, 4]) };
+    case INVERSE_SQUARE:
+      return { a: nonZero(-6, 6), b: between(-5, 5), c: between(-5, 5) };
+    case TANGENT:
+      return { a: pick([-2, -1, 1, 2]), b: pick([7, 8]), c: between(-3, 3) };
     default:
       return { a: pick([-6, -4, -2, 2, 4, 6]), b: between(-4, 4), c: pick([-2, -1, 1, 2]) };
   }
@@ -490,8 +536,9 @@ function randomMachine(next, familyId) {
 
 const RECIPES_FOR_SLOT = {
   1: [[LINE], [PARABOLA], [V_SHAPE]],
-  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
-  3: [[HYPERBOLA], [SLANTED], [HYPERBOLA, PARABOLA], [HYPERBOLA, V_SHAPE], [EXPONENTIAL, LINE]]
+  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL], [BELL], [S_CURVE], [QUARTIC], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
+  3: [[HYPERBOLA], [SLANTED], [INVERSE_SQUARE], [TANGENT], [HYPERBOLA, PARABOLA], [HYPERBOLA, V_SHAPE],
+    [EXPONENTIAL, LINE], [S_CURVE, LINE]]
 };
 // A wave is never used as the second part. A small ripple on a big shape sits inside the
 // marking's tolerance, so the plain shape would pass and the wave would never need finding.
@@ -582,6 +629,7 @@ async function fillHistory() {
 module.exports = {
   COLUMNS, CROSSED, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
+  BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT,
   asymptotes, describe, numberMaker, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
   hintDots, inkFor, inkUsed, kindName, pastDates, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve
 };

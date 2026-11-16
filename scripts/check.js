@@ -3,7 +3,8 @@ const katex = require('katex');
 const rules = require('../src/rules');
 
 const {
-  COLUMNS, LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED
+  COLUMNS, LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
+  BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT
 } = rules;
 
 assert.strictEqual(rules.evaluate({ family_id: LINE, a: 3, b: -2, c: 0 }, 4), 4);
@@ -18,6 +19,14 @@ assert.strictEqual(rules.evaluate({ family_id: EXPONENTIAL, a: 1, b: 2, c: -1 },
 assert.strictEqual(rules.evaluate({ family_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 5), 3);
 assert.strictEqual(rules.evaluate({ family_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 2), null, 'nothing exists on the asymptote');
 assert.strictEqual(rules.evaluate({ family_id: SLANTED, a: 4, b: 0, c: 2 }, 2), 4);
+assert.strictEqual(rules.evaluate({ family_id: BELL, a: 6, b: 1, c: 4 }, 1), 6, 'a bell curve peaks at b');
+assert.strictEqual(rules.evaluate({ family_id: BELL, a: 6, b: 1, c: 4 }, 3), 3, 'and halves two steps away when c is 4');
+assert.strictEqual(rules.evaluate({ family_id: S_CURVE, a: 8, b: 0, c: -4 }, 0), 0, 'an S-curve is halfway up at b');
+assert.strictEqual(rules.evaluate({ family_id: QUARTIC, a: 2, b: 0, c: 3 }, 3), 0, 'a quartic touches zero at b plus or minus c');
+assert.strictEqual(rules.evaluate({ family_id: INVERSE_SQUARE, a: -4, b: 2, c: 3 }, 4), 2);
+assert.strictEqual(rules.evaluate({ family_id: INVERSE_SQUARE, a: -4, b: 2, c: 3 }, 2), null);
+assert.strictEqual(rules.evaluate({ family_id: TANGENT, a: 1, b: 8, c: 0 }, 4), null, 'a tangent has an asymptote at half its period');
+assert.strictEqual(rules.pieces({ family_id: TANGENT, a: 1, b: 8, c: 0 }), 3, 'and is in three pieces');
 
 const formula = (familyId, a, b, c) => rules.describe({ family_id: familyId, a, b, c });
 assert.strictEqual(formula(LINE, 3, -2, 0), 'y = \\frac{3}{2}x - 2');
@@ -36,6 +45,11 @@ assert.strictEqual(formula(EXPONENTIAL, 1, -2, 3), 'y = 2^{-\\frac{x}{2}} + 3');
 assert.strictEqual(formula(HYPERBOLA, 3, 2, 1), 'y = \\frac{3}{x - 2} + 1');
 assert.strictEqual(formula(HYPERBOLA, -3, 0, 0), 'y = -\\frac{3}{x}');
 assert.strictEqual(formula(SLANTED, -4, 1, 1), 'y = \\frac{1}{2}x - \\frac{4}{x - 1}');
+assert.strictEqual(formula(BELL, 6, 1, 4), 'y = 6 \\times 2^{-\\frac{(x - 1)^2}{4}}');
+assert.strictEqual(formula(S_CURVE, -6, 2, 3), 'y = -\\frac{6}{1 + 2^{-(x - 2)}} + 3');
+assert.strictEqual(formula(QUARTIC, 2, 0, 3), 'y = \\frac{1}{32}\\left(x^2 - 9\\right)^2');
+assert.strictEqual(formula(INVERSE_SQUARE, -4, 2, 3), 'y = -\\frac{4}{(x - 2)^2} + 3');
+assert.strictEqual(formula(TANGENT, -2, 8, 1), 'y = -2\\tan\\left(\\frac{\\pi x}{8}\\right) + 1');
 
 const steep = { family_id: LINE, a: 6, b: 0, c: 0 };
 const curve = rules.visibleCurve(steep);
@@ -213,7 +227,8 @@ for (let day = 0; day < 365; day += 1) {
     assert.ok(!rules.describe(machine).includes('NaN') && !rules.describe(machine).includes('undefined'));
     assert.ok(rules.inkFor(machine) >= 30 && rules.hintDots(machine).length === 3);
     const gaps = rules.wholeCurve(machine).filter((output) => output === null).length;
-    assert.ok(gaps <= 1, `the curve on ${date} must not start or stop partway across`);
+    const walls = rules.asymptotes(machine).filter((line) => line.kind === 'vertical').length;
+    assert.ok(gaps <= walls, `the curve on ${date} must not start or stop partway across`);
     assert.doesNotThrow(() => katex.renderToString(rules.describe(machine), { output: 'mathml' }));
     seen.add(machine.family_id);
     if (machine.extra_family_id) {
@@ -224,7 +239,7 @@ for (let day = 0; day < 365; day += 1) {
   }
   assert.strictEqual(rules.makeMachine(date, 1).extra_family_id, null, 'the easy curve is always a single kind');
 }
-assert.strictEqual(seen.size, 9, 'every family turns up during the year');
+assert.strictEqual(seen.size, 14, 'every family turns up during the year');
 assert.ok(mixes > 150 && mixes < 600, `a good share of medium and hard curves are mixes, got ${mixes}`);
 
 for (let seed = 1; seed < 3000; seed += 37) {

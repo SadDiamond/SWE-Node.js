@@ -115,4 +115,9 @@ INSERT OR IGNORE INTO families (id, name, difficulty, description) VALUES
   (6, 'Cube root', 2, 'A sideways S: steep in the middle and flattening out towards both sides.'),
   (7, 'Exponential', 2, 'Almost flat on one side, then shoots away faster and faster on the other.'),
   (8, 'Hyperbola', 3, 'Two separate pieces that hug a vertical line and a flat line without touching them.'),
-  (9, 'Slanted hyperbola', 3, 'Two pieces that hug a vertical line and a sloping line.');
+  (9, 'Slanted hyperbola', 3, 'Two pieces that hug a vertical line and a sloping line.'),
+  (10, 'Bell curve', 2, 'A single smooth hump, or dip, that flattens out to nothing on both sides.'),
+  (11, 'S-curve', 2, 'Flat on one side, a smooth climb or drop in the middle, then flat again at a new level.'),
+  (12, 'Quartic', 2, 'A W shape, or an upside-down W, with two dips and a bump in between.'),
+  (13, 'Inverse square', 3, 'Two pieces that both shoot up, or both shoot down, beside a vertical line.'),
+  (14, 'Tangent', 3, 'Repeating S shapes, each squeezed between two vertical lines it never touches.');

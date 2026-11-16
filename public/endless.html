@@ -30,6 +30,7 @@
         <p class="intro">
           Keep playing random curves for as long as you want (these don't count towards your daily score or stats).
         </p>
+        <button type="button" id="open-how-to-play" class="link-button">How to play</button>
 
         <nav id="levels" class="levels" aria-label="Choose a difficulty">
           <a href="/endless.html">Any</a>
@@ -89,34 +90,40 @@
           </p>
           <button type="button" id="next-curve" class="primary">Next curve</button>
         </section>
-
-        <section class="key" aria-labelledby="key-heading">
-          <h2 id="key-heading">How it works</h2>
-          <div class="scale" aria-hidden="true">
-            <span class="l0"></span><span class="l1"></span><span class="l2"></span><span class="l3"></span><span class="l4"></span>
-          </div>
-          <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
-          <ul>
-            <li>Your line stays thick and green where you're on the curve and gets thinner and redder the further off you are.</li>
-            <li><strong>● Dot</strong>: a spot that's on the curve, which you can get from a hint if you're stuck (it'll cost you some points though).</li>
-            <li><strong>Scoring</strong>: each curve is out of 1000 depending on how accurate you are, and you lose 100 for every extra attempt and 150 for every hint.</li>
-            <li><strong>▲ Arrow on the edge</strong>: the curve leaves the graph here.</li>
-            <li><strong>→ Arrow on your line</strong>: you're way off here and the curve is in that direction.</li>
-            <li><strong>Grey bar at the bottom</strong>: the curve is somewhere above it and you didn't get anywhere near.</li>
-            <li><strong>Ink</strong>: you get enough to draw the whole curve with a bit left over.</li>
-            <li>Your last attempt stays on the graph, so you can trace over the good bits.</li>
-            
-          </ul>
-
-          <details>
-            <summary>Drawing with a keyboard</summary>
-            <p id="keyboard-help">
-              Tab to the graph and use the arrow keys to move the pen around. Press Space to put it down,
-              then press Space again when you want to lift it and finish the stroke.
-            </p>
-          </details>
-        </section>
       </div>
+
+      <section class="key" aria-labelledby="key-heading">
+        <h2 id="key-heading">How it works</h2>
+        <div class="scale" aria-hidden="true">
+          <span class="l0"></span><span class="l1"></span><span class="l2"></span><span class="l3"></span><span class="l4"></span>
+        </div>
+        <svg class="svg-defs" aria-hidden="true">
+          <filter id="pencil">
+            <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="1" seed="3" result="grain"/>
+            <feDisplacementMap in="SourceGraphic" in2="grain" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </svg>
+        <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
+        <ul>
+          <li>Your line stays thick and green where you're on the curve and gets thinner and redder the further off you are.</li>
+          <li><strong>● Dot</strong>: a spot that's on the curve, which you can get from a hint if you're stuck (it'll cost you some points though).</li>
+          <li><strong>Scoring</strong>: each curve is out of 1000 depending on how accurate you are, and you lose 100 for every extra attempt and 150 for every hint.</li>
+          <li><strong>▲ Arrow on the edge</strong>: the curve leaves the graph here.</li>
+          <li><strong>→ Arrow on your line</strong>: you're way off here and the curve is in that direction.</li>
+          <li><strong>Grey bar at the bottom</strong>: the curve is somewhere above it and you didn't get anywhere near.</li>
+          <li><strong>Ink</strong>: you get enough to draw the whole curve with a bit left over.</li>
+          <li>Your last attempt stays on the graph, so you can trace over the good bits.</li>
+          
+        </ul>
+
+        <details>
+          <summary>Drawing with a keyboard</summary>
+          <p id="keyboard-help">
+            Tab to the graph and use the arrow keys to move the pen around. Press Space to put it down,
+            then press Space again when you want to lift it and finish the stroke.
+          </p>
+        </details>
+      </section>
 
       <section id="summary" class="summary" aria-labelledby="summary-heading" hidden>
         <h2 id="summary-heading" tabindex="-1">Today's result</h2>
@@ -130,6 +137,36 @@
         <p id="copy-status" class="help" role="status" aria-live="polite"></p>
         <p>That's all three done, so come back tomorrow for new ones!</p>
       </section>
+
+      <dialog id="how-to-play" class="how-to-play" aria-labelledby="how-to-play-heading">
+        <h2 id="how-to-play-heading" tabindex="-1" autofocus>How to play</h2>
+        <ol>
+          <li>
+            <strong>Find the hidden curve.</strong> There's a curve hidden on the graph and your job is to
+            work out where it goes. Each day has three of them, starting easy and getting harder. The little
+            arrows on the edges show where the curve goes off the graph, so they're a good place to start.
+          </li>
+          <li>
+            <strong>Draw your guess.</strong> Draw the curve with your mouse or finger and it gets marked as
+            soon as you let go. If the curve is split into pieces, you draw each piece as its own line. You
+            only get so much ink, so you can't just scribble over the whole graph.
+          </li>
+          <li>
+            <strong>See how close you were.</strong> Your line turns green where it's on the curve and red
+            where it's off, and wherever you're way off a small arrow points you towards the real curve.
+          </li>
+          <li>
+            <strong>Fix it up.</strong> You get 5 attempts per curve and your last one stays on the graph, so
+            you can keep the good bits and redraw the rest. Get 85% or more and you've cracked it. If you're
+            stuck, a hint shows you one spot that's on the curve.
+          </li>
+          <li>
+            <strong>Scoring.</strong> Each curve is out of 1000 depending on how close you get, and you lose
+            100 for every extra attempt and 150 for every hint you use.
+          </li>
+        </ol>
+        <button type="button" id="close-how-to-play" class="primary">Got it, let's play</button>
+      </dialog>
     </main>
 
     <footer>

@@ -57,7 +57,23 @@ function rounded(position) {
 
 let currentUser = null;
 
+const SEEN_HOW_TO_PLAY = 'seenHowToPlay';
+
+function setUpHowToPlay() {
+  const dialog = find('#how-to-play');
+  find('#open-how-to-play').addEventListener('click', () => dialog.showModal());
+  find('#close-how-to-play').addEventListener('click', () => dialog.close());
+  try {
+    if (localStorage.getItem(SEEN_HOW_TO_PLAY)) return;
+    localStorage.setItem(SEEN_HOW_TO_PLAY, 'yes');
+  } catch {
+    return;
+  }
+  dialog.showModal();
+}
+
 async function playPage(endless) {
+  setUpHowToPlay();
   const game = await request(endless ? `/api/endless${location.search}` : '/api/today');
   const graph = find('#graph');
 

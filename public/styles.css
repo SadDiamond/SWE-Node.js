@@ -46,22 +46,24 @@ nav ul {
 .tick { fill: #666; font-size: 10px; }
 
 .stroke,
-.ghost,
+.mark,
 .truth,
 .asymptote {
   fill: none;
-  stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.stroke.fresh { stroke: blue; }
-.stroke.g { stroke: green; }
-.stroke.a { stroke: orange; stroke-dasharray: 8 6; }
-.stroke.r { stroke: red; stroke-dasharray: 2 6; }
-.ghost { stroke: #bbb; }
-.truth { stroke: black; }
+.stroke { stroke: blue; stroke-width: 3; }
+.mark.l0 { stroke: green; stroke-width: 6; }
+.mark.l1 { stroke: yellowgreen; stroke-width: 5; }
+.mark.l2 { stroke: gold; stroke-width: 4; }
+.mark.l3 { stroke: orange; stroke-width: 3; }
+.mark.l4 { stroke: red; stroke-width: 2; }
+.faded { opacity: 0.3; }
+.truth { stroke: black; stroke-width: 3; }
 .asymptote { stroke: #888; stroke-width: 1; stroke-dasharray: 6 4; }
+.percent { fill: black; pointer-events: none; }
 .exit { fill: black; }
 .missed { fill: #bbb; }
 .pen { fill: none; stroke: #333; }
@@ -82,17 +84,17 @@ nav ul {
 
 /* Colour key */
 
-.key ul { list-style: none; padding: 0; }
+.scale { display: flex; max-width: 20rem; }
+.scale span { flex: 1; height: 6px; }
+.scale .l0 { background: green; }
+.scale .l1 { background: yellowgreen; }
+.scale .l2 { background: gold; }
+.scale .l3 { background: orange; }
+.scale .l4 { background: red; }
 
-.swatch {
-  display: inline-block;
-  width: 1.5rem;
-  border-top: 3px solid;
-  vertical-align: middle;
+.scale-labels {
+  display: flex;
+  justify-content: space-between;
+  max-width: 20rem;
+  margin-top: 0.25rem;
 }
-
-.swatch.g { border-color: green; }
-.swatch.a { border-color: orange; border-top-style: dashed; }
-.swatch.r { border-color: red; border-top-style: dotted; }
-.swatch.exit { border: 0; width: auto; }
-.swatch.missed { border-color: #bbb; border-top-width: 6px; }

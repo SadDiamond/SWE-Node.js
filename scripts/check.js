@@ -189,6 +189,10 @@ assert.deepStrictEqual(rules.asymptotes(tiltedHyperbola)[1], { kind: 'sloped', s
 assert.strictEqual(rules.kindName({ family_name: 'Hyperbola', extra_name: 'Parabola' }), 'Hyperbola + parabola');
 assert.strictEqual(rules.kindName({ family_name: 'Wave', extra_name: null }), 'Wave');
 
+const exact = rules.numberMaker(1);
+const [first, second] = [exact(2147483648), exact(2147483648)];
+assert.strictEqual(second, Number((BigInt(first) * 1103515245n + 12345n) % 2147483648n), 'the generator does exact whole-number maths');
+
 const seen = new Set();
 let mixes = 0;
 for (let day = 0; day < 365; day += 1) {

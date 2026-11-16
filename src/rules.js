@@ -421,10 +421,19 @@ function asymptotes(machine) {
   return lines;
 }
 
-function numberMaker(seed) {
+// Seeds for neighbouring days are evenly spaced, and a generator like this turns evenly spaced
+// seeds into curves that come round in a cycle, so the seed is scrambled first.
+function scramble(seed) {
   let value = seed;
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b);
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b);
+  return (value ^ (value >>> 16)) & 0x7fffffff;
+}
+
+function numberMaker(seed) {
+  let value = scramble(seed);
   return (limit) => {
-    value = (value * 1103515245 + 12345) % 2147483648;
+    value = (Math.imul(value, 1103515245) + 12345) & 0x7fffffff;
     return Math.floor((value / 2147483648) * limit);
   };
 }
@@ -558,6 +567,6 @@ async function fillHistory() {
 module.exports = {
   COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
-  asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
+  asymptotes, describe, numberMaker, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
   hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve
 };

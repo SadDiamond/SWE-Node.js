@@ -459,7 +459,9 @@ async function playPage(endless) {
       } else {
         flashPercent(result.accuracy);
         const joined = result.levels.some((stroke) => stroke.includes(5));
-        message(`${result.accuracy}%, keep the green bits and fix up the rest.`
+        let advice = 'keep the green bits and fix up the rest.';
+        if (result.closeEnough) advice = "that's the right shape, it's just a bit out of place, so try drawing it closer.";
+        message(`${result.accuracy}%, ${advice}`
           + (joined ? " The grey bit is where your line joins two pieces of the curve that aren't connected." : ''));
       }
       saveGuestRun();

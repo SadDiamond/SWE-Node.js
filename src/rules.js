@@ -338,7 +338,7 @@ function judge(strokes, machine) {
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
 
   const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
-  return { levels, nudges, missed, missedRows, accuracy, closeEnough, solved: accuracy >= SOLVED_AT || closeEnough };
+  return { levels, nudges, missed, missedRows, accuracy, closeEnough, solved: accuracy >= SOLVED_AT };
 }
 
 function accuracyOf(strokes, whole, visible, walls) {

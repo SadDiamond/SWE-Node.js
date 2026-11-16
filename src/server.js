@@ -287,7 +287,11 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   }
 
   const result = rules.judge(drawing, machine);
-  const finished = result.solved || go === rules.MAX_GOES;
+  // The right shape in slightly the wrong place only counts on the last attempt, so it can
+  // rescue a curve that would otherwise be failed but never ends one that could still be improved.
+  const lastAttempt = go === rules.MAX_GOES;
+  result.solved = result.solved || (result.closeEnough && lastAttempt);
+  const finished = result.solved || lastAttempt;
   const reply = finished
     ? reveal(machine, result.accuracy, result.solved, go, hints)
     : { accuracy: result.accuracy, solved: false, finished: false };

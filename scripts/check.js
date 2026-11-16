@@ -128,19 +128,19 @@ const bowl = { family_id: PARABOLA, a: 2, b: 0, c: -5 };
 const bowlCurve = rules.visibleCurve(bowl);
 const shifted = rules.judge(traced(bowlCurve, 1.5, 1), bowl);
 assert.ok(shifted.accuracy < 85, `a parabola drawn 1.5 across and 1 up misses the pass mark, got ${shifted.accuracy}`);
-assert.strictEqual(shifted.closeEnough, true, 'but it is the right shape, so it is accepted');
-assert.strictEqual(shifted.solved, true);
+assert.strictEqual(shifted.closeEnough, true, 'but it is the right shape, so it can be accepted');
+assert.strictEqual(shifted.solved, false, 'only on the last attempt, which the server decides');
 assert.ok(rules.scoreFor(shifted.accuracy, 1, 0) < rules.scoreFor(100, 1, 0), 'and it scores less than a perfect one');
 
 const spotOn = rules.judge(traced(bowlCurve), bowl);
 assert.strictEqual(spotOn.closeEnough, false, 'a drawing that passes outright is not marked as close enough');
 
 const upsideDown = rules.judge(traced(bowlCurve.map((value) => (value === null ? null : -value))), bowl);
-assert.strictEqual(upsideDown.solved, false, 'an upside-down parabola is not accepted');
+assert.strictEqual(upsideDown.closeEnough, false, 'an upside-down parabola is not accepted');
 const farOff = rules.judge(traced(bowlCurve, 5, 0), bowl);
-assert.strictEqual(farOff.solved, false, 'the right shape five units to one side is not accepted');
-assert.strictEqual(rules.judge(flatLine(-5), bowl).solved, false, 'a flat line is not a parabola');
-assert.strictEqual(rules.judge(flatLine(9), gentle).solved, false);
+assert.strictEqual(farOff.closeEnough, false, 'the right shape five units to one side is not accepted');
+assert.strictEqual(rules.judge(flatLine(-5), bowl).closeEnough, false, 'a flat line is not a parabola');
+assert.strictEqual(rules.judge(flatLine(9), gentle).closeEnough, false);
 
 const vertical = rules.judge([[[0, -9], [0, 9]]], steep);
 assert.ok(vertical.accuracy > flat.accuracy, 'a vertical line through a steep curve beats a flat one');
@@ -168,7 +168,7 @@ assert.strictEqual(rules.pieces({ family_id: EXPONENTIAL, a: 1, b: 1, c: 0 }), 1
 const swapped = { family_id: HYPERBOLA, a: -5, b: 0, c: -2 };
 const wrongSide = rules.judge([[[0.3, 9], [0.3, 3]], [[-0.3, -3], [-0.3, -9]]], swapped);
 assert.ok(wrongSide.levels.flat().every((level) => level === 4), 'branches drawn on the wrong side of the asymptote are way off');
-assert.strictEqual(wrongSide.solved, false, 'the wrong-side drawing is not even close enough');
+assert.strictEqual(wrongSide.closeEnough, false, 'the wrong-side drawing is not even close enough');
 const rightSide = rules.judge([[[-0.6, 9], [-0.8, 4]], [[0.8, -8], [0.6, -10]]], swapped);
 assert.ok(rightSide.levels.flat().every((level) => level === 0), 'branches drawn on the right side are spot on');
 const bridge = rules.judge([[[-0.5, 8], [0.5, -9]], [[5, -3], [6, -3]]], swapped);

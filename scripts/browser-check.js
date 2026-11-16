@@ -207,6 +207,33 @@ async function main() {
         /^(Circle|Ellipse|Sideways parabola|Diamond|Rounded square|Sideways V|Sideways hyperbola|Up and down hyperbola)$/);
     });
 
+    await check('the right shape in the wrong place only counts on the last attempt', async () => {
+      const rules = require('../src/rules');
+      let seed = 0;
+      let drawing = null;
+      while (!drawing) {
+        seed += 1;
+        const machine = rules.machineFromSeed(seed, 1);
+        const stroke = [];
+        rules.visibleCurve(machine).forEach((output, column) => {
+          const point = [rules.inputFor(column) + 1.5, output + 1];
+          if (output !== null && Math.abs(point[0]) <= 10 && Math.abs(point[1]) <= 10) stroke.push(point);
+        });
+        if (stroke.length > 1 && rules.judge([stroke], machine).closeEnough) drawing = [stroke];
+      }
+      const attempt = async (go) => {
+        const response = await fetch(`${SITE}/api/machines/r${seed}s1/go`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drawing, go, hints: 0 })
+        });
+        return response.json();
+      };
+      const first = await attempt(1);
+      assert.strictEqual(first.finished, false, 'the first attempt is not ended by being close enough');
+      assert.strictEqual(first.closeEnough, true, 'but the player is told it is the right shape');
+      const last = await attempt(5);
+      assert.strictEqual(last.solved, true, 'on the last attempt it counts as cracked');
+    });
+
     await check('the theme button switches modes and remembers the choice', async () => {
       const themed = await newPage(await browser.newContext({ colorScheme: 'light' }));
       const background = () => themed.evaluate(() => getComputedStyle(document.body).backgroundColor);

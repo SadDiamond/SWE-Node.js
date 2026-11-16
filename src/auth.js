@@ -43,7 +43,6 @@ async function endSession(request, response) {
   response.clearCookie('session');
 }
 
-// Runs before every route: works out who is logged in from the session cookie.
 async function loadUser(request, _response, next) {
   try {
     const token = readCookie(request, 'session');

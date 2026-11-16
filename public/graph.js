@@ -1,4 +1,3 @@
-// Draws the graph: grid, the player's strokes, marking, and the real curve at the end.
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 function svgElement(name, attributes, text) {
@@ -10,8 +9,6 @@ function svgElement(name, attributes, text) {
   return item;
 }
 
-// Works out how to place things on the graph at its current size on the page.
-// limit is how far the graph goes each way (10).
 function scaleFor(svg, limit) {
   const size = svg.clientWidth;
   return {
@@ -21,7 +18,6 @@ function scaleFor(svg, limit) {
   };
 }
 
-// Turns a pointer position on the page into a position on the graph.
 function graphPosition(svg, event, limit) {
   const corner = svg.getBoundingClientRect();
   const across = (event.clientX - corner.left) / corner.width;
@@ -49,7 +45,6 @@ function drawGrid(svg, scale, limit) {
     svgElement('line', { class: 'axis', x1: 0, x2: scale.size, y1: scale.yFor(0), y2: scale.yFor(0) })
   );
 
-  // Numbers sit beside the axes, every 5.
   for (const value of [-limit, -limit / 2, limit / 2, limit]) {
     const nearEdge = Math.abs(value) === limit;
     const label = String(value).replace('-', '−');
@@ -70,15 +65,11 @@ function drawGrid(svg, scale, limit) {
   }
 }
 
-// One stroke as an SVG path. A stroke is a list of [x, y] pen positions.
 function strokePath(stroke, scale) {
   const points = stroke.map(([x, y]) => `${scale.xFor(x).toFixed(1)} ${scale.yFor(y).toFixed(1)}`);
   return `M${points[0]} L${points.join(' L')}`;
 }
 
-// Draws marked strokes: every short piece of line gets the colour of its level.
-// levels matches strokes: a number from 0 (spot on) to 4 (way off) for each pen position.
-// Pieces in a row with the same level share one path, which keeps the graph to a few elements.
 function drawMarked(group, strokes, levels, scale) {
   const at = ([x, y]) => `${scale.xFor(x).toFixed(1)} ${scale.yFor(y).toFixed(1)}`;
   strokes.forEach((stroke, strokeIndex) => {
@@ -96,15 +87,11 @@ function drawMarked(group, strokes, levels, scale) {
   });
 }
 
-// Redraws only the stroke being drawn, which is far quicker than rebuilding the whole graph.
-// drawGraph marks that stroke's path as live.
 function drawLiveStroke(svg, stroke, limit) {
   const path = svg.querySelector('.stroke.live');
   if (path) path.setAttribute('d', strokePath(stroke, scaleFor(svg, limit)));
 }
 
-// Draws the nudges: short arrows from a badly-off part of the line towards the real curve.
-// Each nudge is { x, y, across, up }, where across and up give the direction as a step of length 1.
 function drawNudges(group, nudges, scale) {
   nudges.forEach((nudge) => {
     const startX = scale.xFor(nudge.x);
@@ -112,7 +99,6 @@ function drawNudges(group, nudges, scale) {
     // On screen "up" is a smaller y, so the upward part of the direction is taken away.
     const tipX = startX + nudge.across * 26;
     const tipY = startY - nudge.up * 26;
-    // The two sides of the arrowhead are the direction turned a little either way, pointing back.
     const head = [0.5, -0.5].map((turn) => {
       const backX = -nudge.across * Math.cos(turn) - nudge.up * Math.sin(turn);
       const backY = nudge.up * Math.cos(turn) - nudge.across * Math.sin(turn);
@@ -125,8 +111,6 @@ function drawNudges(group, nudges, scale) {
   });
 }
 
-// The real curve arrives as one output for each column across the graph, null where there is nothing.
-// This splits it into separate lines at the gaps.
 function curvePaths(curve, scale, limit) {
   const xForColumn = (column) => scale.xFor((column / (curve.length - 1)) * 2 * limit - limit);
   const paths = [];
@@ -149,13 +133,6 @@ function curvePaths(curve, scale, limit) {
   return paths;
 }
 
-// picture holds everything to show:
-//   strokes: the strokes of the go in progress,
-//   shown: the last go once marked { strokes, levels, nudges }, ghost: the go before that,
-//   dots: clue spots on the curve, shown from the start,
-//   percent: the score to show over the graph, missed: columns the last go was nowhere near,
-//   exits: where the curve leaves the graph, curve and asymptotes: the answer, once known,
-//   pen: the keyboard pen { x, y, down }, or null.
 function drawGraph(svg, picture, limit) {
   const scale = scaleFor(svg, limit);
 
@@ -169,7 +146,6 @@ function drawGraph(svg, picture, limit) {
     svg.append(faded);
   }
 
-  // A grey bar along the bottom wherever the last go was nowhere near the curve.
   const columnWidth = scale.size / Math.max(1, picture.missed.length - 1);
   picture.missed.forEach((isMissed, column) => {
     if (!isMissed) return;
@@ -178,7 +154,6 @@ function drawGraph(svg, picture, limit) {
     }));
   });
 
-  // Once the answer is showing, the last go is faded too so the real curve stands out.
   if (picture.shown) {
     const group = svgElement('g', { class: picture.curve ? 'faded' : '' });
     drawMarked(group, picture.shown.strokes, picture.shown.levels, scale);
@@ -190,9 +165,6 @@ function drawGraph(svg, picture, limit) {
     svg.append(svgElement('path', { class: live ? 'stroke live' : 'stroke', d: strokePath(stroke, scale) }));
   });
 
-  // The answer goes on top of the drawing so it can always be seen. It is drawn inside a group
-  // with a "wobble" filter, which nudges every part of each line by a small uneven amount so the
-  // curve and its asymptotes look drawn by hand instead of plotted by a computer.
   if (picture.curve) {
     const filter = svgElement('filter', {
       id: 'wobble', filterUnits: 'userSpaceOnUse', x: 0, y: 0, width: scale.size, height: scale.size
@@ -220,7 +192,6 @@ function drawGraph(svg, picture, limit) {
     svg.append(filter, answer);
   }
 
-  // Small arrows on the top or bottom edge where the curve leaves the graph.
   picture.exits.forEach((exit) => {
     const x = scale.xFor(exit.input);
     const points = exit.side === 'top'
@@ -229,7 +200,6 @@ function drawGraph(svg, picture, limit) {
     svg.append(svgElement('polygon', { class: 'exit', points }));
   });
 
-  // The clue dots: spots that are on the curve, shown from the start.
   picture.dots.forEach(([x, y]) => {
     svg.append(svgElement('circle', { class: 'dot', cx: scale.xFor(x), cy: scale.yFor(y), r: 6 }));
   });
@@ -240,7 +210,6 @@ function drawGraph(svg, picture, limit) {
     }));
   }
 
-  // The score, written large across the middle of the graph.
   if (picture.percent !== null) {
     svg.append(svgElement('text', {
       class: 'percent',
@@ -252,7 +221,6 @@ function drawGraph(svg, picture, limit) {
     }, `${picture.percent}%`));
   }
 
-  // A description for screen readers. It is a label and not a <title>, so it does not pop up on hover.
   svg.setAttribute('aria-label', `Graph from −${limit} to ${limit}.`
     + (picture.percent !== null ? ` Your last go scored ${picture.percent}%.` : '')
     + (picture.curve ? ' The real curve is shown.' : ''));

@@ -1,4 +1,3 @@
-// Self-check for the curve rules. Run with: npm test
 const assert = require('node:assert');
 const katex = require('katex');
 const rules = require('../src/rules');
@@ -7,7 +6,6 @@ const {
   COLUMNS, LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED
 } = rules;
 
-// Outputs for known inputs.
 assert.strictEqual(rules.evaluate({ family_id: LINE, a: 3, b: -2, c: 0 }, 4), 4);
 assert.strictEqual(rules.evaluate({ family_id: PARABOLA, a: 4, b: 1, c: -3 }, 3), 1);
 assert.strictEqual(rules.evaluate({ family_id: V_SHAPE, a: 2, b: 0, c: 0 }, -5), 5);
@@ -21,7 +19,6 @@ assert.strictEqual(rules.evaluate({ family_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 5)
 assert.strictEqual(rules.evaluate({ family_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 2), null, 'nothing exists on the asymptote');
 assert.strictEqual(rules.evaluate({ family_id: SLANTED, a: 4, b: 0, c: 2 }, 2), 4);
 
-// Formulas written out in LaTeX.
 const formula = (familyId, a, b, c) => rules.describe({ family_id: familyId, a, b, c });
 assert.strictEqual(formula(LINE, 3, -2, 0), 'y = \\frac{3}{2}x - 2');
 assert.strictEqual(formula(LINE, -2, 0, 0), 'y = -x');
@@ -40,22 +37,18 @@ assert.strictEqual(formula(HYPERBOLA, 3, 2, 1), 'y = \\frac{3}{x - 2} + 1');
 assert.strictEqual(formula(HYPERBOLA, -3, 0, 0), 'y = -\\frac{3}{x}');
 assert.strictEqual(formula(SLANTED, -4, 1, 1), 'y = \\frac{1}{2}x - \\frac{4}{x - 1}');
 
-// The visible curve: one value for each column, null where the curve is off the graph.
 const steep = { family_id: LINE, a: 6, b: 0, c: 0 };
 const curve = rules.visibleCurve(steep);
 assert.strictEqual(curve.length, COLUMNS);
 assert.strictEqual(curve[100], 0, 'the middle column is input 0');
 assert.strictEqual(curve[0], null, 'y = 3x is off the bottom at the left edge');
 
-// Exits: y = 3x leaves through the bottom on the left and the top on the right.
 assert.deepStrictEqual(rules.exits(steep).map((exit) => exit.side), ['bottom', 'top']);
 const hyperbola = { family_id: HYPERBOLA, a: 3, b: 0, c: 0 };
 assert.deepStrictEqual(rules.exits(hyperbola).map((exit) => exit.side), ['bottom', 'top']);
 assert.strictEqual(rules.asymptotes(hyperbola).length, 2);
 assert.strictEqual(rules.asymptotes(steep).length, 0);
 
-// Judging a drawing. A drawing is a list of strokes, each a list of [x, y] pen positions.
-// This turns a curve into a single stroke that follows it exactly, moved sideways and up if asked.
 function traced(values, across = 0, up = 0) {
   const stroke = [];
   values.forEach((value, column) => {
@@ -68,25 +61,19 @@ const perfect = rules.judge(traced(curve), steep);
 assert.strictEqual(perfect.accuracy, 100);
 assert.strictEqual(perfect.solved, true);
 
-// A steep line drawn 0.4 to one side is over a unit out straight up and down,
-// but only a little way from the real line, so it must still score well.
 const sideways = rules.judge(traced(curve, 0.4), steep);
 assert.ok(sideways.accuracy >= 85, `a steep line drawn just to one side scores ${sideways.accuracy}`);
 assert.ok(!sideways.missed.includes(true), 'the curve is not missed when the drawing is right beside it');
 
-// A gentle line drawn one unit too high really is about one unit away.
 const gentle = { family_id: LINE, a: 1, b: 0, c: 0 };
 const raised = rules.judge(traced(rules.visibleCurve(gentle), 0, 1), gentle);
 assert.ok(raised.levels[0].includes(1) && !raised.levels[0].includes(0), 'one unit off is level 1, not spot on');
 assert.ok(raised.accuracy >= 70 && raised.accuracy <= 80, `one unit off scores about 75, got ${raised.accuracy}`);
 
-// A flat line across the top is nowhere near.
 const flat = rules.judge([[[-10, 9], [10, 9]]], steep);
 assert.ok(flat.accuracy < 25, `a flat line across the top scores badly, got ${flat.accuracy}`);
 assert.ok(flat.missed.includes(true), 'most of the curve is missed');
 
-// Nudges point from a badly-off line towards the curve, and say nothing about how far.
-// A real drawing has a pen position every little way, so this builds a flat line like that.
 function flatLine(height) {
   const stroke = [];
   for (let x = -10; x <= 10; x += 0.1) stroke.push([Math.round(x * 10) / 10, height]);
@@ -101,7 +88,6 @@ assert.ok(below.nudges.every((nudge) => nudge.up > 0), 'a line far below the cur
 assert.strictEqual(perfect.nudges.length, 0, 'a line on the curve gets no nudges');
 assert.strictEqual(raised.nudges.length, 0, 'a line that is only a little off gets no nudges');
 
-// Hint dots are on the curve, there are three of them, and they are all different.
 for (const slot of [1, 2, 3]) {
   const machine = rules.makeMachine('2026-11-13', slot);
   const dots = rules.hintDots(machine);
@@ -112,7 +98,6 @@ for (const slot of [1, 2, 3]) {
   });
 }
 
-// Ink: enough to draw the curve with some to spare, but not enough to scribble over the graph.
 assert.strictEqual(rules.inkUsed([[[0, 0], [3, 4]], [[0, 0], [0, 2]]]), 7);
 assert.strictEqual(rules.inkFor(gentle), 34, 'a gentle line 22.4 long gets half as much again');
 assert.strictEqual(rules.inkFor({ family_id: PARABOLA, a: 4, b: 0, c: 9 }), 30, 'a short visible curve still gets the smallest amount');
@@ -123,7 +108,6 @@ for (const slot of [1, 2, 3]) {
   assert.ok(rules.inkFor(machine) < 400, 'there is never enough to fill the graph');
 }
 
-// The right shape in nearly the right place is accepted, but scores less than a spot-on drawing.
 const bowl = { family_id: PARABOLA, a: 2, b: 0, c: -5 };
 const bowlCurve = rules.visibleCurve(bowl);
 const shifted = rules.judge(traced(bowlCurve, 1.5, 1), bowl);
@@ -135,7 +119,6 @@ assert.ok(rules.scoreFor(shifted.accuracy, 1, 0) < rules.scoreFor(100, 1, 0), 'a
 const spotOn = rules.judge(traced(bowlCurve), bowl);
 assert.strictEqual(spotOn.closeEnough, false, 'a drawing that passes outright is not marked as close enough');
 
-// A parabola the wrong way up, a far-off copy and a straight line are not the right shape.
 const upsideDown = rules.judge(traced(bowlCurve.map((value) => (value === null ? null : -value))), bowl);
 assert.strictEqual(upsideDown.solved, false, 'an upside-down parabola is not accepted');
 const farOff = rules.judge(traced(bowlCurve, 5, 0), bowl);
@@ -143,14 +126,12 @@ assert.strictEqual(farOff.solved, false, 'the right shape five units to one side
 assert.strictEqual(rules.judge(flatLine(-5), bowl).solved, false, 'a flat line is not a parabola');
 assert.strictEqual(rules.judge(flatLine(9), gentle).solved, false);
 
-// Drawings do not have to be functions: a vertical line and a loop are both accepted and marked.
 const vertical = rules.judge([[[0, -9], [0, 9]]], steep);
 assert.ok(vertical.accuracy > flat.accuracy, 'a vertical line through a steep curve beats a flat one');
 const loop = [[[3, 0], [0, 3], [-3, 0], [0, -3], [3, 0]]];
 assert.strictEqual(rules.validDrawing(loop), true);
 assert.strictEqual(rules.judge(loop, steep).levels[0].length, 5);
 
-// Scribbling over everything covers the curve but most of the ink is wasted, so it scores badly.
 const scribble = [];
 for (let y = -9; y <= 9; y += 1) scribble.push([[-10, y], [10, y]]);
 assert.strictEqual(rules.validDrawing(scribble), false, 'too many strokes are refused');
@@ -158,7 +139,6 @@ const zigzag = [[]];
 for (let x = -10; x <= 10; x += 0.5) zigzag[0].push([x, (x * 2) % 2 === 0 ? -9 : 9]);
 assert.ok(rules.judge(zigzag, steep).accuracy < 60, 'a zigzag over the whole graph does not pass');
 
-// Drawings that are the wrong shape are refused.
 assert.strictEqual(rules.validDrawing([]), false);
 assert.strictEqual(rules.validDrawing([[[0, 0]]]), false, 'a stroke needs at least two positions');
 assert.strictEqual(rules.validDrawing([[[0, 0], [1, 99]]]), false, 'positions must be on the graph');
@@ -169,8 +149,6 @@ assert.strictEqual(rules.pieces(steep), 1);
 assert.strictEqual(rules.pieces(hyperbola), 2, 'a hyperbola is in two pieces');
 assert.strictEqual(rules.pieces({ family_id: EXPONENTIAL, a: 1, b: 1, c: 0 }), 1, 'a flat asymptote does not split a curve');
 
-// A hyperbola's two branches never cross the vertical asymptote, so a drawing must not be matched
-// to the branch on the other side. y = -5/x - 2 goes up on the left of 0 and down on the right.
 const swapped = { family_id: HYPERBOLA, a: -5, b: 0, c: -2 };
 const wrongSide = rules.judge([[[0.3, 9], [0.3, 3]], [[-0.3, -3], [-0.3, -9]]], swapped);
 assert.ok(wrongSide.levels.flat().every((level) => level === 4), 'branches drawn on the wrong side of the asymptote are way off');
@@ -183,14 +161,12 @@ const [whole] = traced(rules.visibleCurve(swapped));
 const branches = [whole.filter(([x]) => x < 0), whole.filter(([x]) => x > 0)];
 assert.strictEqual(rules.judge(branches, swapped).accuracy, 100, 'tracing each branch is still perfect');
 
-// Scores out of 1000: accuracy sets the start, extra goes and hints take points off.
 assert.strictEqual(rules.scoreFor(100, 1, 0), 1000, 'a perfect first go with no hints is full marks');
 assert.strictEqual(rules.scoreFor(92, 1, 0), 920);
 assert.strictEqual(rules.scoreFor(92, 3, 0), 720, 'each extra go costs 100');
 assert.strictEqual(rules.scoreFor(92, 3, 2), 420, 'each hint costs 150');
 assert.strictEqual(rules.scoreFor(40, 5, 3), 0, 'a score never goes below zero');
 
-// Mixed curves: two kinds added together.
 const tiltedRoot = {
   family_id: CUBE_ROOT, a: 2, b: 0, c: 1, extra_family_id: LINE, extra_a: 2, extra_b: 0, extra_c: 0
 };
@@ -213,7 +189,6 @@ assert.deepStrictEqual(rules.asymptotes(tiltedHyperbola)[1], { kind: 'sloped', s
 assert.strictEqual(rules.kindName({ family_name: 'Hyperbola', extra_name: 'Parabola' }), 'Hyperbola + parabola');
 assert.strictEqual(rules.kindName({ family_name: 'Wave', extra_name: null }), 'Wave');
 
-// A year of curves: three a day, easy to hard, valid numbers, enough on screen, same every time.
 const seen = new Set();
 let mixes = 0;
 for (let day = 0; day < 365; day += 1) {
@@ -228,10 +203,8 @@ for (let day = 0; day < 365; day += 1) {
     assert.ok(visible >= COLUMNS * 0.5, `the curve is visible across at least half the graph on ${date}`);
     assert.ok(!rules.describe(machine).includes('NaN') && !rules.describe(machine).includes('undefined'));
     assert.ok(rules.inkFor(machine) >= 30 && rules.hintDots(machine).length === 3);
-    // Every curve runs right across the graph. The only gap allowed is one column at a vertical asymptote.
     const gaps = rules.wholeCurve(machine).filter((output) => output === null).length;
     assert.ok(gaps <= 1, `the curve on ${date} must not start or stop partway across`);
-    // The formula must be LaTeX that KaTeX accepts.
     assert.doesNotThrow(() => katex.renderToString(rules.describe(machine), { output: 'mathml' }));
     seen.add(machine.family_id);
     if (machine.extra_family_id) {
@@ -245,7 +218,6 @@ for (let day = 0; day < 365; day += 1) {
 assert.strictEqual(seen.size, 9, 'every family turns up during the year');
 assert.ok(mixes > 150 && mixes < 600, `a good share of medium and hard curves are mixes, got ${mixes}`);
 
-// Endless mode: any seed gives a valid curve, and the same seed gives the same one.
 for (let seed = 1; seed < 3000; seed += 37) {
   for (const slot of [1, 2, 3]) {
     const machine = rules.machineFromSeed(seed, slot);

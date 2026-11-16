@@ -11,10 +11,8 @@ const port = Number(process.env.PORT) || 3000;
 const publicDirectory = path.join(__dirname, '..', 'public');
 
 app.disable('x-powered-by');
-// Big enough for the most detailed drawing the game allows, small enough to refuse anything silly.
 app.use(express.json({ limit: '100kb' }));
 
-// Security headers: only this site's own scripts, styles and images may load.
 app.use((_request, response, next) => {
   response.set({
     'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
@@ -25,29 +23,21 @@ app.use((_request, response, next) => {
   next();
 });
 app.use(express.static(publicDirectory, { extensions: ['html'] }));
-// Works out who is logged in before any route runs. request.user is undefined for a guest.
-// Answers from the API change all the time, so the browser must never reuse an old one.
 app.use('/api', (request, response, next) => {
   response.set('Cache-Control', 'no-store');
   next();
 });
 app.use(auth.loadUser);
 
-// Turns a curve's LaTeX formula into MathML, the markup browsers use to draw maths.
-// MathML is used because it needs no extra script, font or inline style on the page.
-// large is true where the formula stands on its own line, which gives full-size fractions.
 function formulaMath(machine, large) {
   return katex.renderToString(rules.describe(machine), {
     output: 'mathml', displayMode: large, throwOnError: false
   });
 }
 
-// Runs a route and passes any database error to the error handler at the bottom.
 function route(handler) {
   return (request, response, next) => handler(request, response).catch(next);
 }
-
-/* Accounts */
 
 function cleanText(value, longest) {
   return typeof value === 'string' ? value.trim().slice(0, longest) : '';
@@ -102,12 +92,6 @@ app.post('/api/logout', route(async (request, response) => {
   response.status(204).end();
 }));
 
-/* The game */
-
-// Finds a curve from the id in the address.
-// A plain number is a daily curve kept in the database.
-// An id like "r123456s2" is an endless-mode curve: it is not stored, but rebuilt from its
-// seed (123456) and difficulty (2) each time, which always gives the same curve.
 async function findMachine(id) {
   const endless = /^r(\d{1,10})s([123])$/.exec(id);
   if (endless) {
@@ -137,8 +121,6 @@ async function findPlay(userId, machineId) {
   return plays[0];
 }
 
-// Finds a player's attempt at a curve, starting one if there is none yet.
-// It refuses if an earlier curve from the same day is still unfinished, because the three are played in order.
 async function openPlay(userId, machine) {
   const earlier = await all(`
     SELECT machines.slot
@@ -155,7 +137,6 @@ async function openPlay(userId, machine) {
   return { play };
 }
 
-// Everything that is revealed once a curve is finished.
 function reveal(machine, accuracy, solved, goes, hints) {
   return {
     accuracy,
@@ -170,7 +151,6 @@ function reveal(machine, accuracy, solved, goes, hints) {
   };
 }
 
-// What a logged-in player has already done on a curve, so the page can carry on where they left off.
 async function savedState(userId, machine) {
   const play = await findPlay(userId, machine.id);
   if (!play) return null;
@@ -184,7 +164,6 @@ async function savedState(userId, machine) {
   if (play.status !== 'playing') {
     saved.result = reveal(machine, play.accuracy, play.status === 'solved', play.goes, play.hints);
   }
-  // The most recent go is marked again so its colours can be shown.
   const goes = await all('SELECT drawing FROM goes WHERE play_id = ? ORDER BY number DESC LIMIT 1', [play.id]);
   if (goes.length > 0) {
     const strokes = JSON.parse(goes[0].drawing);
@@ -194,7 +173,6 @@ async function savedState(userId, machine) {
   return saved;
 }
 
-// The numbers the page needs to run the game, the same for every curve.
 function settings() {
   return {
     limit: rules.LIMIT,
@@ -208,7 +186,6 @@ function settings() {
   };
 }
 
-// Today's three curves. Only what the page needs to set up the game; nothing about the curves themselves.
 app.get('/api/today', route(async (request, response) => {
   const machines = await rules.machinesFor(rules.todayDate());
   const curves = [];
@@ -216,11 +193,8 @@ app.get('/api/today', route(async (request, response) => {
     curves.push({
       id: machine.id,
       slot: machine.slot,
-      // How many strokes make up one go. More than one means the curve has breaks in it.
       strokesPerGo: rules.pieces(machine),
-      // How much line the pen can draw in one go.
       ink: rules.inkFor(machine),
-      // Where the curve leaves the graph is shown from the start, so the first go is not a blind guess.
       exits: rules.exits(machine),
       saved: request.user ? await savedState(request.user.id, machine) : null
     });
@@ -229,8 +203,6 @@ app.get('/api/today', route(async (request, response) => {
   response.json({ date: rules.todayDate(), ...settings(), curves });
 }));
 
-// One fresh random curve for endless mode. /api/endless?slot=2 asks for a medium one;
-// without a slot the difficulty is random too.
 app.get('/api/endless', route(async (request, response) => {
   const asked = Number.parseInt(request.query.slot, 10);
   const slot = [1, 2, 3].includes(asked) ? asked : crypto.randomInt(1, 4);
@@ -251,9 +223,6 @@ app.get('/api/endless', route(async (request, response) => {
   });
 }));
 
-// Marks one go: a freehand drawing made of strokes, each a list of [x, y] pen positions.
-// For a logged-in player the server keeps count of goes and hints itself and saves the go.
-// A guest's page keeps count instead, and nothing is saved.
 app.post('/api/machines/:id/go', route(async (request, response) => {
   const { drawing } = request.body;
   let { go, hints } = request.body;
@@ -268,13 +237,11 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   }
 
   // The page stops the pen when the ink runs out. This catches a drawing sent some other way.
-  // The small allowance covers rounding of pen positions.
   if (rules.inkUsed(drawing) > rules.inkFor(machine) * 1.05) {
     return response.status(400).json({ error: 'That drawing used more ink than you have.' });
   }
 
   let play = null;
-  // Endless curves are never saved, even for a logged-in player.
   if (request.user && !machine.endless) {
     const opened = await openPlay(request.user.id, machine);
     if (opened.error) return response.status(409).json({ error: opened.error });
@@ -295,7 +262,6 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   const reply = finished
     ? reveal(machine, result.accuracy, result.solved, go, hints)
     : { accuracy: result.accuracy, solved: false, finished: false };
-  // True when the drawing was accepted for being the right shape, not for its accuracy.
   reply.closeEnough = result.closeEnough;
   reply.levels = result.levels;
   reply.nudges = result.nudges;
@@ -320,15 +286,12 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   response.json(reply);
 }));
 
-// Gives one hint: a spot that is on the curve.
-// For a logged-in player the server counts the hints. A guest's page says which number it wants.
 app.post('/api/machines/:id/hint', route(async (request, response) => {
   const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: 'Curve not found.' });
 
   let { number } = request.body;
   let play = null;
-  // Endless curves are never saved, even for a logged-in player.
   if (request.user && !machine.endless) {
     const opened = await openPlay(request.user.id, machine);
     if (opened.error) return response.status(409).json({ error: opened.error });
@@ -343,14 +306,10 @@ app.post('/api/machines/:id/hint', route(async (request, response) => {
   response.json({ dot: rules.hintDots(machine)[number - 1] });
 }));
 
-/* History and stats */
-
 app.get('/api/families', route(async (_request, response) => {
   response.json(await all('SELECT id, name, difficulty, description FROM families ORDER BY id'));
 }));
 
-// A player's finished attempts, newest first unless asked otherwise.
-// The filters and the sort order come from the address, e.g. /api/history?slot=3&sort=best
 app.get('/api/history', auth.requireUser, route(async (request, response) => {
   const slot = Number.parseInt(request.query.slot, 10);
   const family = Number.parseInt(request.query.family, 10);
@@ -372,7 +331,6 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
     values.push(slot);
   }
   if (Number.isInteger(family)) {
-    // A mix counts as both of its kinds.
     conditions.push('(machines.family_id = ? OR machines.extra_family_id = ?)');
     values.push(family, family);
   }
@@ -410,7 +368,6 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
   })));
 }));
 
-// Counts days in a row from a list of dates sorted newest first.
 function countStreaks(dates, today) {
   const dayNumbers = dates.map((date) => Math.floor(Date.parse(date) / 86400000));
   const todayNumber = Math.floor(Date.parse(today) / 86400000);
@@ -421,7 +378,6 @@ function countStreaks(dates, today) {
   dayNumbers.forEach((day, index) => {
     run = index > 0 && dayNumbers[index - 1] - day === 1 ? run + 1 : 1;
     best = Math.max(best, run);
-    // The current streak is the unbroken run that reaches today or yesterday.
     if (index === run - 1 && todayNumber - dayNumbers[0] <= 1) current = run;
   });
   return { current, best };
@@ -444,7 +400,6 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
     WHERE plays.user_id = ? AND plays.status != 'playing'
   `, [userId]);
 
-  // Points for each day, to find the best one.
   const bestDay = await all(`
     SELECT machines.play_date AS date, SUM(plays.score) AS points
     FROM plays
@@ -468,7 +423,6 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
     ORDER BY machines.slot
   `, [userId]);
 
-  // Only the types of curve this player has actually met are listed (HAVING drops the rest).
   const byFamily = await all(`
     SELECT families.name,
            COUNT(plays.id) AS played,

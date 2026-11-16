@@ -13,8 +13,7 @@ function element(tag, text, className) {
   return item;
 }
 
-// Makes an element holding a formula. The server sends the formula as MathML, which it built
-// from the curve's own numbers, so it is safe to put straight into the page.
+// The server builds this MathML from the curve's own numbers, so it is safe to put straight into the page.
 function mathNode(markup) {
   const holder = document.createElement('span');
   holder.className = 'math';
@@ -22,12 +21,10 @@ function mathNode(markup) {
   return holder;
 }
 
-// "1 go" or "3 goes".
 function goesText(count) {
   return count === 1 ? '1 attempt' : `${count} attempts`;
 }
 
-// Fetches JSON from the server and turns a failed request into a readable error.
 async function request(url, options = {}) {
   let response;
   try {
@@ -50,65 +47,47 @@ function send(url, body) {
   });
 }
 
-// The name the endless-mode running total is kept under in the browser tab's storage.
 const ENDLESS_TOTAL = 'endlessTotal';
 const SLOT_NAMES = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
-// A new pen position is only kept once the pen has moved this far (in graph units),
-// which keeps a drawing to a sensible size however slowly it is drawn.
 const PEN_SPACING = 0.05;
 
-// A pen position as [x, y], rounded to two decimal places.
-// More decimals than that cannot be seen and only make the drawing bigger to send.
 function rounded(position) {
   return [Math.round(position.x * 100) / 100, Math.round(position.y * 100) / 100];
 }
 
-// Who is logged in, or null for a guest. Set once when the page loads.
 let currentUser = null;
 
-// The game. With endless set to true it plays one random curve after another instead of
-// the day's three, and nothing is saved.
 async function playPage(endless) {
-  // In endless mode the address can ask for a difficulty, e.g. /endless.html?slot=2
   const game = await request(endless ? `/api/endless${location.search}` : '/api/today');
   const graph = find('#graph');
 
-  // Everything about one of the day's curves, so switching tabs loses nothing.
-  // A stroke is a list of [x, y] pen positions, and a go is made of one or more strokes.
-  // For a logged-in player, curve.saved holds what they have already done today.
   const rounds = game.curves.map((curve) => {
     const saved = curve.saved;
     return {
       ...curve,
-      strokes: [],                                    // the strokes of the go in progress
-      inkSpent: 0,                                    // how much line has been drawn in the go in progress
-      shown: saved && saved.last ? saved.last : null, // the last go once marked: { strokes, levels, nudges }
-      ghost: null,                                    // the go before that
+      strokes: [],
+      inkSpent: 0,
+      shown: saved && saved.last ? saved.last : null,
+      ghost: null,
       missed: saved && saved.last ? saved.last.missed : [],
-      dots: saved ? saved.dots : [],                  // hint dots the player has asked for
+      dots: saved ? saved.dots : [],
       goes: saved ? saved.goes : 0,
-      history: [],                                    // every drawing sent for marking, in order
-      result: saved ? saved.result : null             // the server's final reply once the round is over
+      history: [],
+      result: saved ? saved.result : null
     };
   });
-  // Carry on with the first curve that is not finished yet.
   let round = rounds.find((item) => !item.result) || rounds[rounds.length - 1];
 
-  // How far the pen has travelled in the stroke being drawn, in graph units.
   let strokeLength = 0;
-  // The marked goes on screen before the stroke began, in case it has to be undone.
   let beforeMarks = null;
   let percent = null;
-  // True while waiting for the server to mark a go.
   let waiting = false;
-  // The keyboard pen. Only shown while the graph is selected with the keyboard.
   const pen = { x: 0, y: 0, down: false, visible: false };
 
   function showGraph() {
     drawGraph(graph, {
       strokes: round.strokes,
       shown: round.shown,
-      // At the end only the last go is kept on screen, behind the real curve.
       ghost: round.result ? null : round.ghost,
       percent,
       missed: round.missed,
@@ -120,7 +99,6 @@ async function playPage(endless) {
     }, game.limit);
   }
 
-  // The ink meter: how much of this go's ink is left.
   function showInk() {
     const left = Math.max(0, Math.round((1 - round.inkSpent / round.ink) * 100));
     find('#ink-level').style.width = `${left}%`;
@@ -128,9 +106,6 @@ async function playPage(endless) {
     find('#ink').hidden = Boolean(round.result);
   }
 
-  // Redraws the stroke being drawn on the next screen refresh. Pointer events arrive faster
-  // than the screen updates, so this stops it being redrawn more often than anyone could see.
-  // Only that one line changes, so the rest of the graph is left alone.
   let drawQueued = false;
   function showStrokeSoon() {
     if (drawQueued) return;
@@ -141,7 +116,6 @@ async function playPage(endless) {
     });
   }
 
-  // Shows the score over the graph, then takes it away again after a moment.
   let percentTimer = null;
   function flashPercent(value) {
     percent = value;
@@ -152,10 +126,6 @@ async function playPage(endless) {
     }, 1800);
   }
 
-  /* Progress through the day's three curves, and the score */
-
-  // Counts a number up on screen from one value to another, over about a second.
-  // People who have asked their device for less motion get the final number straight away.
   function countUp(target, from, to) {
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (still || from === to) {
@@ -166,7 +136,6 @@ async function playPage(endless) {
     const began = performance.now();
     function step(now) {
       const done = Math.min(1, (now - began) / length);
-      // Easing: quick at first, slowing as it reaches the final number.
       const eased = 1 - (1 - done) ** 3;
       target.textContent = Math.round(from + (to - from) * eased);
       if (done < 1) requestAnimationFrame(step);
@@ -174,28 +143,22 @@ async function playPage(endless) {
     requestAnimationFrame(step);
   }
 
-  // Endless mode keeps a running total for this browser tab, so it survives moving to the next curve.
   const earlier = endless ? Number(sessionStorage.getItem(ENDLESS_TOTAL)) || 0 : 0;
 
   function totalScore() {
     return earlier + rounds.reduce((total, item) => total + (item.result ? item.result.score : 0), 0);
   }
 
-  // The total in the header. It is remembered so the next change can count up from it.
   let totalOnScreen = earlier;
   function showTotal() {
     countUp(find('#total'), totalOnScreen, totalScore());
     totalOnScreen = totalScore();
   }
 
-  // The three curves are played in order. This shows which are done, which is being played
-  // and which are still locked. It is a list, not buttons: the player cannot skip ahead.
-  // True while the end screen is showing. It has been seen once this is ever set.
   let summaryOpen = false;
   let summarySeen = false;
 
   function showProgress() {
-    // Endless mode has no steps to show, only links for choosing the difficulty.
     if (endless) return;
     const list = find('#tabs');
     const allDone = rounds.every((item) => item.result);
@@ -214,7 +177,6 @@ async function playPage(endless) {
       const label = [element('span', `${item.slot}. ${SLOT_NAMES[item.slot]}`), element('span', note, 'tab-score')];
       const step = element('li', undefined, `tab ${state}`);
 
-      // Once the whole run is finished, each step becomes a button for looking back at that curve.
       if (allDone) {
         const button = element('button', undefined, 'tab-button');
         button.type = 'button';
@@ -231,7 +193,6 @@ async function playPage(endless) {
     });
   }
 
-  // Shows a finished curve again: the real curve, the last go and the score.
   function lookBack(item) {
     round = item;
     summaryOpen = false;
@@ -268,15 +229,12 @@ async function playPage(endless) {
       const result = round.result;
       let heading = 'Out of attempts';
       if (result.solved) heading = `Cracked it in ${goesText(round.goes)}`;
-      // The right shape, a little out of place, is accepted but scores less.
       if (result.closeEnough) heading = `Close enough in ${goesText(round.goes)}`;
       find('#result-heading').textContent = heading;
       find('#result-close').hidden = !result.closeEnough;
       find('#result-top').textContent = `/ ${game.topScore}`;
-      // The score counts up from zero. The total in the header climbs too, further down.
       countUp(find('#result-score'), 0, result.score);
 
-      // How the score was reached, one line for each thing that changed it.
       const extraGoes = round.goes - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
       if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: −${extraGoes * game.goPenalty}`);
@@ -299,14 +257,11 @@ async function playPage(endless) {
     showGraph();
   }
 
-  /* The end screen */
-
   function showSummary() {
     const rows = find('#summary-rows');
     rows.replaceChildren();
     rounds.forEach((item, index) => {
       const row = document.createElement('li');
-      // Each row arrives a little after the one before it.
       row.style.setProperty('--order', index);
       const detail = `${item.result.familyName} · ${goesText(item.goes)}`
         + (item.dots.length > 0 ? ` · ${item.dots.length === 1 ? '1 hint' : `${item.dots.length} hints`}` : '');
@@ -318,8 +273,6 @@ async function playPage(endless) {
       rows.append(row);
     });
 
-    // A guest is offered the chance to keep this score. Their run is put aside in the browser
-    // so it can be sent to the server once they have logged in.
     find('#save-prompt').hidden = Boolean(currentUser);
     if (!currentUser) {
       localStorage.setItem(PENDING_RUN, JSON.stringify({
@@ -338,7 +291,6 @@ async function playPage(endless) {
   }
 
   find('#next-curve').addEventListener('click', () => {
-    // In endless mode the total is put aside and the page loads again with a new curve.
     if (endless) {
       sessionStorage.setItem(ENDLESS_TOTAL, totalScore());
       return location.reload();
@@ -378,12 +330,9 @@ async function playPage(endless) {
     }
   });
 
-  /* Strokes */
-
   function startStroke(position) {
     if (round.result || waiting) return false;
     beforeMarks = { shown: round.shown, ghost: round.ghost, missed: round.missed };
-    // The first stroke of a new go pushes the last marked go into the background.
     if (round.strokes.length === 0 && round.shown) {
       round.ghost = round.shown;
       round.shown = null;
@@ -398,16 +347,13 @@ async function playPage(endless) {
     return true;
   }
 
-  // Adds a pen position to the stroke being drawn.
   function extendStroke(position) {
     const stroke = round.strokes[round.strokes.length - 1];
     const [lastX, lastY] = stroke[stroke.length - 1];
     const moved = Math.hypot(position.x - lastX, position.y - lastY);
     if (moved < PEN_SPACING) return;
-    // The server refuses drawings with too many positions, so the pen stops adding them at the limit.
     const points = round.strokes.reduce((total, item) => total + item.length, 0);
     if (points >= game.mostPoints) return;
-    // When the ink for this go has run out, the pen stops leaving a line.
     if (round.inkSpent + moved > round.ink) {
       return message("You're out of ink, so lift your pen and it'll get marked.");
     }
@@ -419,11 +365,8 @@ async function playPage(endless) {
     showStrokeSoon();
   }
 
-  // Called when the pen is lifted. Once enough strokes are down, the go is sent to be marked.
   async function endStroke() {
-    // Once there is not enough ink left for a stroke long enough to count, the go is marked as it is.
     const outOfInk = () => round.ink - round.inkSpent < game.shortestStroke;
-    // A stroke the pen barely moved in is treated as a stray tap and undone.
     if (strokeLength < game.shortestStroke) {
       round.strokes.pop();
       round.inkSpent -= strokeLength;
@@ -461,14 +404,11 @@ async function playPage(endless) {
     } catch (error) {
       message(error.message);
     }
-    // Whether it worked or not, the next go starts from a clean drawing.
     marking.strokes = [];
     marking.inkSpent = 0;
     waiting = false;
     showRound();
   }
-
-  /* Drawing with a mouse, finger or stylus */
 
   let drawing = false;
   graph.addEventListener('pointerdown', (event) => {
@@ -477,7 +417,6 @@ async function playPage(endless) {
     if (event.button !== 0 || drawing) return;
     pen.visible = false;
     drawing = startStroke(graphPosition(graph, event, game.limit));
-    // Capturing the pointer keeps the stroke going if the pen slides off the edge of the graph.
     if (drawing) graph.setPointerCapture(event.pointerId);
   });
   graph.addEventListener('pointermove', (event) => {
@@ -492,18 +431,12 @@ async function playPage(endless) {
     drawing = false;
     endStroke();
   }
-  // A stroke can end in several ways, and every one of them must lift the pen:
-  // releasing on the graph or anywhere else on the page, the browser cancelling the touch,
-  // the graph losing hold of the pointer, or the player switching to another window.
   graph.addEventListener('pointerup', liftPointer);
   graph.addEventListener('pointercancel', liftPointer);
   graph.addEventListener('lostpointercapture', liftPointer);
   window.addEventListener('pointerup', liftPointer);
   window.addEventListener('blur', liftPointer);
-  // Stops the right-click menu opening over the graph in the middle of a game.
   graph.addEventListener('contextmenu', (event) => event.preventDefault());
-
-  /* Drawing with the keyboard */
 
   graph.addEventListener('keydown', (event) => {
     const moves = { ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0], ArrowUp: [0, 0.2], ArrowDown: [0, -0.2] };
@@ -532,11 +465,9 @@ async function playPage(endless) {
     showGraph();
   });
 
-  // The graph is drawn at its real size, so it needs redrawing when the window changes.
   window.addEventListener('resize', showGraph);
 
   if (endless) {
-    // Mark the difficulty link that matches the curve on screen.
     const asked = new URLSearchParams(location.search).get('slot') || '';
     document.querySelectorAll('#levels a').forEach((choice) => {
       if (new URL(choice.href).searchParams.get('slot') === (asked || null)) choice.setAttribute('aria-current', 'true');
@@ -549,49 +480,39 @@ async function playPage(endless) {
   const date = new Date(`${game.date}T00:00`);
   find('#today-date').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   showRound();
-  // A tab left open overnight would still be showing yesterday's curves.
-  // Whenever the tab is looked at again, the date is checked and the page reloads if the day has changed.
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
     const latest = await request('/api/today').catch(() => null);
     if (latest && latest.date !== game.date) location.reload();
   });
 
-  // If all three were finished on an earlier visit, go straight to the end screen.
   if (rounds.every((item) => item.result)) showSummary();
 }
 
-/* The history page */
-
 const STATUS_NAMES = { solved: 'Cracked', failed: 'Out of attempts' };
 
-// Writes a date such as 2026-11-13 as "13 Nov 2026".
 function shortDate(date) {
   return new Date(`${date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// Adds a row to a table. The first value becomes the row heading, and numbers line up on the right.
 function addRow(body, values) {
   const row = document.createElement('tr');
   values.forEach((value, index) => {
     const cell = document.createElement(index === 0 ? 'th' : 'td');
     if (index === 0) cell.scope = 'row';
     if (typeof value === 'number') cell.className = 'number';
-    // append accepts plain text, numbers and ready-made elements alike.
     cell.append(value);
     row.append(cell);
   });
   body.append(row);
 }
 
-// Shows the page's content to a logged-in player, or a note asking a guest to log in.
 function membersOnly() {
   find('#guest').hidden = Boolean(currentUser);
   find('#content').hidden = !currentUser;
   return Boolean(currentUser);
 }
 
-// The "Curve" cell of the history table: the kind's name, then its formula.
 function curveCell(row) {
   const cell = document.createElement('span');
   cell.append(`${row.familyName}: `, mathNode(row.formulaMath));
@@ -605,7 +526,6 @@ async function historyPage() {
   const families = await request('/api/families');
   families.forEach((family) => find('#family').add(new Option(family.name, family.id)));
 
-  // Asks the server for the list again whenever a filter or the order changes.
   async function load() {
     const choices = new URLSearchParams(new FormData(form));
     const rows = await request(`/api/history?${choices}`);
@@ -632,8 +552,6 @@ async function historyPage() {
   await load();
 }
 
-/* The stats page */
-
 async function statsPage() {
   if (!membersOnly()) return;
   const stats = await request('/api/stats');
@@ -659,9 +577,6 @@ async function statsPage() {
   });
 }
 
-/* The account page */
-
-// Sends a form to the server and shows the error if it is refused.
 function onSubmit(form, action) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -689,7 +604,6 @@ async function accountPage() {
 
   find('#account-name').textContent = currentUser.display_name;
   find('#account-username').textContent = currentUser.username;
-  // The database stores times in UTC, so "Z" is added before turning it into a local date.
   find('#account-created').textContent = new Date(`${currentUser.created_at.replace(' ', 'T')}Z`)
     .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
   find('#logout-button').addEventListener('click', async () => {
@@ -698,13 +612,8 @@ async function accountPage() {
   });
 }
 
-/* Saving a guest's run after they log in */
-
-// The name the finished run is kept under in the browser's storage.
 const PENDING_RUN = 'pendingRun';
 
-// If this browser holds a guest run from today, it is sent to the server go by go.
-// The server marks and scores every drawing itself, exactly as if the player had been logged in.
 async function savePendingRun() {
   const stored = localStorage.getItem(PENDING_RUN);
   if (!stored) return;
@@ -712,7 +621,6 @@ async function savePendingRun() {
 
   const run = JSON.parse(stored);
   const today = await request('/api/today');
-  // An old run, or an account that has already played today, is left alone.
   if (run.date !== today.date || today.curves.some((curve) => curve.saved)) return;
 
   for (const curve of run.curves) {
@@ -724,8 +632,6 @@ async function savePendingRun() {
     }
   }
 }
-
-/* Starting the right page */
 
 const pages = {
   today: () => playPage(false),

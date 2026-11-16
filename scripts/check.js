@@ -156,7 +156,12 @@ assert.strictEqual(wrongSide.solved, false, 'the wrong-side drawing is not even 
 const rightSide = rules.judge([[[-0.6, 9], [-0.8, 4]], [[0.8, -8], [0.6, -10]]], swapped);
 assert.ok(rightSide.levels.flat().every((level) => level === 0), 'branches drawn on the right side are spot on');
 const bridge = rules.judge([[[-0.5, 8], [0.5, -9]], [[5, -3], [6, -3]]], swapped);
-assert.strictEqual(bridge.levels[0][1], 4, 'a line jumping across the asymptote is never on the curve');
+assert.strictEqual(bridge.levels[0][1], rules.CROSSED, 'a line jumping across the asymptote is greyed out');
+const crossingStroke = [];
+for (let x = -3; x <= 3.001; x += 0.1) crossingStroke.push([Math.round(x * 10) / 10, 0]);
+const crossed = rules.judge([crossingStroke], swapped).levels[0];
+assert.ok(crossed.every((level, index) => (Math.abs(crossingStroke[index][0]) <= 0.5) === (level === rules.CROSSED)),
+  'only the part of the line near the asymptote is greyed out');
 const [whole] = traced(rules.visibleCurve(swapped));
 const branches = [whole.filter(([x]) => x < 0), whole.filter(([x]) => x > 0)];
 assert.strictEqual(rules.judge(branches, swapped).accuracy, 100, 'tracing each branch is still perfect');

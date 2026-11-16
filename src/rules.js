@@ -17,6 +17,9 @@ const NUDGE_SPACING = 1.5;
 const INK_TO_SPARE = 1.5;
 const SMALLEST_INK = 30;
 const SHARE_ON_SCREEN = 0.5;
+// A line that crosses a vertical asymptote is greyed out this far either side of it.
+const CROSSING_ZONE = 0.5;
+const CROSSED = 5;
 const MOST_POINTS = 3000;
 const DAYS_OF_HISTORY = 30;
 
@@ -185,28 +188,34 @@ function judge(strokes, machine) {
   const nudges = [];
   let sinceNudge = NUDGE_SPACING / 2;
 
-  const levels = strokes.map((stroke) => stroke.map(([x, y], index) => {
-    const spot = nearestOnCurve(x, y, whole, walls);
-    let level = levelFor(spot.distance);
-    if (index > 0) {
-      const [previousX, previousY] = stroke[index - 1];
-      if (sideOf(previousX, walls) !== sideOf(x, walls)) level = BANDS.length;
-      const length = Math.hypot(x - previousX, y - previousY);
-      inkLength += length;
-      inkOnCurve += length * (1 - level / BANDS.length);
-      sinceNudge += length;
-    }
-    if (level >= NUDGE_FROM_LEVEL && sinceNudge >= NUDGE_SPACING && spot.distance < Infinity) {
-      nudges.push({
-        x,
-        y,
-        across: Math.round(((spot.x - x) / spot.distance) * 100) / 100,
-        up: Math.round(((spot.y - y) / spot.distance) * 100) / 100
-      });
-      sinceNudge = 0;
-    }
-    return level;
-  }));
+  const levels = strokes.map((stroke) => {
+    const crossedWalls = walls.filter((wall) => stroke.some(([x], index) => index > 0
+      && sideOf(stroke[index - 1][0], [wall]) !== sideOf(x, [wall])));
+    return stroke.map(([x, y], index) => {
+      const spot = nearestOnCurve(x, y, whole, walls);
+      const level = levelFor(spot.distance);
+      const crossing = (index > 0 && sideOf(stroke[index - 1][0], walls) !== sideOf(x, walls))
+        || crossedWalls.some((wall) => Math.abs(x - wall) <= CROSSING_ZONE);
+      if (index > 0) {
+        const [previousX, previousY] = stroke[index - 1];
+        const length = Math.hypot(x - previousX, y - previousY);
+        inkLength += length;
+        inkOnCurve += length * (1 - (crossing ? BANDS.length : level) / BANDS.length);
+        sinceNudge += length;
+      }
+      if (crossing) return CROSSED;
+      if (level >= NUDGE_FROM_LEVEL && sinceNudge >= NUDGE_SPACING && spot.distance < Infinity) {
+        nudges.push({
+          x,
+          y,
+          across: Math.round(((spot.x - x) / spot.distance) * 100) / 100,
+          up: Math.round(((spot.y - y) / spot.distance) * 100) / 100
+        });
+        sinceNudge = 0;
+      }
+      return level;
+    });
+  });
 
   let curvePoints = 0;
   let curveCovered = 0;
@@ -571,7 +580,7 @@ async function fillHistory() {
 }
 
 module.exports = {
-  COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
+  COLUMNS, CROSSED, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
   asymptotes, describe, numberMaker, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
   hintDots, inkFor, inkUsed, kindName, pastDates, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve

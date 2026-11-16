@@ -404,6 +404,12 @@ button.primary:hover:not(:disabled) {
   stroke-width: 4;
 }
 
+.mark.l5 {
+  stroke: var(--muted);
+  stroke-width: 6;
+  stroke-dasharray: 1 9;
+}
+
 .faded {
   opacity: 0.25;
 }

@@ -420,7 +420,9 @@ async function playPage(endless) {
         message('');
       } else {
         flashPercent(result.accuracy);
-        message(`${result.accuracy}%, keep the green bits and fix up the rest.`);
+        const joined = result.levels.some((stroke) => stroke.includes(5));
+        message(`${result.accuracy}%, keep the green bits and fix up the rest.`
+          + (joined ? " The grey bit is where your line joins two pieces of the curve that aren't connected." : ''));
       }
     } catch (error) {
       message(error.message);

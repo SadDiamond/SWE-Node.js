@@ -421,6 +421,8 @@ async function playPage(endless) {
 
   // Called when the pen is lifted. Once enough strokes are down, the go is sent to be marked.
   async function endStroke() {
+    // Once there is not enough ink left for a stroke long enough to count, the go is marked as it is.
+    const outOfInk = () => round.ink - round.inkSpent < game.shortestStroke;
     // A stroke the pen barely moved in is treated as a stray tap and undone.
     if (strokeLength < game.shortestStroke) {
       round.strokes.pop();
@@ -430,9 +432,11 @@ async function playPage(endless) {
       round.ghost = beforeMarks.ghost;
       round.missed = beforeMarks.missed;
       showGraph();
-      return message('That was too short to count. Draw a longer line.');
+      if (round.strokes.length === 0 || !outOfInk()) {
+        return message('That was too short to count. Draw a longer line.');
+      }
     }
-    if (round.strokes.length < round.strokesPerGo) {
+    if (round.strokes.length < round.strokesPerGo && !outOfInk()) {
       showGraph();
       return message(`Piece ${round.strokes.length} of ${round.strokesPerGo} drawn. Now draw the next piece.`);
     }

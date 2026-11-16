@@ -283,7 +283,7 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
     hints = play.hints;
   } else {
     if (!Number.isInteger(go) || go < 1 || go > rules.MAX_GOES) {
-      return response.status(400).json({ error: 'That go number is not valid.' });
+      return response.status(400).json({ error: 'That attempt number is not valid.' });
     }
     if (!Number.isInteger(hints) || hints < 0 || hints > rules.MAX_HINTS) {
       return response.status(400).json({ error: 'That number of hints is not valid.' });
@@ -507,13 +507,13 @@ app.use('/api', (_request, response) => {
 
 app.use((error, _request, response, _next) => {
   if (error.type === 'entity.parse.failed') {
-    return response.status(400).json({ error: 'Something went wrong sending that, so give it another go.' });
+    return response.status(400).json({ error: 'Something went wrong sending that, so try again.' });
   }
   if (error.type === 'entity.too.large') {
     return response.status(413).json({ error: 'That drawing has too much detail, so try a simpler line.' });
   }
   console.error(error);
-  response.status(500).json({ error: 'Something went wrong on our end, so give it another go.' });
+  response.status(500).json({ error: 'Something went wrong on our end, so try again.' });
 });
 
 initialiseDatabase()

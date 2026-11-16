@@ -24,7 +24,7 @@ function mathNode(markup) {
 
 // "1 go" or "3 goes".
 function goesText(count) {
-  return count === 1 ? '1 go' : `${count} goes`;
+  return count === 1 ? '1 attempt' : `${count} attempts`;
 }
 
 // Fetches JSON from the server and turns a failed request into a readable error.
@@ -257,8 +257,8 @@ async function playPage(endless) {
     find('#hint-text').hidden = Boolean(round.result);
 
     find('#stroke-info').textContent = round.strokesPerGo === 1
-      ? "You get one stroke per go and it's marked when you lift your pen."
-      : `This one's in ${round.strokesPerGo} pieces, so you get ${round.strokesPerGo} strokes each go.`;
+      ? "You get one stroke per attempt and it's marked when you lift your pen."
+      : `This one's in ${round.strokesPerGo} pieces, so you get ${round.strokesPerGo} strokes each attempt.`;
     find('#stroke-info').hidden = Boolean(round.result);
     find('.under-graph').hidden = Boolean(round.result);
     graph.classList.toggle('finished', Boolean(round.result));
@@ -266,7 +266,7 @@ async function playPage(endless) {
     find('#result').hidden = !round.result;
     if (round.result) {
       const result = round.result;
-      let heading = 'Out of goes';
+      let heading = 'Out of attempts';
       if (result.solved) heading = `Cracked it in ${goesText(round.goes)}`;
       // The right shape, a little out of place, is accepted but scores less.
       if (result.closeEnough) heading = `Close enough in ${goesText(round.goes)}`;
@@ -279,7 +279,7 @@ async function playPage(endless) {
       // How the score was reached, one line for each thing that changed it.
       const extraGoes = round.goes - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
-      if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('go', 'extra go')}: −${extraGoes * game.goPenalty}`);
+      if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: −${extraGoes * game.goPenalty}`);
       if (round.dots.length > 0) {
         lines.push(`${round.dots.length === 1 ? '1 hint' : `${round.dots.length} hints`}: −${round.dots.length * game.hintPenalty}`);
       }
@@ -563,7 +563,7 @@ async function playPage(endless) {
 
 /* The history page */
 
-const STATUS_NAMES = { solved: 'Cracked', failed: 'Out of goes' };
+const STATUS_NAMES = { solved: 'Cracked', failed: 'Out of attempts' };
 
 // Writes a date such as 2026-11-13 as "13 Nov 2026".
 function shortDate(date) {

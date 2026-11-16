@@ -186,8 +186,8 @@ function settings() {
   };
 }
 
-app.get('/api/today', route(async (request, response) => {
-  const machines = await rules.machinesFor(rules.todayDate());
+async function sendDay(request, response, date) {
+  const machines = await rules.machinesFor(date);
   const curves = [];
   for (const machine of machines) {
     curves.push({
@@ -200,7 +200,34 @@ app.get('/api/today', route(async (request, response) => {
     });
   }
 
-  response.json({ date: rules.todayDate(), ...settings(), curves });
+  response.json({ date, today: date === rules.todayDate(), ...settings(), curves });
+}
+
+app.get('/api/today', route((request, response) => sendDay(request, response, rules.todayDate())));
+
+app.get('/api/day/:date', route(async (request, response) => {
+  const { date } = request.params;
+  if (date !== rules.todayDate() && !rules.pastDates().includes(date)) {
+    return response.status(404).json({ error: 'That day is not available.' });
+  }
+  return sendDay(request, response, date);
+}));
+
+app.get('/api/days', route(async (request, response) => {
+  const dates = rules.pastDates();
+  const played = request.user ? await all(`
+    SELECT machines.play_date AS date, COUNT(*) AS finished, SUM(plays.score) AS points
+    FROM plays
+    INNER JOIN machines ON machines.id = plays.machine_id
+    WHERE plays.user_id = ? AND plays.status != 'playing' AND machines.play_date >= ?
+    GROUP BY machines.play_date
+  `, [request.user.id, dates[dates.length - 1]]) : [];
+  response.json({
+    days: dates.map((date) => {
+      const row = played.find((item) => item.date === date);
+      return { date, finished: row ? row.finished : 0, points: row ? row.points : 0 };
+    })
+  });
 }));
 
 app.get('/api/endless', route(async (request, response) => {
@@ -443,6 +470,7 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
     FROM plays
     INNER JOIN machines ON machines.id = plays.machine_id
     WHERE plays.user_id = ? AND plays.status != 'playing'
+      AND date(plays.finished_at, 'localtime') <= date(machines.play_date, '+1 day')
     ORDER BY machines.play_date DESC
   `, [userId]);
 

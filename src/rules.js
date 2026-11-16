@@ -557,16 +557,22 @@ async function machinesFor(date) {
   return all(`${MACHINE_SELECT} WHERE machines.play_date = ? ORDER BY machines.slot`, [date]);
 }
 
-async function fillHistory() {
+function pastDates() {
   const today = dayNumber(todayDate());
-  for (let day = today - DAYS_OF_HISTORY; day <= today; day += 1) {
-    await machinesFor(new Date(day * 86400000).toISOString().slice(0, 10));
+  const dates = [];
+  for (let day = today - 1; day >= today - DAYS_OF_HISTORY; day -= 1) {
+    dates.push(new Date(day * 86400000).toISOString().slice(0, 10));
   }
+  return dates;
+}
+
+async function fillHistory() {
+  for (const date of [todayDate(), ...pastDates()]) await machinesFor(date);
 }
 
 module.exports = {
   COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
   asymptotes, describe, numberMaker, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
-  hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve
+  hintDots, inkFor, inkUsed, kindName, pastDates, pieces, scoreFor, todayDate, stopsShort, validDrawing, visibleCurve, wholeCurve
 };

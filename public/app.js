@@ -74,7 +74,12 @@ function setUpHowToPlay() {
 
 async function playPage(endless) {
   setUpHowToPlay();
-  const game = await request(endless ? `/api/endless${location.search}` : '/api/today');
+  const pastDate = endless ? null : new URLSearchParams(location.search).get('date');
+  let address = '/api/today';
+  if (endless) address = `/api/endless${location.search}`;
+  if (pastDate) address = `/api/day/${encodeURIComponent(pastDate)}`;
+  const game = await request(address);
+  const past = !endless && !game.today;
   const graph = find('#graph');
 
   const rounds = game.curves.map((curve) => {
@@ -263,7 +268,7 @@ async function playPage(endless) {
 
       const more = rounds.some((item) => !item.result);
       let nextLabel = 'Next curve';
-      if (!more) nextLabel = summarySeen ? "Back to today's result" : "See today's result";
+      if (!more) nextLabel = summarySeen ? 'Back to your result' : 'See your result';
       if (endless) nextLabel = 'Another curve';
       find('#next-curve').textContent = nextLabel;
     }
@@ -495,8 +500,9 @@ async function playPage(endless) {
 
   const date = new Date(`${game.date}T00:00`);
   find('#today-date').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (past) showPastDay(date);
   showRound();
-  document.addEventListener('visibilitychange', async () => {
+  if (!past) document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
     const latest = await request('/api/today').catch(() => null);
     if (latest && latest.date !== game.date) location.reload();
@@ -628,6 +634,35 @@ async function accountPage() {
   });
 }
 
+function showPastDay(date) {
+  const day = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
+  document.title = `${day} · Placeholder`;
+  find('h1').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+  find('#today-date').textContent = 'Past day';
+  find('.intro').textContent = "These are the three curves from that day. They count towards your points and history, but not your day streak.";
+  find('#summary-heading').textContent = `Your result for ${day}`;
+  find('#summary-end').textContent = "That's all three done for this day.";
+  find('nav a[href="/"]').removeAttribute('aria-current');
+  find('nav a[href="/past.html"]').setAttribute('aria-current', 'page');
+}
+
+async function pastPage() {
+  const { days } = await request('/api/days');
+  const list = find('#days');
+  days.forEach((day) => {
+    const link = element('a', undefined, day.finished === 3 ? 'day done' : 'day');
+    link.href = `/?date=${day.date}`;
+    let note = currentUser ? 'Not played yet' : 'Play';
+    if (day.finished === 3) note = `Done · ${day.points} points`;
+    else if (day.finished > 0) note = `${day.finished} of 3 done`;
+    const name = new Date(`${day.date}T00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+    link.append(element('span', name, 'day-name'), element('span', note, 'day-note'));
+    const row = element('li');
+    row.append(link);
+    list.append(row);
+  });
+}
+
 const PENDING_RUN = 'pendingRun';
 
 async function savePendingRun() {
@@ -636,8 +671,8 @@ async function savePendingRun() {
   localStorage.removeItem(PENDING_RUN);
 
   const run = JSON.parse(stored);
-  const today = await request('/api/today');
-  if (run.date !== today.date || today.curves.some((curve) => curve.saved)) return;
+  const day = await request(`/api/day/${encodeURIComponent(run.date)}`).catch(() => null);
+  if (!day || day.curves.some((curve) => curve.saved)) return;
 
   for (const curve of run.curves) {
     for (let hint = 0; hint < curve.hints; hint += 1) {
@@ -653,6 +688,7 @@ const pages = {
   today: () => playPage(false),
   endless: () => playPage(true),
   account: accountPage,
+  past: pastPage,
   history: historyPage,
   stats: statsPage
 };

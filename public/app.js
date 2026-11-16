@@ -35,7 +35,11 @@ async function request(url, options = {}) {
 
   const isJson = (response.headers.get('Content-Type') || '').includes('application/json');
   const data = isJson ? await response.json() : null;
-  if (!response.ok) throw new Error(data?.error || 'The request could not be completed.');
+  if (!response.ok) {
+    const error = new Error(data?.error || 'The request could not be completed.');
+    error.status = response.status;
+    throw error;
+  }
   return data;
 }
 
@@ -81,9 +85,11 @@ async function playPage(endless) {
   const game = await request(address);
   const past = !endless && !game.today;
   const graph = find('#graph');
+  const guestKey = endless || currentUser ? null : `guestRun:${game.date}`;
+  const guestSaved = guestKey ? readStored(guestKey) || [] : [];
 
   const rounds = game.curves.map((curve) => {
-    const saved = curve.saved;
+    const saved = curve.saved || guestSaved.find((item) => item.id === curve.id);
     return {
       ...curve,
       strokes: [],
@@ -93,11 +99,23 @@ async function playPage(endless) {
       missed: saved && saved.last ? saved.last.missed : [],
       dots: saved ? saved.dots : [],
       goes: saved ? saved.goes : 0,
-      history: [],
+      history: saved && saved.history ? saved.history : [],
       result: saved ? saved.result : null
     };
   });
   let round = rounds.find((item) => !item.result) || rounds[rounds.length - 1];
+
+  function saveGuestRun() {
+    if (!guestKey) return;
+    writeStored(guestKey, rounds.map((item) => ({
+      id: item.id,
+      goes: item.goes,
+      dots: item.dots,
+      history: item.history,
+      result: item.result,
+      last: item.shown ? { ...item.shown, missed: item.missed } : null
+    })));
+  }
 
   let strokeLength = 0;
   let beforeMarks = null;
@@ -296,10 +314,9 @@ async function playPage(endless) {
 
     find('#save-prompt').hidden = Boolean(currentUser);
     if (!currentUser) {
-      localStorage.setItem(PENDING_RUN, JSON.stringify({
-        date: game.date,
-        curves: rounds.map((item) => ({ id: item.id, hints: item.dots.length, goes: item.history }))
-      }));
+      const pending = readStored(PENDING_RUN) || {};
+      pending[game.date] = rounds.map((item) => ({ id: item.id, hints: item.dots.length, goes: item.history }));
+      writeStored(PENDING_RUN, pending);
     }
 
     summaryOpen = true;
@@ -341,13 +358,18 @@ async function playPage(endless) {
 
   find('#hint').addEventListener('click', async () => {
     if (waiting || round.result) return;
+    waiting = true;
     const asking = round;
     try {
       const hint = await send(`/api/machines/${asking.id}/hint`, { number: asking.dots.length + 1 });
       asking.dots.push(hint.dot);
+      saveGuestRun();
       showRound();
     } catch (error) {
+      if (error.status === 409) return location.reload();
       message(error.message);
+    } finally {
+      waiting = false;
     }
   });
 
@@ -424,7 +446,9 @@ async function playPage(endless) {
         message(`${result.accuracy}%, keep the green bits and fix up the rest.`
           + (joined ? " The grey bit is where your line joins two pieces of the curve that aren't connected." : ''));
       }
+      saveGuestRun();
     } catch (error) {
+      if (error.status === 409) return location.reload();
       message(error.message);
     }
     marking.strokes = [];
@@ -665,18 +689,36 @@ async function pastPage() {
   });
 }
 
-const PENDING_RUN = 'pendingRun';
+const PENDING_RUN = 'pendingRuns';
+
+function readStored(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key));
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Without storage the run is not kept, but the game still works.
+  }
+}
 
 async function savePendingRun() {
-  const stored = localStorage.getItem(PENDING_RUN);
-  if (!stored) return;
+  const pending = readStored(PENDING_RUN);
+  if (!pending) return;
   localStorage.removeItem(PENDING_RUN);
+  for (const [date, curves] of Object.entries(pending)) await savePendingDay(date, curves).catch(() => {});
+}
 
-  const run = JSON.parse(stored);
-  const day = await request(`/api/day/${encodeURIComponent(run.date)}`).catch(() => null);
+async function savePendingDay(date, curves) {
+  const day = await request(`/api/day/${encodeURIComponent(date)}`).catch(() => null);
   if (!day || day.curves.some((curve) => curve.saved)) return;
 
-  for (const curve of run.curves) {
+  for (const curve of curves) {
     for (let hint = 0; hint < curve.hints; hint += 1) {
       await send(`/api/machines/${curve.id}/hint`, {});
     }

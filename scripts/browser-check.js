@@ -134,6 +134,55 @@ async function main() {
       assert.notStrictEqual(background, 'rgb(251, 250, 246)', 'the page is not the light background');
     });
 
+    await check('double-clicking hint only uses one hint', async () => {
+      const hinted = await newPage(await browser.newContext());
+      await hinted.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
+      await hinted.goto(SITE);
+      await hinted.waitForSelector('#tabs li');
+      await hinted.locator('#hint').dblclick();
+      await hinted.waitForSelector('circle.dot');
+      await hinted.waitForTimeout(500);
+      assert.strictEqual(await hinted.locator('circle.dot').count(), 1);
+      assert.match(await hinted.locator('#hint-text').textContent(), /2 left/);
+    });
+
+    await check('a guest keeps their attempts and hints after reloading', async () => {
+      const guestPage = await newPage(await browser.newContext({ viewport: { width: 1280, height: 900 } }));
+      await guestPage.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
+      await guestPage.goto(SITE);
+      await guestPage.waitForSelector('#tabs li');
+      await guestPage.click('#hint');
+      await guestPage.waitForSelector('circle.dot');
+      await draw(guestPage, across);
+      await guestPage.waitForFunction(() => document.querySelectorAll('#goes .used').length === 1);
+      await guestPage.reload();
+      await guestPage.waitForSelector('#tabs li');
+      assert.strictEqual(await guestPage.locator('#goes .used').count(), 1, 'the attempt is still used');
+      assert.strictEqual(await guestPage.locator('circle.dot').count(), 1, 'the hint dot is still there');
+    });
+
+    await check('a second tab catches up instead of getting stuck', async () => {
+      const player = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+      await player.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
+      const first = await newPage(player);
+      await first.goto(`${SITE}/account.html`);
+      await first.fill('#signup-username', `tabs${Date.now() % 100000}`);
+      await first.fill('#signup-password', 'a long enough password');
+      await first.locator('#signup-password').press('Enter');
+      await first.waitForURL(`${SITE}/`);
+      await first.waitForSelector('#tabs li');
+      const second = await newPage(player);
+      await second.goto(SITE);
+      await second.waitForSelector('#tabs li');
+      for (let attempt = 0; attempt < 5 && !(await first.locator('#result').isVisible()); attempt += 1) {
+        await draw(first, across);
+        await first.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+          || !document.querySelector('#result').hidden, attempt + 1);
+      }
+      await draw(second, across);
+      await second.waitForFunction(() => document.querySelector('.tab.current')?.textContent.includes('Medium'));
+    });
+
     await check('the theme button switches modes and remembers the choice', async () => {
       const themed = await newPage(await browser.newContext({ colorScheme: 'light' }));
       const background = () => themed.evaluate(() => getComputedStyle(document.body).backgroundColor);

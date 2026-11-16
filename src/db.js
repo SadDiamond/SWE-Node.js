@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const sqlite3 = require('sqlite3').verbose();
 
-const databasePath = path.join(__dirname, '..', 'data', 'app.db');
+const databasePath = process.env.DATABASE_PATH || path.join(__dirname, '..', 'data', 'app.db');
 const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
 
 let database;

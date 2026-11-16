@@ -9,7 +9,8 @@
     "dev": "node src/server.js",
     "watch": "node --watch src/server.js",
     "check": "node --check src/server.js && node --check src/db.js && node --check src/rules.js && node --check src/auth.js && node --check public/app.js && node --check public/graph.js",
-    "test": "node scripts/check.js"
+    "test": "node scripts/check.js",
+    "test:browser": "node scripts/browser-check.js"
   },
   "dependencies": {
     "express": "^5.1.0",

@@ -336,7 +336,7 @@ app.post('/api/machines/:id/hint', route(async (request, response) => {
     number = play.hints + 1;
   }
   if (!Number.isInteger(number) || number < 1 || number > rules.MAX_HINTS) {
-    return response.status(400).json({ error: 'No hints left.' });
+    return response.status(400).json({ error: "You've used all your hints for this curve." });
   }
 
   if (play) await run('UPDATE plays SET hints = ? WHERE id = ?', [number, play.id]);
@@ -507,13 +507,13 @@ app.use('/api', (_request, response) => {
 
 app.use((error, _request, response, _next) => {
   if (error.type === 'entity.parse.failed') {
-    return response.status(400).json({ error: 'Something went wrong sending that. Try again.' });
+    return response.status(400).json({ error: 'Something went wrong sending that, so give it another go.' });
   }
   if (error.type === 'entity.too.large') {
-    return response.status(413).json({ error: 'That drawing is too detailed. Try a simpler line.' });
+    return response.status(413).json({ error: 'That drawing has too much detail, so try a simpler line.' });
   }
   console.error(error);
-  response.status(500).json({ error: 'Something went wrong on our end. Try again.' });
+  response.status(500).json({ error: 'Something went wrong on our end, so give it another go.' });
 });
 
 initialiseDatabase()

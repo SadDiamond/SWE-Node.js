@@ -28,7 +28,7 @@
         <h1>Endless</h1>
         <p class="details"><span id="today-date">Loading…</span> · <span id="total" class="total">0</span> points</p>
         <p class="intro">
-          Random curves, as many as you want. These don't count towards your daily score or stats.
+          Keep playing random curves for as long as you want (these don't count towards your daily score or stats).
         </p>
 
         <nav id="levels" class="levels" aria-label="Choose a difficulty">
@@ -67,7 +67,7 @@
 
         <section id="result" class="result" aria-labelledby="result-heading" hidden>
           <h2 id="result-heading"></h2>
-          <p id="result-close" class="help" hidden>Right shape, slightly off. It counts, but closer scores more.</p>
+          <p id="result-close" class="help" hidden>You got the right shape, just a bit out of place, so it still counts (drawing it closer gets you more points though).</p>
           <p class="score"><span id="result-score"></span> <span id="result-top" class="score-top"></span></p>
           <ul id="result-working" class="working"></ul>
           <p>Type of curve: <strong id="result-family"></strong></p>
@@ -86,7 +86,7 @@
             </svg>
           </p>
           <p class="help">
-            Black line is the real curve. Your last go is faded behind it.
+            The black line is the real curve and your last go is faded out behind it.
           </p>
           <button type="button" id="next-curve" class="primary">Next curve</button>
         </section>
@@ -98,13 +98,13 @@
           </div>
           <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
           <ul>
-            <li>Green and thick means you're on the curve. Thinner and redder means you're further off.</li>
-            <li><strong>● Dot</strong>: a spot on the curve. Hints give you one, but they cost points.</li>
-            <li><strong>Scoring</strong>: out of 1000, based on accuracy. Each extra go is −100, each hint −150.</li>
+            <li>Your line stays thick and green where you're on the curve and gets thinner and redder the further off you are.</li>
+            <li><strong>● Dot</strong>: a spot that's on the curve, which you can get from a hint if you're stuck (it'll cost you some points though).</li>
+            <li><strong>Scoring</strong>: each curve is out of 1000 depending on how accurate you are, and you lose 100 for every extra go and 150 for every hint.</li>
             <li><strong>▲ Arrow on the edge</strong>: the curve leaves the graph here.</li>
-            <li><strong>→ Arrow on your line</strong>: you're way off here. The curve is that way.</li>
-            <li><strong>Grey bar at the bottom</strong>: you missed the curve somewhere above it.</li>
-            <li><strong>Ink</strong>: enough to draw the curve, plus a bit extra.</li>
+            <li><strong>→ Arrow on your line</strong>: you're way off here and the curve is in that direction.</li>
+            <li><strong>Grey bar at the bottom</strong>: the curve is somewhere above it and you didn't get anywhere near.</li>
+            <li><strong>Ink</strong>: you get enough to draw the whole curve with a bit left over.</li>
             <li>Your last go stays on the graph, so you can trace over the good bits.</li>
             
           </ul>
@@ -112,8 +112,8 @@
           <details>
             <summary>Drawing with a keyboard</summary>
             <p id="keyboard-help">
-              Tab to the graph. Arrow keys move the pen. Space puts it down, Space again lifts it
-              and finishes the stroke.
+              Tab to the graph and use the arrow keys to move the pen around. Press Space to put it down,
+              then press Space again when you want to lift it and finish the stroke.
             </p>
           </details>
         </section>
@@ -125,11 +125,11 @@
         <ol id="summary-rows" class="summary-rows"></ol>
         <p id="save-prompt" class="save-prompt" hidden>
           <a href="/account.html" class="button primary">Log in to save this score</a>
-          <span class="help">No account? Sign up on the same page and your run gets saved.</span>
+          <span class="help">If you don't have an account you can sign up on the same page and your run will get saved.</span>
         </p>
         <button type="button" id="copy-result">Copy result</button>
         <p id="copy-status" class="help" role="status" aria-live="polite"></p>
-        <p>That's all three. New ones tomorrow.</p>
+        <p>That's all three done, so come back tomorrow for new ones!</p>
       </section>
     </main>
 

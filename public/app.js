@@ -252,13 +252,13 @@ async function playPage(endless) {
     const hintsLeft = game.maxHints - round.dots.length;
     find('#hint').disabled = hintsLeft === 0;
     find('#hint-text').textContent = hintsLeft === 0
-      ? 'No hints left.'
-      : `A hint shows one spot on the curve (−${game.hintPenalty} points). ${hintsLeft} left.`;
+      ? "You've used all your hints for this curve."
+      : `A hint shows you one spot on the curve but costs ${game.hintPenalty} points (${hintsLeft} left).`;
     find('#hint-text').hidden = Boolean(round.result);
 
     find('#stroke-info').textContent = round.strokesPerGo === 1
-      ? 'One stroke per go. Lift your pen to get marked.'
-      : `This one's in ${round.strokesPerGo} pieces, so draw ${round.strokesPerGo} strokes each go.`;
+      ? "You get one stroke per go and it's marked when you lift your pen."
+      : `This one's in ${round.strokesPerGo} pieces, so you get ${round.strokesPerGo} strokes each go.`;
     find('#stroke-info').hidden = Boolean(round.result);
     find('.under-graph').hidden = Boolean(round.result);
     graph.classList.toggle('finished', Boolean(round.result));
@@ -409,7 +409,7 @@ async function playPage(endless) {
     if (points >= game.mostPoints) return;
     // When the ink for this go has run out, the pen stops leaving a line.
     if (round.inkSpent + moved > round.ink) {
-      return message('Out of ink. Lift your pen to get marked.');
+      return message("You're out of ink, so lift your pen and it'll get marked.");
     }
 
     stroke.push(rounded(position));
@@ -433,12 +433,12 @@ async function playPage(endless) {
       round.missed = beforeMarks.missed;
       showGraph();
       if (round.strokes.length === 0 || !outOfInk()) {
-        return message('Too short. Draw a longer line.');
+        return message("That line was too short to count, so try drawing a longer one.");
       }
     }
     if (round.strokes.length < round.strokesPerGo && !outOfInk()) {
       showGraph();
-      return message(`Piece ${round.strokes.length} of ${round.strokesPerGo} done. Now the next one.`);
+      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}, now draw the next one.`);
     }
 
     waiting = true;
@@ -456,7 +456,7 @@ async function playPage(endless) {
         message('');
       } else {
         flashPercent(result.accuracy);
-        message(`${result.accuracy}%. Keep the green, fix the rest.`);
+        message(`${result.accuracy}%, keep the green bits and fix up the rest.`);
       }
     } catch (error) {
       message(error.message);
@@ -515,7 +515,7 @@ async function playPage(endless) {
         endStroke();
       } else if (startStroke(pen)) {
         pen.down = true;
-        message('Pen down. Arrow keys to draw, Space to lift.');
+        message('Your pen is down, so use the arrow keys to draw and press Space to lift it.');
       }
     }
     if (moves[event.key]) {
@@ -624,7 +624,7 @@ async function historyPage() {
       ]);
     });
     find('#count').textContent = rows.length === 0
-      ? 'Nothing here yet. Finish a curve or change the filters.'
+      ? "There's nothing here yet, so finish a curve or try changing the filters."
       : `${rows.length} ${rows.length === 1 ? 'curve' : 'curves'}`;
   }
 

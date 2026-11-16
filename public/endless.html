@@ -28,8 +28,7 @@
         <h1>Endless</h1>
         <p class="details"><span id="today-date">Loading…</span> · <span id="total" class="total">0</span> points</p>
         <p class="intro">
-          One random curve after another, for as long as you like. These do not count
-          towards your daily score or your stats.
+          Random curves, as many as you want. These don't count towards your daily score or stats.
         </p>
 
         <nav id="levels" class="levels" aria-label="Choose a difficulty">
@@ -68,7 +67,7 @@
 
         <section id="result" class="result" aria-labelledby="result-heading" hidden>
           <h2 id="result-heading"></h2>
-          <p id="result-close" class="help" hidden>You found the right shape, just a little out of place, so it counts. Drawing it closer scores more.</p>
+          <p id="result-close" class="help" hidden>Right shape, slightly off. It counts, but closer scores more.</p>
           <p class="score"><span id="result-score"></span> <span id="result-top" class="score-top"></span></p>
           <ul id="result-working" class="working"></ul>
           <p>Type of curve: <strong id="result-family"></strong></p>
@@ -87,34 +86,34 @@
             </svg>
           </p>
           <p class="help">
-            The real curve is the black line, with your last go faded behind it.
+            Black line is the real curve. Your last go is faded behind it.
           </p>
           <button type="button" id="next-curve" class="primary">Next curve</button>
         </section>
 
         <section class="key" aria-labelledby="key-heading">
-          <h2 id="key-heading">Reading your line</h2>
+          <h2 id="key-heading">How it works</h2>
           <div class="scale" aria-hidden="true">
             <span class="l0"></span><span class="l1"></span><span class="l2"></span><span class="l3"></span><span class="l4"></span>
           </div>
           <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
           <ul>
-            <li>The line is thick and green where you are on the curve, and gets thinner and redder the further away you are.</li>
-            <li><strong>● A dot</strong>: this spot is on the curve. Use a hint to get a clue about where the curve goes, keep in mind that it will cost your score.</li>
-            <li><strong>Scoring</strong>: each curve is out of 1000. Your accuracy determines the score, then every go after the first costs 100 and every hint costs 150.</li>
-            <li><strong>▲ An arrow on the top or bottom edge</strong>: the curve leaves the graph here.</li>
-            <li><strong>→ A small arrow on your line</strong>: you are well off here, and the curve is in that direction.</li>
-            <li><strong>A grey bar along the bottom</strong>: the curve is somewhere above, and you were nowhere near.</li>
-            <li><strong>Ink</strong>: each go has enough ink to draw the curve with some left to spare.</li>
-            <li>Your last go stays on the graph, so you can trace the good parts.</li>
+            <li>Green and thick means you're on the curve. Thinner and redder means you're further off.</li>
+            <li><strong>● Dot</strong>: a spot on the curve. Hints give you one, but they cost points.</li>
+            <li><strong>Scoring</strong>: out of 1000, based on accuracy. Each extra go is −100, each hint −150.</li>
+            <li><strong>▲ Arrow on the edge</strong>: the curve leaves the graph here.</li>
+            <li><strong>→ Arrow on your line</strong>: you're way off here. The curve is that way.</li>
+            <li><strong>Grey bar at the bottom</strong>: you missed the curve somewhere above it.</li>
+            <li><strong>Ink</strong>: enough to draw the curve, plus a bit extra.</li>
+            <li>Your last go stays on the graph, so you can trace over the good bits.</li>
             
           </ul>
 
           <details>
             <summary>Drawing with a keyboard</summary>
             <p id="keyboard-help">
-              Select the graph with Tab. The arrow keys move the pen. Press Space to put the pen
-              down, move to draw, and press Space again to lift it, which finishes the stroke.
+              Tab to the graph. Arrow keys move the pen. Space puts it down, Space again lifts it
+              and finishes the stroke.
             </p>
           </details>
         </section>
@@ -126,11 +125,11 @@
         <ol id="summary-rows" class="summary-rows"></ol>
         <p id="save-prompt" class="save-prompt" hidden>
           <a href="/account.html" class="button primary">Log in to save this score</a>
-          <span class="help">No account yet? You can sign up on the same page. Your run will be saved when you do.</span>
+          <span class="help">No account? Sign up on the same page and your run gets saved.</span>
         </p>
         <button type="button" id="copy-result">Copy result</button>
         <p id="copy-status" class="help" role="status" aria-live="polite"></p>
-        <p>That is all three for today, come back tomorrow for new ones!</p>
+        <p>That's all three. New ones tomorrow.</p>
       </section>
     </main>
 

@@ -63,7 +63,7 @@ app.post('/api/signup', route(async (request, response) => {
   const password = typeof request.body.password === 'string' ? request.body.password : '';
 
   if (!/^[a-z0-9_]{3,20}$/.test(username)) {
-    return response.status(400).json({ error: 'Usernames are 3 to 20 letters, numbers or underscores.' });
+    return response.status(400).json({ error: 'Usernames need 3 to 20 letters, numbers or underscores.' });
   }
   if (password.length < 8 || password.length > 100) {
     return response.status(400).json({ error: 'Passwords need at least 8 characters.' });
@@ -151,7 +151,7 @@ async function openPlay(userId, machine) {
 
   await run('INSERT OR IGNORE INTO plays (user_id, machine_id) VALUES (?, ?)', [userId, machine.id]);
   const play = await findPlay(userId, machine.id);
-  if (play.status !== 'playing') return { error: 'You have already finished this curve.' };
+  if (play.status !== 'playing') return { error: 'You already finished this curve.' };
   return { play };
 }
 
@@ -259,18 +259,18 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   let { go, hints } = request.body;
 
   if (!rules.validDrawing(drawing)) {
-    return response.status(400).json({ error: 'That drawing is not in the right format.' });
+    return response.status(400).json({ error: "That drawing didn't come through right." });
   }
   const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: 'Curve not found.' });
   if (drawing.length > rules.pieces(machine)) {
-    return response.status(400).json({ error: 'That drawing has more strokes than the curve has pieces.' });
+    return response.status(400).json({ error: 'Too many strokes for this curve.' });
   }
 
   // The page stops the pen when the ink runs out. This catches a drawing sent some other way.
   // The small allowance covers rounding of pen positions.
   if (rules.inkUsed(drawing) > rules.inkFor(machine) * 1.05) {
-    return response.status(400).json({ error: 'That drawing uses more ink than the pen holds.' });
+    return response.status(400).json({ error: 'That drawing used more ink than you have.' });
   }
 
   let play = null;
@@ -336,7 +336,7 @@ app.post('/api/machines/:id/hint', route(async (request, response) => {
     number = play.hints + 1;
   }
   if (!Number.isInteger(number) || number < 1 || number > rules.MAX_HINTS) {
-    return response.status(400).json({ error: 'There are no more hints for this curve.' });
+    return response.status(400).json({ error: 'No hints left.' });
   }
 
   if (play) await run('UPDATE plays SET hints = ? WHERE id = ?', [number, play.id]);
@@ -502,18 +502,18 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
 }));
 
 app.use('/api', (_request, response) => {
-  response.status(404).json({ error: 'That address does not exist on the server.' });
+  response.status(404).json({ error: 'Page not found.' });
 });
 
 app.use((error, _request, response, _next) => {
   if (error.type === 'entity.parse.failed') {
-    return response.status(400).json({ error: 'The request was not valid JSON.' });
+    return response.status(400).json({ error: 'Something went wrong sending that. Try again.' });
   }
   if (error.type === 'entity.too.large') {
-    return response.status(413).json({ error: 'That drawing is too detailed to send. Try a simpler line.' });
+    return response.status(413).json({ error: 'That drawing is too detailed. Try a simpler line.' });
   }
   console.error(error);
-  response.status(500).json({ error: 'The server could not complete that request.' });
+  response.status(500).json({ error: 'Something went wrong on our end. Try again.' });
 });
 
 initialiseDatabase()

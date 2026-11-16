@@ -231,6 +231,13 @@ for (let t = 0; t <= 1.0001; t += 0.01) squashed.push([-4 + 9 * t, -1.5 * Math.s
 const lowerArrows = rules.judge([squashed], square).nudges.filter((nudge) => nudge.y < 0 && nudge.x > -3 && nudge.x < 4);
 assert.ok(lowerArrows.length > 0 && lowerArrows.every((nudge) => nudge.up < 0),
   'on a squashed loop, the arrows on its bottom line point down to the bottom of the shape, not up to the nearest edge');
+const thin = [];
+for (let t = 0; t <= 1.0001; t += 0.01) thin.push([5.4 - 9.4 * t, 3.5 * Math.sin(Math.PI * t)]);
+for (let t = 0; t <= 1.0001; t += 0.01) thin.push([-4 + 9 * t, 1]);
+const thinLevels = rules.judge([thin], square).levels[0];
+const nearTopEdge = thinLevels.filter((_level, index) => index > 101 && Math.abs(thin[index][0] - 1) < 2);
+assert.ok(nearTopEdge.length > 0 && nearTopEdge.every((level) => level >= 3),
+  'a bottom line drawn just under the top edge is coloured as well off, because it stands for the bottom of the shape');
 
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {

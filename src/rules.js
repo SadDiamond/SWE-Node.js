@@ -293,9 +293,12 @@ function resample(points, count) {
 }
 
 // When a loop is drawn as a loop, each part of the drawing is paired with the part of the real
-// loop it stands for (top with top, bottom with bottom), so the arrows say where that part should go.
-// Pointing at the nearest part of the curve instead would tell the bottom of a squashed loop to move up.
-function loopTargets(stroke, machine) {
+// loop it stands for (top with top, bottom with bottom). The colours, the score and the arrows
+// then judge each part only against its partner. Judging against the nearest part of the curve
+// instead would call the bottom of a squashed loop "on the curve" because it is near the top.
+const MATCH_WINDOW = 12;
+
+function loopMatch(stroke, machine) {
   if (!LOOPS.includes(machine.family_id) || stroke.length < 3) return null;
   const drawn = resample(stroke, MATCH_POINTS);
   const [startX, startY] = stroke[0];
@@ -307,6 +310,7 @@ function loopTargets(stroke, machine) {
     .filter(Boolean));
   const outlinePoints = [...upper, ...lower.reverse()];
   const outline = resample([...outlinePoints, outlinePoints[0]], MATCH_POINTS).samples;
+  const wrap = (step) => ((step % MATCH_POINTS) + MATCH_POINTS) % MATCH_POINTS;
 
   let best = { cost: Infinity, shift: 0, turn: 1 };
   for (const turn of [1, -1]) {
@@ -314,16 +318,28 @@ function loopTargets(stroke, machine) {
       let cost = 0;
       for (let step = 0; step < MATCH_POINTS; step += 1) {
         const [x1, y1] = drawn.samples[step];
-        const [x2, y2] = outline[(shift + turn * step + MATCH_POINTS) % MATCH_POINTS];
+        const [x2, y2] = outline[wrap(shift + turn * step)];
         cost += Math.hypot(x2 - x1, y2 - y1);
       }
       if (cost < best.cost) best = { cost, shift, turn };
     }
   }
-  return stroke.map((_point, index) => {
-    const step = Math.min(MATCH_POINTS - 1, Math.round((drawn.lengths[index] / drawn.total) * MATCH_POINTS));
-    return outline[(best.shift + best.turn * step + MATCH_POINTS) % MATCH_POINTS];
-  });
+  return {
+    outline,
+    drawn: drawn.samples,
+    partnerOfPen: (index) => wrap(best.shift + best.turn * Math.round((drawn.lengths[index] / drawn.total) * MATCH_POINTS)),
+    partnerOfOutline: (step) => wrap(best.turn * (step - best.shift))
+  };
+}
+
+function distanceNear(x, y, points, centre) {
+  let best = Infinity;
+  for (let offset = -MATCH_WINDOW; offset <= MATCH_WINDOW; offset += 1) {
+    const [x1, y1] = points[(((centre + offset) % MATCH_POINTS) + MATCH_POINTS) % MATCH_POINTS];
+    const [x2, y2] = points[(((centre + offset + 1) % MATCH_POINTS) + MATCH_POINTS) % MATCH_POINTS];
+    best = Math.min(best, distanceToPiece(x, y, x1, y1, x2, y2));
+  }
+  return best;
 }
 
 function judge(strokes, machine) {
@@ -336,13 +352,14 @@ function judge(strokes, machine) {
   const nudges = [];
   let sinceNudge = NUDGE_SPACING / 2;
 
+  const match = strokes.length === 1 ? loopMatch(strokes[0], machine) : null;
   const levels = strokes.map((stroke) => {
     const crossedWalls = walls.filter((wall) => stroke.some(([x], index) => index > 0
       && sideOf(stroke[index - 1][0], [wall]) !== sideOf(x, [wall])));
-    const targets = loopTargets(stroke, machine);
     return stroke.map(([x, y], index) => {
       const spot = nearestOnCurve(x, y, whole, walls);
-      const level = levelFor(spot.distance);
+      const partner = match ? match.partnerOfPen(index) : null;
+      const level = levelFor(match ? distanceNear(x, y, match.outline, partner) : spot.distance);
       const crossing = (index > 0 && sideOf(stroke[index - 1][0], walls) !== sideOf(x, walls))
         || crossedWalls.some((wall) => Math.abs(x - wall) <= CROSSING_ZONE);
       if (index > 0) {
@@ -353,7 +370,7 @@ function judge(strokes, machine) {
         sinceNudge += length;
       }
       if (crossing) return CROSSED;
-      const aim = targets ? { x: targets[index][0], y: targets[index][1] } : spot;
+      const aim = match ? { x: match.outline[partner][0], y: match.outline[partner][1] } : spot;
       const away = Math.hypot(aim.x - x, aim.y - y);
       if (level >= NUDGE_FROM_LEVEL && sinceNudge >= NUDGE_SPACING && away > 0 && away < Infinity) {
         nudges.push({
@@ -373,7 +390,27 @@ function judge(strokes, machine) {
   const missed = new Array(COLUMNS).fill(false);
   const missedRows = new Array(COLUMNS).fill(false);
   const rowFor = (output) => Math.round((output + LIMIT) * STEPS_PER_UNIT);
-  for (const branch of visible) {
+  if (match) {
+    let before = null;
+    match.outline.forEach(([outlineX, outlineY], step) => {
+      const level = levelFor(distanceNear(outlineX, outlineY, match.drawn, match.partnerOfOutline(step)));
+      curvePoints += 1;
+      curveCovered += 1 - level / BANDS.length;
+      if (level < BANDS.length) {
+        before = null;
+        return;
+      }
+      const [fromX, fromY] = before || [outlineX, outlineY];
+      for (let column = rowFor(Math.min(fromX, outlineX)); column <= rowFor(Math.max(fromX, outlineX)); column += 1) {
+        missed[column] = true;
+      }
+      for (let row = rowFor(Math.min(fromY, outlineY)); row <= rowFor(Math.max(fromY, outlineY)); row += 1) {
+        missedRows[row] = true;
+      }
+      before = [outlineX, outlineY];
+    });
+  }
+  for (const branch of match ? [] : visible) {
     let before = null;
     branch.forEach((output, column) => {
       if (output === null) {

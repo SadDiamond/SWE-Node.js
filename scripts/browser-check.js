@@ -194,14 +194,17 @@ async function main() {
       await loops.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
       await loops.goto(`${SITE}/endless.html?slot=4`);
       await loops.waitForFunction(() => document.querySelector('#today-date').textContent === 'Loops and turns');
+      const twoStrokes = (await loops.locator('#stroke-info').textContent()).includes('2 pieces');
       for (let attempt = 0; attempt < 5 && !(await loops.locator('#result').isVisible()); attempt += 1) {
         await draw(loops, across);
+        if (twoStrokes) await draw(loops, [[-9, -2], [0, -2], [9, -2]]);
         await loops.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
           || !document.querySelector('#result').hidden, attempt + 1);
       }
       await loops.waitForSelector('#result:not([hidden])');
       assert.ok(await loops.locator('path.truth').count() >= 2, 'both halves of the shape are drawn');
-      assert.match(await loops.locator('#result-family').textContent(), /Circle|Ellipse|Sideways parabola/);
+      assert.match(await loops.locator('#result-family').textContent(),
+        /^(Circle|Ellipse|Sideways parabola|Diamond|Rounded square|Sideways V|Sideways hyperbola|Up and down hyperbola)$/);
     });
 
     await check('the theme button switches modes and remembers the choice', async () => {

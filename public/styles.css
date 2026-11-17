@@ -12,10 +12,11 @@
   --grid: #e3e7eb;
   --grid-major: #c3cad2;
   --fresh: #1b4fc4;
+  --pen: #1b4fc4;
   --wrong: #c22f27;
   --level-0: #1c8139;
-  --level-1: #7da511;
-  --level-2: #d8a200;
+  --level-1: #789e10;
+  --level-2: #b98b00;
   --level-3: #e06c12;
   --level-4: #c22f27;
 
@@ -37,6 +38,7 @@
     --grid: #2b2f35;
     --grid-major: #474e57;
     --fresh: #5585ec;
+    --pen: #7eaaff;
     --wrong: #f2665c;
     --level-0: #3fba60;
     --level-1: #a4cb3a;
@@ -54,6 +56,7 @@
   --grid: #2b2f35;
   --grid-major: #474e57;
   --fresh: #5585ec;
+  --pen: #7eaaff;
   --wrong: #f2665c;
   --level-0: #3fba60;
   --level-1: #a4cb3a;
@@ -429,7 +432,7 @@ button.primary:hover:not(:disabled) {
 }
 
 .stroke {
-  stroke: var(--fresh);
+  stroke: var(--pen);
   stroke-width: 6;
 }
 
@@ -525,7 +528,7 @@ button.primary:hover:not(:disabled) {
 }
 
 .pen.down {
-  fill: var(--fresh);
+  fill: var(--pen);
 }
 
 .ink {
@@ -552,7 +555,7 @@ button.primary:hover:not(:disabled) {
 .ink-level {
   width: 100%;
   height: 100%;
-  background: var(--fresh);
+  background: var(--pen);
 }
 
 .under-graph {

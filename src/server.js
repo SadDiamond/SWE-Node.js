@@ -39,6 +39,50 @@ function route(handler) {
   return (request, response, next) => handler(request, response).catch(next);
 }
 
+// Counts recent requests for each key (an account, a username or an address).
+// ponytail: the counts live in this server's memory, so they reset when it restarts and are not
+// shared between servers. That is fine for one server; keep them in the database if that ever changes.
+function limiter(most, minutes) {
+  const recent = new Map();
+  const cutoff = () => Date.now() - minutes * 60 * 1000;
+  setInterval(() => {
+    for (const [key, times] of recent) {
+      const kept = times.filter((time) => time > cutoff());
+      if (kept.length > 0) recent.set(key, kept);
+      else recent.delete(key);
+    }
+  }, 60 * 1000).unref();
+  return {
+    full(key) {
+      return (recent.get(key) || []).filter((time) => time > cutoff()).length >= most;
+    },
+    add(key) {
+      recent.set(key, [...(recent.get(key) || []), Date.now()]);
+    }
+  };
+}
+
+// A whole classroom can share one address, so the limits per address are generous.
+const wrongPasswords = limiter(5, 15);
+const accountRequests = limiter(100, 15);
+const playerMarking = limiter(60, 1);
+const guestMarking = limiter(300, 1);
+
+function limited(counter, keyOf, error) {
+  return (request, response, next) => {
+    const key = keyOf(request);
+    if (counter.full(key)) return response.status(429).json({ error });
+    counter.add(key);
+    next();
+  };
+}
+
+const limitAccounts = limited(accountRequests, (request) => request.ip,
+  'There have been a lot of log ins from here recently, so wait a few minutes and try again.');
+const limitMarking = (request, response, next) => (request.user
+  ? limited(playerMarking, () => `user ${request.user.id}`, "You're going really fast, so wait a moment and try again.")
+  : limited(guestMarking, () => request.ip, "You're going really fast, so wait a moment and try again."))(request, response, next);
+
 function cleanText(value, longest) {
   return typeof value === 'string' ? value.trim().slice(0, longest) : '';
 }
@@ -47,7 +91,7 @@ app.get('/api/me', (request, response) => {
   response.json({ user: request.user || null });
 });
 
-app.post('/api/signup', route(async (request, response) => {
+app.post('/api/signup', limitAccounts, route(async (request, response) => {
   const username = cleanText(request.body.username, 20).toLowerCase();
   const displayName = cleanText(request.body.displayName, 30) || username;
   const password = typeof request.body.password === 'string' ? request.body.password : '';
@@ -72,14 +116,18 @@ app.post('/api/signup', route(async (request, response) => {
   response.status(201).json({ id: result.id });
 }));
 
-app.post('/api/login', route(async (request, response) => {
+app.post('/api/login', limitAccounts, route(async (request, response) => {
   const username = cleanText(request.body.username, 20).toLowerCase();
   const password = typeof request.body.password === 'string' ? request.body.password : '';
+  if (wrongPasswords.full(username)) {
+    return response.status(429).json({ error: 'Too many wrong passwords for this account, so wait 15 minutes and try again.' });
+  }
 
   // The same message is used for a wrong username and a wrong password,
   // so nobody can use this form to find out which usernames exist.
   const users = await all('SELECT * FROM users WHERE username = ?', [username]);
   if (users.length === 0 || !auth.passwordMatches(password, users[0])) {
+    wrongPasswords.add(username);
     return response.status(401).json({ error: 'Wrong username or password.' });
   }
   await run("DELETE FROM sessions WHERE expires_at <= datetime('now')");
@@ -252,7 +300,7 @@ app.get('/api/endless', route(async (request, response) => {
   });
 }));
 
-app.post('/api/machines/:id/go', route(async (request, response) => {
+app.post('/api/machines/:id/go', limitMarking, route(async (request, response) => {
   const { drawing } = request.body;
   let { go, hints } = request.body;
 
@@ -320,7 +368,7 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   response.json(reply);
 }));
 
-app.post('/api/machines/:id/hint', route(async (request, response) => {
+app.post('/api/machines/:id/hint', limitMarking, route(async (request, response) => {
   const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: 'Curve not found.' });
 

@@ -234,6 +234,28 @@ async function main() {
       assert.strictEqual(last.solved, true, 'on the last attempt it counts as cracked');
     });
 
+    await check('too many wrong passwords or requests are refused for a while', async () => {
+      const post = (address, body, cookie = '') => fetch(SITE + address, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie }, body: JSON.stringify(body)
+      });
+      const username = `limit${Date.now() % 100000}`;
+      const signup = await post('/api/signup', { username, password: 'the right password' });
+      const cookie = signup.headers.get('set-cookie').split(';')[0];
+      for (let wrong = 0; wrong < 5; wrong += 1) {
+        assert.strictEqual((await post('/api/login', { username, password: 'not it' })).status, 401);
+      }
+      assert.strictEqual((await post('/api/login', { username, password: 'the right password' })).status, 429,
+        'after five wrong passwords even the right one has to wait');
+
+      const today = await (await fetch(`${SITE}/api/today`)).json();
+      const statuses = [];
+      for (let request = 0; request < 61; request += 1) {
+        statuses.push((await post(`/api/machines/${today.curves[0].id}/hint`, {}, cookie)).status);
+      }
+      assert.ok(!statuses.slice(0, 60).includes(429), 'sixty requests a minute are fine');
+      assert.strictEqual(statuses[60], 429, 'the sixty-first is refused');
+    });
+
     await check('the theme button switches modes and remembers the choice', async () => {
       const themed = await newPage(await browser.newContext({ colorScheme: 'light' }));
       const background = () => themed.evaluate(() => getComputedStyle(document.body).backgroundColor);

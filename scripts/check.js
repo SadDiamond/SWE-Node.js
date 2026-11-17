@@ -104,22 +104,43 @@ assert.ok(below.nudges.every((nudge) => nudge.up > 0), 'a line far below the cur
 assert.strictEqual(perfect.nudges.length, 0, 'a line on the curve gets no nudges');
 assert.strictEqual(raised.nudges.length, 0, 'a line that is only a little off gets no nudges');
 
-for (const slot of [1, 2, 3]) {
-  const machine = rules.makeMachine('2026-11-13', slot);
+// The daily curves depend on this server's secret, so these try a spread of days and every kind turns up.
+const sampleMachines = [];
+for (let day = 1; day <= 30; day += 1) {
+  for (const slot of [1, 2, 3]) sampleMachines.push(rules.makeMachine(`2026-11-${String(day).padStart(2, '0')}`, slot));
+}
+const onCurve = (machine, [x, y]) => rules.visibleBranches(machine)
+  .some((branch) => Math.abs(branch[Math.round((x + 10) * rules.STEPS_PER_UNIT)] - y) < 0.01);
+// Each branch traced as its own stroke, split wherever the curve has a gap.
+function tracedBranches(machine) {
+  const strokes = [];
+  for (const branch of rules.visibleBranches(machine)) {
+    let stroke = [];
+    branch.forEach((value, column) => {
+      if (value === null) {
+        if (stroke.length > 1) strokes.push(stroke);
+        stroke = [];
+      } else {
+        stroke.push([rules.inputFor(column), value]);
+      }
+    });
+    if (stroke.length > 1) strokes.push(stroke);
+  }
+  return strokes;
+}
+
+for (const machine of sampleMachines) {
   const dots = rules.hintDots(machine);
   assert.strictEqual(dots.length, 3);
-  assert.strictEqual(new Set(dots.map(([x]) => x)).size, 3, 'the three dots are in different places');
-  dots.forEach(([x, y]) => {
-    assert.ok(Math.abs(rules.evaluate(machine, x) - y) < 0.01, 'each dot sits on the curve');
-  });
+  assert.strictEqual(new Set(dots.map((dot) => dot.join())).size, 3, 'the three dots are in different places');
+  assert.ok(dots.every((dot) => onCurve(machine, dot)), 'each dot sits on the curve');
 }
 
 assert.strictEqual(rules.inkUsed([[[0, 0], [3, 4]], [[0, 0], [0, 2]]]), 7);
 assert.strictEqual(rules.inkFor(gentle), 34, 'a gentle line 22.4 long gets half as much again');
 assert.strictEqual(rules.inkFor({ family_id: PARABOLA, a: 4, b: 0, c: 9 }), 30, 'a short visible curve still gets the smallest amount');
-for (const slot of [1, 2, 3]) {
-  const machine = rules.makeMachine('2026-11-13', slot);
-  const ownLength = rules.inkUsed(traced(rules.visibleCurve(machine)));
+for (const machine of sampleMachines) {
+  const ownLength = rules.inkUsed(tracedBranches(machine));
   assert.ok(rules.inkFor(machine) >= ownLength, 'there is always enough ink to draw the curve itself');
   assert.ok(rules.inkFor(machine) < 400, 'there is never enough to fill the graph');
 }
@@ -324,22 +345,28 @@ const [first, second] = [exact(2147483648), exact(2147483648)];
 assert.strictEqual(second, Number((BigInt(first) * 1103515245n + 12345n) % 2147483648n), 'the generator does exact whole-number maths');
 
 const seen = new Set();
+let relations = 0;
 let mixes = 0;
 for (let day = 0; day < 365; day += 1) {
   const date = new Date(Date.UTC(2026, 0, 1 + day)).toISOString().slice(0, 10);
   for (const slot of [1, 2, 3]) {
     const machine = rules.makeMachine(date, slot);
-    const visible = rules.visibleCurve(machine).filter((output) => output !== null).length;
-    assert.ok(!rules.stopsShort(machine), 'no curve ends in mid-air beside its asymptote');
-
     assert.deepStrictEqual(rules.makeMachine(date, slot), machine);
     assert.ok(machine.a !== 0 && Math.abs(machine.a) <= 9 && Math.abs(machine.b) <= 9 && Math.abs(machine.c) <= 9);
-    assert.ok(visible >= COLUMNS * 0.5, `the curve is visible across at least half the graph on ${date}`);
+    assert.ok(machine.d === undefined || (machine.d >= 1 && machine.d <= 9), 'a fourth number fits in the database');
     assert.ok(!rules.describe(machine).includes('NaN') && !rules.describe(machine).includes('undefined'));
     assert.ok(rules.inkFor(machine) >= 30 && rules.hintDots(machine).length === 3);
-    const gaps = rules.wholeCurve(machine).filter((output) => output === null).length;
-    const walls = rules.asymptotes(machine).filter((line) => line.kind === 'vertical').length;
-    assert.ok(gaps <= walls, `the curve on ${date} must not start or stop partway across`);
+    if (rules.isRelation(machine)) {
+      relations += 1;
+      assert.strictEqual(slot, 3, 'only the hard curve is ever a loop or turn');
+    } else {
+      const visible = rules.visibleCurve(machine).filter((output) => output !== null).length;
+      assert.ok(!rules.stopsShort(machine), 'no curve ends in mid-air beside its asymptote');
+      assert.ok(visible >= COLUMNS * 0.5, `the curve is visible across at least half the graph on ${date}`);
+      const gaps = rules.wholeCurve(machine).filter((output) => output === null).length;
+      const walls = rules.asymptotes(machine).filter((line) => line.kind === 'vertical').length;
+      assert.ok(gaps <= walls, `the curve on ${date} must not start or stop partway across`);
+    }
     assert.doesNotThrow(() => katex.renderToString(rules.describe(machine), { output: 'mathml' }));
     seen.add(machine.family_id);
     if (machine.extra_family_id) {
@@ -350,14 +377,17 @@ for (let day = 0; day < 365; day += 1) {
   }
   assert.strictEqual(rules.makeMachine(date, 1).extra_family_id, null, 'the easy curve is always a single kind');
 }
-assert.strictEqual(seen.size, 14, 'every family turns up during the year');
+assert.strictEqual(seen.size, 22, 'every family, loops and turns included, turns up during the year');
+assert.ok(relations > 80 && relations < 170, `about one hard curve in three is a loop or turn, got ${relations}`);
 assert.ok(mixes > 150 && mixes < 600, `a good share of medium and hard curves are mixes, got ${mixes}`);
 
 for (let seed = 1; seed < 3000; seed += 37) {
   for (const slot of [1, 2, 3]) {
     const machine = rules.machineFromSeed(seed, slot);
     assert.deepStrictEqual(rules.machineFromSeed(seed, slot), machine);
-    assert.ok(rules.visibleCurve(machine).filter((output) => output !== null).length >= COLUMNS * 0.5);
+    if (!rules.isRelation(machine)) {
+      assert.ok(rules.visibleCurve(machine).filter((output) => output !== null).length >= COLUMNS * 0.5);
+    }
   }
 }
 

@@ -52,6 +52,12 @@ async function initialiseDatabase() {
   }
 
   await exec(await fs.readFile(schemaPath, 'utf8'));
+  // Databases made before curves could have a fourth number get the column added in place,
+  // so nobody's saved curves or scores are lost.
+  const columns = await all('PRAGMA table_info(machines)');
+  if (!columns.some((column) => column.name === 'd')) {
+    await exec('ALTER TABLE machines ADD COLUMN d INTEGER CHECK (d BETWEEN 1 AND 9)');
+  }
   await run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 

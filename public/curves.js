@@ -904,7 +904,8 @@ function randomExtra(next, familyId) {
 
 function machineFromSeed(seed, slot) {
   const next = numberMaker(seed);
-  const recipes = RECIPES_FOR_SLOT[slot];
+  // About one hard curve in three is a loop or turn instead.
+  const recipes = slot === 3 && next(3) === 0 ? RECIPES_FOR_SLOT[4] : RECIPES_FOR_SLOT[slot];
   const [familyId, extraFamilyId] = recipes[next(recipes.length)];
 
   let machine;

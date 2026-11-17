@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS machines (
   extra_a INTEGER CHECK (extra_a BETWEEN -9 AND 9 AND extra_a != 0),
   extra_b INTEGER CHECK (extra_b BETWEEN -9 AND 9),
   extra_c INTEGER CHECK (extra_c BETWEEN -9 AND 9),
+  -- A fourth number some loops and turns need, such as an ellipse's height. Empty for the rest.
+  d INTEGER CHECK (d BETWEEN 1 AND 9),
   UNIQUE (play_date, slot),
   FOREIGN KEY (family_id) REFERENCES families(id),
   FOREIGN KEY (extra_family_id) REFERENCES families(id)

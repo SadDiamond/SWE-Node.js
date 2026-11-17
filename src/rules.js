@@ -36,10 +36,10 @@ async function machinesFor(date) {
     const made = makeMachine(date, slot);
     await run(
       `INSERT OR IGNORE INTO machines
-         (play_date, slot, family_id, a, b, c, extra_family_id, extra_a, extra_b, extra_c)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (play_date, slot, family_id, a, b, c, extra_family_id, extra_a, extra_b, extra_c, d)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [date, slot, made.family_id, made.a, made.b, made.c,
-        made.extra_family_id, made.extra_a, made.extra_b, made.extra_c]
+        made.extra_family_id, made.extra_a, made.extra_b, made.extra_c, made.d ?? null]
     );
   }
   return all(`${MACHINE_SELECT} WHERE machines.play_date = ? ORDER BY machines.slot`, [date]);

@@ -401,7 +401,7 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
   const rows = await all(`
     SELECT machines.play_date, machines.slot,
            machines.family_id, machines.a, machines.b, machines.c,
-           machines.extra_family_id, machines.extra_a, machines.extra_b, machines.extra_c,
+           machines.extra_family_id, machines.extra_a, machines.extra_b, machines.extra_c, machines.d,
            families.name AS family_name, extras.name AS extra_name,
            plays.status, plays.goes, plays.hints, plays.accuracy, plays.score
     FROM plays

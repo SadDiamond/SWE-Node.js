@@ -247,6 +247,18 @@ const belowPeak = peakLevels.filter((_level, index) => Math.abs(underPeak[index]
 assert.ok(belowPeak.length > 0 && belowPeak.every((level) => level === 4),
   'a flat line under the peak of a tight wave is red there, not green from the steep sides beside it');
 
+const fastWave = { family_id: WAVE, a: 5, b: 2, c: 0 };
+const acrossWave = [];
+for (let x = -9.5; x <= 9.5; x += 0.05) acrossWave.push([x, 0]);
+assert.ok(rules.judge([acrossWave], fastWave).accuracy <= 50,
+  'a flat line cutting through every slope of a wave does not count as following those slopes');
+const shakyWave = [];
+rules.visibleCurve(fastWave).forEach((output, column) => {
+  if (output !== null) shakyWave.push([rules.inputFor(column) + 0.1 * Math.sin(column * 2.7), output + 0.1 * Math.cos(column * 1.9)]);
+});
+assert.strictEqual(rules.judge([shakyWave.filter(([x]) => Math.abs(x) <= 10)], fastWave).accuracy, 100,
+  'but a shaky tracing that follows the wave still scores full marks');
+
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
   const relation = rules.machineFromSeed(seed * 9973, 4);

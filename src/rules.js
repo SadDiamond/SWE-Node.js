@@ -246,17 +246,47 @@ function sideOf(x, walls) {
   return walls.filter((wall) => wall < x).length;
 }
 
-function distanceToDrawing(x, y, strokes, walls) {
+// A piece of drawing only covers the curve if it runs roughly the same way as the curve there.
+// A line cutting straight across a steep slope passes close to it but does not follow it.
+// This is how closely the two directions must line up (the cosine of about 55 degrees).
+const SAME_WAY = 0.57;
+
+// The way each piece of a drawing runs, smoothed over a few pen positions so hand wobble does not count.
+function directionsOf(strokes) {
+  return strokes.map((stroke) => stroke.map((_point, index) => {
+    const [x1, y1] = stroke[Math.max(0, index - 3)];
+    const [x2, y2] = stroke[Math.min(stroke.length - 1, index + 4)];
+    const length = Math.hypot(x2 - x1, y2 - y1);
+    return length === 0 ? null : [(x2 - x1) / length, (y2 - y1) / length];
+  }));
+}
+
+// The way the curve runs just to the left and just to the right of a column, so a sharp
+// corner (like the point of a V) accepts a line coming along either arm.
+function tangentsAt(whole, column) {
+  const way = (from, to) => {
+    if (whole[from] === null || whole[from] === undefined || whole[to] === null || whole[to] === undefined) return null;
+    const rise = whole[to] - whole[from];
+    const length = Math.hypot(1 / STEPS_PER_UNIT, rise);
+    return [1 / STEPS_PER_UNIT / length, rise / length];
+  };
+  return [way(column - 1, column), way(column, column + 1)].filter(Boolean);
+}
+
+function distanceToDrawing(x, y, strokes, walls, tangents = [], directions = null) {
   const side = sideOf(x, walls);
   let best = Infinity;
-  for (const stroke of strokes) {
+  strokes.forEach((stroke, strokeIndex) => {
     for (let index = 0; index < stroke.length - 1; index += 1) {
       const [x1, y1] = stroke[index];
       const [x2, y2] = stroke[index + 1];
       if (sideOf(x1, walls) !== side || sideOf(x2, walls) !== side) continue;
+      const way = directions ? directions[strokeIndex][index] : null;
+      if (way && tangents.length > 0
+        && tangents.every(([across, up]) => Math.abs(way[0] * across + way[1] * up) < SAME_WAY)) continue;
       best = Math.min(best, distanceToPiece(x, y, x1, y1, x2, y2));
     }
-  }
+  });
   return best;
 }
 
@@ -410,14 +440,16 @@ function judge(strokes, machine) {
       before = [outlineX, outlineY];
     });
   }
-  for (const branch of match ? [] : visible) {
+  const directions = directionsOf(strokes);
+  (match ? [] : visible).forEach((branch, branchIndex) => {
     let before = null;
     branch.forEach((output, column) => {
       if (output === null) {
         before = null;
         return;
       }
-      const level = levelFor(distanceToDrawing(inputFor(column), output, strokes, walls));
+      const tangents = tangentsAt(whole[branchIndex], column);
+      const level = levelFor(distanceToDrawing(inputFor(column), output, strokes, walls, tangents, directions));
       curvePoints += 1;
       curveCovered += 1 - level / BANDS.length;
       if (level === BANDS.length) {
@@ -430,7 +462,7 @@ function judge(strokes, machine) {
         before = null;
       }
     });
-  }
+  });
 
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
@@ -455,10 +487,12 @@ function accuracyOf(strokes, whole, visible, walls) {
 
   let curvePoints = 0;
   let curveCovered = 0;
-  visible.forEach((branch) => branch.forEach((output, column) => {
+  const directions = directionsOf(strokes);
+  visible.forEach((branch, branchIndex) => branch.forEach((output, column) => {
     if (output === null) return;
     curvePoints += 1;
-    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes, walls)) / BANDS.length;
+    const tangents = tangentsAt(whole[branchIndex], column);
+    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes, walls, tangents, directions)) / BANDS.length;
   }));
 
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;

@@ -4,7 +4,7 @@ const CACHE = 'placeholder-v1';
 const FILES = [
   '/', '/endless.html', '/past.html', '/history.html', '/stats.html', '/account.html',
   '/styles.css', '/app.js', '/graph.js', '/theme.js', '/curves.js', '/katex/katex.min.js',
-  '/fonts/patrick-hand.woff2', '/icon.svg', '/icon-dark.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable.png',
+  '/fonts/patrick-hand.woff2', '/fonts/nunito-400.woff2', '/fonts/nunito-600.woff2', '/fonts/nunito-700.woff2', '/icon.svg', '/icon-dark.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable.png',
   '/apple-touch-icon.png', '/manifest.webmanifest'
 ];
 

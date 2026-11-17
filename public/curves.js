@@ -274,20 +274,58 @@ function tangentsAt(whole, column) {
   return [way(column - 1, column), way(column, column + 1)].filter(Boolean);
 }
 
-function distanceToDrawing(x, y, strokes, walls, tangents = [], directions = null) {
-  const side = sideOf(x, walls);
-  let best = Infinity;
+// Files every piece of a drawing under the squares of the graph it passes through. A square is as
+// wide as the furthest a drawing can be from the curve and still earn anything, so a point only
+// ever needs to look at the pieces in its own square and the eight around it.
+const SQUARE = BANDS[BANDS.length - 1];
+
+const squareKey = (across, up) => (across + 100) * 1000 + up + 100;
+
+// Each piece is stored as [x1, y1, x2, y2, side, direction]: its ends, which gap between vertical
+// asymptotes it is in (null if it crosses one) and which way it runs.
+function filePieces(strokes, walls) {
+  const squares = new Map();
+  const directions = directionsOf(strokes);
   strokes.forEach((stroke, strokeIndex) => {
     for (let index = 0; index < stroke.length - 1; index += 1) {
       const [x1, y1] = stroke[index];
       const [x2, y2] = stroke[index + 1];
-      if (sideOf(x1, walls) !== side || sideOf(x2, walls) !== side) continue;
-      const way = directions ? directions[strokeIndex][index] : null;
-      if (way && tangents.length > 0
-        && tangents.every(([across, up]) => Math.abs(way[0] * across + way[1] * up) < SAME_WAY)) continue;
-      best = Math.min(best, distanceToPiece(x, y, x1, y1, x2, y2));
+      const side = sideOf(x1, walls) === sideOf(x2, walls) ? sideOf(x1, walls) : null;
+      const piece = [x1, y1, x2, y2, side, directions[strokeIndex][index]];
+      for (let across = Math.floor(Math.min(x1, x2) / SQUARE); across <= Math.floor(Math.max(x1, x2) / SQUARE); across += 1) {
+        for (let up = Math.floor(Math.min(y1, y2) / SQUARE); up <= Math.floor(Math.max(y1, y2) / SQUARE); up += 1) {
+          const key = squareKey(across, up);
+          if (!squares.has(key)) squares.set(key, []);
+          squares.get(key).push(piece);
+        }
+      }
     }
   });
+  return squares;
+}
+
+function distanceToDrawing(x, y, side, tangents, squares) {
+  let best = Infinity;
+  const across = Math.floor(x / SQUARE);
+  const up = Math.floor(y / SQUARE);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dy = -1; dy <= 1; dy += 1) {
+      const pieces = squares.get(squareKey(across + dx, up + dy));
+      if (!pieces) continue;
+      for (const [x1, y1, x2, y2, pieceSide, way] of pieces) {
+        if (pieceSide !== side) continue;
+        if (way && tangents.length > 0) {
+          let sameWay = false;
+          for (const [alongX, alongY] of tangents) {
+            if (Math.abs(way[0] * alongX + way[1] * alongY) >= SAME_WAY) sameWay = true;
+          }
+          if (!sameWay) continue;
+        }
+        const distance = distanceToPiece(x, y, x1, y1, x2, y2);
+        if (distance < best) best = distance;
+      }
+    }
+  }
   return best;
 }
 
@@ -373,6 +411,46 @@ function distanceNear(x, y, points, centre) {
   return best;
 }
 
+// The points the curve is checked at to see how much of it a drawing covers. They are spaced
+// evenly along the curve's length rather than across the graph, so a steep stretch counts as much
+// as a flat stretch of the same length.
+function curveSamples(whole, visible) {
+  const gap = 1 / STEPS_PER_UNIT;
+  const samples = [];
+  visible.forEach((branch, branchIndex) => branch.forEach((output, column) => {
+    if (output === null) return;
+    samples.push({ x: inputFor(column), y: output, tangents: tangentsAt(whole[branchIndex], column) });
+    const next = branch[column + 1];
+    if (next === null || next === undefined) return;
+    const rise = next - output;
+    const length = Math.hypot(gap, rise);
+    const steps = Math.ceil(length / gap);
+    const way = [[gap / length, rise / length]];
+    for (let step = 1; step < steps; step += 1) {
+      samples.push({ x: inputFor(column) + (gap * step) / steps, y: output + (rise * step) / steps, tangents: way });
+    }
+  }));
+  return samples;
+}
+
+// How much of the curve a drawing covers, from 0 to 1, and where it was missed altogether.
+function coverageOf(strokes, whole, visible, walls) {
+  const squares = filePieces(strokes, walls);
+  const missed = new Array(COLUMNS).fill(false);
+  const missedRows = new Array(COLUMNS).fill(false);
+  const samples = curveSamples(whole, visible);
+  let covered = 0;
+  for (const { x, y, tangents } of samples) {
+    const level = levelFor(distanceToDrawing(x, y, sideOf(x, walls), tangents, squares));
+    covered += 1 - level / BANDS.length;
+    if (level === BANDS.length) {
+      missed[Math.round((x + LIMIT) * STEPS_PER_UNIT)] = true;
+      missedRows[Math.round((y + LIMIT) * STEPS_PER_UNIT)] = true;
+    }
+  }
+  return { coverage: samples.length === 0 ? 0 : covered / samples.length, missed, missedRows };
+}
+
 function judge(strokes, machine) {
   const whole = wholeBranches(machine);
   const visible = whole.map(visibleBranch);
@@ -418,8 +496,9 @@ function judge(strokes, machine) {
 
   let curvePoints = 0;
   let curveCovered = 0;
-  const missed = new Array(COLUMNS).fill(false);
-  const missedRows = new Array(COLUMNS).fill(false);
+  let missed = new Array(COLUMNS).fill(false);
+  let missedRows = new Array(COLUMNS).fill(false);
+  let coverage = 0;
   const rowFor = (output) => Math.round((output + LIMIT) * STEPS_PER_UNIT);
   if (match) {
     let before = null;
@@ -440,33 +519,12 @@ function judge(strokes, machine) {
       }
       before = [outlineX, outlineY];
     });
+    coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
+  } else {
+    ({ coverage, missed, missedRows } = coverageOf(strokes, whole, visible, walls));
   }
-  const directions = directionsOf(strokes);
-  (match ? [] : visible).forEach((branch, branchIndex) => {
-    let before = null;
-    branch.forEach((output, column) => {
-      if (output === null) {
-        before = null;
-        return;
-      }
-      const tangents = tangentsAt(whole[branchIndex], column);
-      const level = levelFor(distanceToDrawing(inputFor(column), output, strokes, walls, tangents, directions));
-      curvePoints += 1;
-      curveCovered += 1 - level / BANDS.length;
-      if (level === BANDS.length) {
-        missed[column] = true;
-        const from = before === null ? rowFor(output) : Math.min(rowFor(before), rowFor(output));
-        const to = before === null ? rowFor(output) : Math.max(rowFor(before), rowFor(output));
-        for (let row = from; row <= to; row += 1) missedRows[row] = true;
-        before = output;
-      } else {
-        before = null;
-      }
-    });
-  });
 
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
-  const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
 
   const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
@@ -486,18 +544,8 @@ function accuracyOf(strokes, whole, visible, walls) {
     }
   }
 
-  let curvePoints = 0;
-  let curveCovered = 0;
-  const directions = directionsOf(strokes);
-  visible.forEach((branch, branchIndex) => branch.forEach((output, column) => {
-    if (output === null) return;
-    curvePoints += 1;
-    const tangents = tangentsAt(whole[branchIndex], column);
-    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes, walls, tangents, directions)) / BANDS.length;
-  }));
-
+  const { coverage } = coverageOf(strokes, whole, visible, walls);
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
-  const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
   return ((precision + coverage) / 2) * 100;
 }
 

@@ -265,6 +265,15 @@ const schemaRows = [...require('node:fs').readFileSync(require('node:path').join
 assert.deepStrictEqual(Object.fromEntries(schemaRows), Object.fromEntries(Object.entries(rules.FAMILIES).map(([id, family]) => [Number(id), family])),
   'the list of families in the browser code matches the one in the database');
 
+const flatHyperbola = { family_id: HYPERBOLA, a: 4, b: 0, c: 0 };
+const hyperbolaPart = (keep) => rules.visibleBranches(flatHyperbola)[0]
+  .map((output, column) => (output === null ? null : [rules.inputFor(column), output]))
+  .filter((point) => point && keep(point));
+const withoutSteep = rules.judge([hyperbolaPart(([x]) => x < -1), hyperbolaPart(([x]) => x > 1)], flatHyperbola).accuracy;
+const withoutFlat = rules.judge([hyperbolaPart(([x]) => x < 0 && x > -5), hyperbolaPart(([x]) => x > 0 && x < 5)], flatHyperbola).accuracy;
+assert.ok(Math.abs(withoutSteep - withoutFlat) <= 5,
+  `leaving out the steep parts costs about as much as leaving out the flat parts (${withoutSteep}% and ${withoutFlat}%)`);
+
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
   const relation = rules.machineFromSeed(seed * 9973, 4);

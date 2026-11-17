@@ -10,9 +10,9 @@ try {
 }
 
 const root = path.join(__dirname, '..');
-const drawing = fs.readFileSync(path.join(root, 'design', 'logo.png')).toString('base64');
-
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
+function tileSvg(file, outline) {
+  const drawing = fs.readFileSync(path.join(root, 'design', file)).toString('base64');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
   <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
     <feTurbulence type="fractalNoise" baseFrequency="0.005" numOctaves="2" seed="3"/>
     <feDisplacementMap in="SourceGraphic" scale="28" xChannelSelector="R" yChannelSelector="G"/>
@@ -20,11 +20,15 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
   <clipPath id="tile"><rect x="25" y="25" width="670" height="670" rx="115"/></clipPath>
   <g filter="url(#wobble)">
     <image href="data:image/png;base64,${drawing}" width="720" height="720" clip-path="url(#tile)"/>
-    <rect x="40" y="40" width="640" height="640" rx="100" fill="none" stroke="#1f2328" stroke-width="30"/>
+    <rect x="40" y="40" width="640" height="640" rx="100" fill="none" stroke="${outline}" stroke-width="30"/>
   </g>
 </svg>
 `;
+}
+
+const svg = tileSvg('logo.png', '#1f2328');
 fs.writeFileSync(path.join(root, 'public', 'icon.svg'), svg);
+fs.writeFileSync(path.join(root, 'public', 'icon-dark.svg'), tileSvg('logo-dark.png', '#e9e6df'));
 
 (async () => {
   const browser = await chromium.launch();
@@ -43,5 +47,5 @@ fs.writeFileSync(path.join(root, 'public', 'icon.svg'), svg);
   await shot(512, 'icon-maskable.png', true);
   await shot(180, 'apple-touch-icon.png', true);
   await browser.close();
-  console.log('  made public/icon.svg');
+  console.log('  made public/icon.svg and public/icon-dark.svg');
 })();

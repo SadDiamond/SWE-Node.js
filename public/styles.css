@@ -153,6 +153,28 @@ footer {
   border-radius: 0 0 var(--wobble);
 }
 
+.logo-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-light {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .logo-dark {
+    display: block;
+  }
+}
+
+:root[data-theme="dark"] .logo-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .logo-dark {
+  display: block;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -1130,4 +1152,14 @@ main.offline > :not(.offline-note) {
   border: 2px dashed var(--grid-major);
   border-radius: var(--wobble);
   font-size: 1.125rem;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-going="light"]::view-transition-old(root) {
+  z-index: 1;
 }

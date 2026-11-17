@@ -291,11 +291,13 @@ async function main() {
       const light = await background();
       assert.strictEqual(await themed.locator('#theme-button').textContent(), 'Dark mode');
       await themed.click('#theme-button');
+      await themed.waitForFunction(() => !document.documentElement.dataset.going);
       assert.notStrictEqual(await background(), light, 'the page turns dark');
       await themed.goto(`${SITE}/stats.html`);
       assert.notStrictEqual(await background(), light, 'the choice is kept on the next page');
       assert.strictEqual(await themed.locator('#theme-button').textContent(), 'Light mode');
       await themed.click('#theme-button');
+      await themed.waitForFunction(() => !document.documentElement.dataset.going);
       assert.strictEqual(await background(), light, 'and it switches back');
     });
 

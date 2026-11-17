@@ -34,6 +34,8 @@ async function startSession(response, userId) {
   response.cookie('session', token, {
     httpOnly: true,
     sameSite: 'lax',
+    // Over HTTPS the browser is told never to send the login cookie over a plain connection.
+    secure: response.req.secure,
     maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000
   });
 }

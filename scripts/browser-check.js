@@ -256,6 +256,34 @@ async function main() {
       assert.strictEqual(statuses[60], 429, 'the sixty-first is refused');
     });
 
+    await check('with no connection the site still opens and endless can be played', async () => {
+      const travelling = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+      await travelling.addInitScript(() => localStorage.setItem('seenHowToPlay', 'yes'));
+      const away = await newPage(travelling);
+      await away.goto(`${SITE}/endless.html`);
+      await away.evaluate(() => navigator.serviceWorker.ready);
+      await away.reload();
+      await away.waitForFunction(() => navigator.serviceWorker.controller !== null);
+
+      await travelling.setOffline(true);
+      await away.goto(`${SITE}/endless.html?slot=2`);
+      await away.waitForFunction(() => document.querySelector('#today-date').textContent === 'Medium curve');
+      await away.click('#hint');
+      await away.waitForSelector('#shape-text:not([hidden])');
+      for (let attempt = 0; attempt < 5 && !(await away.locator('#result').isVisible()); attempt += 1) {
+        await draw(away, across);
+        await away.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+          || !document.querySelector('#result').hidden, attempt + 1);
+      }
+      await away.waitForSelector('#result:not([hidden])');
+      assert.ok((await away.locator('#result-formula math').count()) > 0, 'the formula is drawn as maths offline too');
+
+      await away.goto(SITE);
+      await away.waitForSelector('.offline-note');
+      assert.ok(await away.locator('#graph').isHidden(), 'the empty game is hidden while offline');
+      await travelling.setOffline(false);
+    });
+
     await check('the theme button switches modes and remembers the choice', async () => {
       const themed = await newPage(await browser.newContext({ colorScheme: 'light' }));
       const background = () => themed.evaluate(() => getComputedStyle(document.body).backgroundColor);

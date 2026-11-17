@@ -23,6 +23,7 @@ app.use((_request, response, next) => {
   next();
 });
 app.use(express.static(publicDirectory, { extensions: ['html'] }));
+app.use('/katex', express.static(path.dirname(require.resolve('katex/dist/katex.min.js'))));
 app.use('/api', (request, response, next) => {
   response.set('Cache-Control', 'no-store');
   next();

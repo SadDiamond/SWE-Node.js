@@ -1115,3 +1115,15 @@ a {
   border-left: 3px solid var(--fresh);
   background: var(--card);
 }
+
+main.offline > :not(.offline-note) {
+  display: none;
+}
+
+.offline-note {
+  margin: 2rem 0;
+  padding: 1rem 1.25rem;
+  border: 2px dashed var(--grid-major);
+  border-radius: var(--wobble);
+  font-size: 1.125rem;
+}

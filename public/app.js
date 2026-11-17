@@ -30,7 +30,9 @@ async function request(url, options = {}) {
   try {
     response = await fetch(url, options);
   } catch (_error) {
-    throw new Error('You are offline. This needs a connection to the server.');
+    const error = new Error("You're offline right now, so this page needs a connection. Endless still works offline though.");
+    error.offline = true;
+    throw error;
   }
 
   const isJson = (response.headers.get('Content-Type') || '').includes('application/json');
@@ -80,13 +82,71 @@ function setUpHowToPlay() {
   dialog.showModal();
 }
 
+// With no connection, Endless makes and marks its own curve with the same maths the server uses.
+// Endless never counts towards anything, so it does not matter that the answer is in the browser.
+function offlineEndless() {
+  const asked = Number(new URLSearchParams(location.search).get('slot'));
+  const slot = [1, 2, 3, 4].includes(asked) ? asked : 1 + Math.floor(Math.random() * 3);
+  const seed = 1 + Math.floor(Math.random() * 1999999999);
+  const made = Curves.machineFromSeed(seed, slot);
+  const machine = {
+    ...made,
+    family_name: Curves.FAMILIES[made.family_id].name,
+    family_description: Curves.FAMILIES[made.family_id].description,
+    extra_name: made.extra_family_id ? Curves.FAMILIES[made.extra_family_id].name : null
+  };
+  const game = {
+    date: null,
+    offline: true,
+    limit: Curves.LIMIT,
+    maxGoes: Curves.MAX_GOES,
+    maxHints: Curves.MAX_HINTS,
+    topScore: Curves.TOP_SCORE,
+    goPenalty: Curves.GO_PENALTY,
+    hintPenalty: Curves.HINT_PENALTY,
+    shortestStroke: Curves.SHORTEST_STROKE,
+    mostPoints: Curves.MOST_POINTS,
+    curves: [{
+      id: `r${seed}s${slot}`,
+      slot,
+      strokesPerGo: Curves.pieces(machine),
+      ink: Curves.inkFor(machine),
+      exits: Curves.exits(machine),
+      saved: null
+    }]
+  };
+  return { game, machine };
+}
+
+async function answerOffline(machine, url, body) {
+  if (url.endsWith('/hint')) {
+    if (!Number.isInteger(body.number) || body.number < 1 || body.number > Curves.MAX_HINTS) {
+      throw new Error("You've used all your hints for this curve.");
+    }
+    return Curves.hintFor(machine, body.number);
+  }
+  const reply = Curves.markAttempt(body.drawing, machine, body.go, body.hints);
+  if (reply.finished) {
+    reply.formulaMath = katex.renderToString(reply.formula, { output: 'mathml', displayMode: true, throwOnError: false });
+  }
+  return reply;
+}
+
 async function playPage(endless) {
   setUpHowToPlay();
   const pastDate = endless ? null : new URLSearchParams(location.search).get('date');
   let address = '/api/today';
   if (endless) address = `/api/endless${location.search}`;
   if (pastDate) address = `/api/day/${encodeURIComponent(pastDate)}`;
-  const game = await request(address);
+  let game;
+  let offlineMachine = null;
+  try {
+    game = await request(address);
+  } catch (error) {
+    if (!endless || !error.offline) throw error;
+    ({ game, machine: offlineMachine } = offlineEndless());
+  }
+  const post = (url, body) => (offlineMachine ? answerOffline(offlineMachine, url, body) : send(url, body));
   const past = !endless && !game.today;
   const graph = find('#graph');
   const guestKey = endless || currentUser ? null : `guestRun:${game.date}`;
@@ -373,7 +433,7 @@ async function playPage(endless) {
     waiting = true;
     const asking = round;
     try {
-      const hint = await send(`/api/machines/${asking.id}/hint`, { number: hintsUsed(asking) + 1 });
+      const hint = await post(`/api/machines/${asking.id}/hint`, { number: hintsUsed(asking) + 1 });
       if (hint.shape) asking.shape = hint.shape;
       else asking.dots.push(hint.dot);
       saveGuestRun();
@@ -445,7 +505,7 @@ async function playPage(endless) {
     waiting = true;
     const marking = round;
     try {
-      const result = await send(`/api/machines/${marking.id}/go`, {
+      const result = await post(`/api/machines/${marking.id}/go`, {
         drawing: marking.strokes, go: marking.goes + 1, hints: hintsUsed(marking)
       });
       marking.goes += 1;
@@ -756,7 +816,11 @@ const pages = {
 };
 
 async function start() {
-  const me = await request('/api/me');
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  const me = await request('/api/me').catch((error) => {
+    if (error.offline) return { user: null };
+    throw error;
+  });
   currentUser = me.user;
   if (currentUser) {
     find('#account-link').textContent = currentUser.display_name;
@@ -765,4 +829,12 @@ async function start() {
   await pages[document.body.dataset.page]();
 }
 
-start().catch((error) => message(error.message));
+start().catch((error) => {
+  if (!error.offline) return message(error.message);
+  const endless = element('a', 'Endless');
+  endless.href = '/endless.html';
+  const note = element('p', undefined, 'offline-note');
+  note.append("You're offline right now, so this page needs a connection. ", endless, ' still works offline though.');
+  find('main').classList.add('offline');
+  find('main').prepend(note);
+});

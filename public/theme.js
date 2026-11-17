@@ -43,18 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const circles = [`circle(0px at ${x}px ${y}px)`, `circle(${reach}px at ${x}px ${y}px)`];
     root.dataset.going = next;
     const transition = document.startViewTransition(() => switchTheme(next));
+    let spread = null;
     transition.ready.then(() => {
-      root.animate(
+      spread = root.animate(
         { clipPath: next === 'dark' ? circles : circles.reverse() },
         {
-          duration: 450,
-          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          duration: 380,
+          easing: 'cubic-bezier(0.2, 0.6, 0.3, 1)',
           fill: 'forwards',
           pseudoElement: next === 'dark' ? '::view-transition-new(root)' : '::view-transition-old(root)'
         }
       );
     });
-    transition.finished.finally(() => delete root.dataset.going);
+    transition.finished.finally(() => {
+      if (spread) spread.cancel();
+      delete root.dataset.going;
+    });
   });
   systemDark.addEventListener('change', label);
   label();

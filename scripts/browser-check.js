@@ -284,6 +284,19 @@ async function main() {
       await travelling.setOffline(false);
     });
 
+    await check('switching back and forth leaves nothing behind', async () => {
+      const flipping = await newPage(await browser.newContext({ colorScheme: 'dark' }));
+      await flipping.goto(`${SITE}/past.html`);
+      for (const expected of ['light', 'dark', 'light', 'dark']) {
+        await flipping.click('#theme-button');
+        await flipping.waitForFunction(() => !document.documentElement.dataset.going);
+        const state = await flipping.evaluate(() => ({
+          theme: document.documentElement.dataset.theme, leftover: document.getAnimations().length
+        }));
+        assert.deepStrictEqual(state, { theme: expected, leftover: 0 });
+      }
+    });
+
     await check('the theme button switches modes and remembers the choice', async () => {
       const themed = await newPage(await browser.newContext({ colorScheme: 'light' }));
       const background = () => themed.evaluate(() => getComputedStyle(document.body).backgroundColor);

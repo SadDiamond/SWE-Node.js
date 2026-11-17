@@ -239,6 +239,14 @@ const nearTopEdge = thinLevels.filter((_level, index) => index > 101 && Math.abs
 assert.ok(nearTopEdge.length > 0 && nearTopEdge.every((level) => level >= 3),
   'a bottom line drawn just under the top edge is coloured as well off, because it stands for the bottom of the shape');
 
+const tightWave = { family_id: WAVE, a: 5, b: 4, c: 3 };
+const underPeak = [];
+for (let x = -9; x <= 9.001; x += 0.1) underPeak.push([x, 3]);
+const peakLevels = rules.judge([underPeak], tightWave).levels[0];
+const belowPeak = peakLevels.filter((_level, index) => Math.abs(underPeak[index][0] + 6) < 0.3);
+assert.ok(belowPeak.length > 0 && belowPeak.every((level) => level === 4),
+  'a flat line under the peak of a tight wave is red there, not green from the steep sides beside it');
+
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
   const relation = rules.machineFromSeed(seed * 9973, 4);

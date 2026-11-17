@@ -426,14 +426,18 @@ button.primary:hover:not(:disabled) {
   stroke-width: 6;
 }
 
+/* Well off and way off are dashed as well as coloured, so they read clearly without telling
+   red from green. The dots used for crossing an asymptote are a third, different pattern. */
 .mark.l3 {
   stroke: var(--level-3);
   stroke-width: 5;
+  stroke-dasharray: 12 7;
 }
 
 .mark.l4 {
   stroke: var(--level-4);
   stroke-width: 4;
+  stroke-dasharray: 4 6;
 }
 
 .mark.l5 {
@@ -678,12 +682,12 @@ math {
 
 .scale .l3 {
   height: 5px;
-  background: var(--level-3);
+  background: repeating-linear-gradient(to right, var(--level-3) 0 9px, transparent 9px 14px);
 }
 
 .scale .l4 {
   height: 4px;
-  background: var(--level-4);
+  background: repeating-linear-gradient(to right, var(--level-4) 0 5px, transparent 5px 9px);
 }
 
 .scale-labels {

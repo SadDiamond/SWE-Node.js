@@ -259,6 +259,12 @@ rules.visibleCurve(fastWave).forEach((output, column) => {
 assert.strictEqual(rules.judge([shakyWave.filter(([x]) => Math.abs(x) <= 10)], fastWave).accuracy, 100,
   'but a shaky tracing that follows the wave still scores full marks');
 
+const schemaRows = [...require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'database', 'schema.sql'), 'utf8')
+  .matchAll(/\((\d+), '([^']*)', (\d), '([^']*)'\)/g)]
+  .map(([, id, name, difficulty, description]) => [Number(id), { name, difficulty: Number(difficulty), description }]);
+assert.deepStrictEqual(Object.fromEntries(schemaRows), Object.fromEntries(Object.entries(rules.FAMILIES).map(([id, family]) => [Number(id), family])),
+  'the list of families in the browser code matches the one in the database');
+
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
   const relation = rules.machineFromSeed(seed * 9973, 4);

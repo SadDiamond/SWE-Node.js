@@ -145,16 +145,14 @@ async function findMachine(id) {
   if (endless) {
     const slot = Number(endless[2]);
     const machine = rules.machineFromSeed(Number(endless[1]), slot);
-    const families = await all('SELECT id, name, description FROM families');
-    const familyOf = (familyId) => families.find((family) => family.id === familyId) || {};
     return {
       ...machine,
       id,
       slot,
       endless: true,
-      family_name: familyOf(machine.family_id).name,
-      family_description: familyOf(machine.family_id).description,
-      extra_name: machine.extra_family_id ? familyOf(machine.extra_family_id).name : null
+      family_name: rules.FAMILIES[machine.family_id].name,
+      family_description: rules.FAMILIES[machine.family_id].description,
+      extra_name: machine.extra_family_id ? rules.FAMILIES[machine.extra_family_id].name : null
     };
   }
 
@@ -187,17 +185,7 @@ async function openPlay(userId, machine) {
 }
 
 function reveal(machine, accuracy, solved, goes, hints) {
-  return {
-    accuracy,
-    solved,
-    finished: true,
-    score: rules.scoreFor(accuracy, goes, hints),
-    curve: rules.visibleBranches(machine),
-    familyName: rules.kindName(machine),
-    formula: rules.describe(machine),
-    formulaMath: formulaMath(machine, true),
-    asymptotes: rules.asymptotes(machine)
-  };
+  return { ...rules.revealed(machine, accuracy, solved, goes, hints), formulaMath: formulaMath(machine, true) };
 }
 
 async function savedState(userId, machine) {
@@ -334,32 +322,20 @@ app.post('/api/machines/:id/go', limitMarking, route(async (request, response) =
     }
   }
 
-  const result = rules.judge(drawing, machine);
-  // The right shape in slightly the wrong place only counts on the last attempt, so it can
-  // rescue a curve that would otherwise be failed but never ends one that could still be improved.
-  const lastAttempt = go === rules.MAX_GOES;
-  result.solved = result.solved || (result.closeEnough && lastAttempt);
-  const finished = result.solved || lastAttempt;
-  const reply = finished
-    ? reveal(machine, result.accuracy, result.solved, go, hints)
-    : { accuracy: result.accuracy, solved: false, finished: false };
-  reply.closeEnough = result.closeEnough;
-  reply.levels = result.levels;
-  reply.nudges = result.nudges;
-  reply.missed = result.missed;
-  reply.missedRows = result.missedRows;
+  const reply = rules.markAttempt(drawing, machine, go, hints);
+  if (reply.finished) reply.formulaMath = formulaMath(machine, true);
 
   if (play) {
     await run(
       'INSERT INTO goes (play_id, number, drawing, accuracy) VALUES (?, ?, ?, ?)',
-      [play.id, go, JSON.stringify(drawing), result.accuracy]
+      [play.id, go, JSON.stringify(drawing), reply.accuracy]
     );
-    if (finished) {
+    if (reply.finished) {
       await run(
         `UPDATE plays
          SET goes = ?, status = ?, accuracy = ?, score = ?, finished_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [go, result.solved ? 'solved' : 'failed', result.accuracy, reply.score, play.id]
+        [go, reply.solved ? 'solved' : 'failed', reply.accuracy, reply.score, play.id]
       );
     } else {
       await run('UPDATE plays SET goes = ? WHERE id = ?', [go, play.id]);
@@ -385,8 +361,7 @@ app.post('/api/machines/:id/hint', limitMarking, route(async (request, response)
   }
 
   if (play) await run('UPDATE plays SET hints = ? WHERE id = ?', [number, play.id]);
-  if (number === 1) return response.json({ shape: rules.shapeOf(machine) });
-  response.json({ dot: rules.hintDots(machine)[number - 2] });
+  response.json(rules.hintFor(machine, number));
 }));
 
 app.get('/api/families', route(async (_request, response) => {

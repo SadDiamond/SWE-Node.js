@@ -34,6 +34,14 @@
   --grid-major: #c3cad2;
   --fresh: #1b4fc4;
   --pen: #1b4fc4;
+  --tape: rgba(214, 196, 140, 0.55);
+  --rule: #dce5f0;
+  --margin-line: #eeb1ab;
+  --highlight: #fff0a0;
+  --note-1: #fff2ad;
+  --note-2: #daf1d2;
+  --note-3: #d9e7fa;
+  --note-4: #fbdfe1;
   --wrong: #c22f27;
   --level-0: #1c8139;
   --level-1: #789e10;
@@ -60,6 +68,14 @@
     --grid-major: #474e57;
     --fresh: #5585ec;
     --pen: #7eaaff;
+    --tape: rgba(214, 196, 140, 0.22);
+    --rule: #2a313b;
+    --margin-line: #6e3b3b;
+    --highlight: #4d4421;
+    --note-1: #3b3620;
+    --note-2: #233628;
+    --note-3: #222f45;
+    --note-4: #3a2629;
     --wrong: #f2665c;
     --level-0: #3fba60;
     --level-1: #a4cb3a;
@@ -78,6 +94,14 @@
   --grid-major: #474e57;
   --fresh: #5585ec;
   --pen: #7eaaff;
+  --tape: rgba(214, 196, 140, 0.22);
+  --rule: #2a313b;
+  --margin-line: #6e3b3b;
+  --highlight: #4d4421;
+  --note-1: #3b3620;
+  --note-2: #233628;
+  --note-3: #222f45;
+  --note-4: #3a2629;
   --wrong: #f2665c;
   --level-0: #3fba60;
   --level-1: #a4cb3a;
@@ -617,12 +641,27 @@ button.primary:hover:not(:disabled) {
   font-weight: 600;
 }
 
+/* The curve's result is a card taped onto the page. */
 .result {
-  margin-top: 1rem;
-  padding: 1rem 1.25rem;
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
+  position: relative;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px solid var(--grid-major);
+  border-radius: 3px 5px 4px 6px;
   background: var(--card);
+  box-shadow: 2px 3px 0 var(--grid);
+  transform: rotate(-0.6deg);
+}
+
+.result::before {
+  content: "";
+  position: absolute;
+  top: -0.75rem;
+  left: calc(50% - 3rem);
+  width: 6rem;
+  height: 1.5rem;
+  background: var(--tape);
+  transform: rotate(-3deg);
 }
 
 .result button {
@@ -771,12 +810,15 @@ summary {
   }
 }
 
+/* The day's result is a page of ruled notebook paper with a margin line. */
 .summary {
   grid-area: board;
-  padding: 1.5rem;
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
-  background: var(--card);
+  padding: 1.5rem 1.5rem 1.5rem 3.75rem;
+  border: 1px solid var(--grid-major);
+  border-radius: 4px;
+  background:
+    linear-gradient(to right, transparent 2.75rem, var(--margin-line) 2.75rem, var(--margin-line) calc(2.75rem + 2px), transparent calc(2.75rem + 2px)),
+    repeating-linear-gradient(to bottom, var(--card) 0 calc(2rem - 1px), var(--rule) calc(2rem - 1px) 2rem);
 }
 
 .layout.ended .board,
@@ -807,7 +849,6 @@ summary {
   align-items: baseline;
   gap: 0.75rem;
   padding: 0.625rem 0;
-  border-bottom: 2px dashed var(--grid-major);
 }
 
 .summary-name,
@@ -860,12 +901,14 @@ summary {
   max-width: 30rem;
 }
 
+/* Forms sit on a second sheet of paper, offset behind them. */
 .card {
   margin: 1.25rem 0;
   padding: 1.25rem;
   border: 2px solid var(--ink);
   border-radius: var(--wobble);
   background: var(--card);
+  box-shadow: 7px 7px 0 -2px var(--grid), 7px 7px 0 0 var(--grid-major);
 }
 
 label {
@@ -996,11 +1039,28 @@ tbody th {
   margin: 1rem 0 2rem;
 }
 
+/* Each figure is a sticky note, in a few colours and at slightly different angles. */
 .figures div {
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
-  background: var(--card);
+  padding: 0.75rem 1rem 1rem;
+  border-radius: 2px 2px 14px 2px;
+  background: var(--note-1);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.12);
+  transform: rotate(-1.2deg);
+}
+
+.figures div:nth-child(4n + 2) {
+  background: var(--note-2);
+  transform: rotate(0.9deg);
+}
+
+.figures div:nth-child(4n + 3) {
+  background: var(--note-3);
+  transform: rotate(-0.4deg);
+}
+
+.figures div:nth-child(4n + 4) {
+  background: var(--note-4);
+  transform: rotate(1.3deg);
 }
 
 .figures dt {
@@ -1057,14 +1117,17 @@ main > h2,
   color: var(--fresh);
 }
 
+/* How to play is an index card: a red line under the heading and faint blue lines below. */
 .how-to-play {
   width: min(100% - 2rem, 36rem);
   max-height: calc(100% - 2rem);
   padding: 1.5rem;
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
-  background: var(--card);
+  border: 1px solid var(--grid-major);
+  border-radius: 6px;
+  background: repeating-linear-gradient(to bottom, var(--card) 0 calc(1.75rem - 1px), var(--rule) calc(1.75rem - 1px) 1.75rem);
+  background-position: 0 0.4rem;
   color: var(--ink);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
 }
 
 .how-to-play::backdrop {
@@ -1073,6 +1136,9 @@ main > h2,
 
 .how-to-play h2 {
   margin-top: 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid var(--margin-line);
+  background: var(--card);
 }
 
 .how-to-play ol {
@@ -1115,9 +1181,10 @@ main > h2,
   }
 }
 
+/* Past days are a plain list, with a highlighter stroke on the one you point at. */
 .days {
   display: grid;
-  gap: 0.625rem;
+  gap: 0;
   max-width: 36rem;
   margin: 1.25rem 0 2rem;
   padding: 0;
@@ -1136,19 +1203,17 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.25rem 1rem;
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--ink);
-  border-radius: var(--wobble);
-  background: var(--card);
+  padding: 0.75rem 0.25rem;
+  border-bottom: 2px dashed var(--grid-major);
 }
 
-.day.done {
-  border-style: dashed;
-  border-color: var(--grid-major);
+.day.done .day-name {
+  color: var(--muted);
 }
 
-.day:hover {
-  background: var(--grid);
+.day:hover .day-name,
+.day:focus-visible .day-name {
+  background: linear-gradient(transparent 40%, var(--highlight) 40%, var(--highlight) 88%, transparent 88%);
 }
 
 .day-name {

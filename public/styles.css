@@ -812,13 +812,69 @@ summary {
 
 /* The day's result is a page of ruled notebook paper with a margin line. */
 .summary {
+  --line: 2rem;
   grid-area: board;
-  padding: 1.5rem 1.5rem 1.5rem 3.75rem;
+  padding: var(--line) 1.5rem var(--line) 3.75rem;
   border: 1px solid var(--grid-major);
   border-radius: 4px;
+  line-height: var(--line);
   background:
     linear-gradient(to right, transparent 2.75rem, var(--margin-line) 2.75rem, var(--margin-line) calc(2.75rem + 2px), transparent calc(2.75rem + 2px)),
-    repeating-linear-gradient(to bottom, var(--card) 0 calc(2rem - 1px), var(--rule) calc(2rem - 1px) 2rem);
+    repeating-linear-gradient(to bottom, var(--card) 0 calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px) var(--line));
+}
+
+/* Inside the notebook page every line is exactly one ruled line tall, so the words sit on the rules. */
+.summary > * {
+  margin: 0;
+}
+
+.summary h2,
+.summary .help {
+  line-height: var(--line);
+}
+
+.summary .summary-total {
+  line-height: calc(var(--line) * 3);
+}
+
+.summary .summary-rows {
+  margin-bottom: var(--line);
+}
+
+.summary .summary-rows li {
+  position: relative;
+  top: 0.75rem;
+  align-items: start;
+}
+
+.summary h2 {
+  position: relative;
+  top: 0.2rem;
+}
+
+.summary .summary-detail {
+  position: relative;
+  top: 0.25rem;
+}
+
+.summary .summary-rows li,
+.summary .summary-name,
+.summary .summary-detail,
+.summary .summary-score {
+  padding: 0;
+  line-height: var(--line);
+}
+
+.summary .save-prompt {
+  gap: 0;
+}
+
+.summary button,
+.summary a.button {
+  height: var(--line);
+  min-height: 0;
+  padding-block: 0;
+  line-height: 1;
 }
 
 .layout.ended .board,

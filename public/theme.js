@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         {
           duration: 450,
           easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          fill: 'forwards',
           pseudoElement: next === 'dark' ? '::view-transition-new(root)' : '::view-transition-old(root)'
         }
       );

@@ -19,7 +19,7 @@ const drawing = fs.readFileSync(path.join(root, 'design', 'logo.png')).toString(
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
   <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
     <feTurbulence type="fractalNoise" baseFrequency="0.005" numOctaves="2" seed="3"/>
-    <feDisplacementMap in="SourceGraphic" scale="28"/>
+    <feDisplacementMap in="SourceGraphic" scale="28" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
   <clipPath id="tile"><rect x="25" y="25" width="670" height="670" rx="115"/></clipPath>
   <g filter="url(#wobble)">

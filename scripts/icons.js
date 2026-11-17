@@ -1,0 +1,51 @@
+// Builds the site's icons from design/logo.png. Run with: npm run icons
+// The drawing is a 720 x 720 tile, 640 wide with a 30 wide border and corners rounded by 100,
+// like the one made in Figma. Its corners are clipped off, its border is drawn again on top so the
+// grid lines never poke through, and the whole thing gets the same hand-drawn wobble as the site.
+const fs = require('node:fs');
+const path = require('node:path');
+
+let chromium;
+try {
+  ({ chromium } = require('playwright'));
+} catch {
+  console.error('Playwright is not installed. Run: npm install --save-dev playwright && npx playwright install chromium');
+  process.exit(1);
+}
+
+const root = path.join(__dirname, '..');
+const drawing = fs.readFileSync(path.join(root, 'design', 'logo.png')).toString('base64');
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
+  <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.005" numOctaves="2" seed="3"/>
+    <feDisplacementMap in="SourceGraphic" scale="28"/>
+  </filter>
+  <clipPath id="tile"><rect x="25" y="25" width="670" height="670" rx="115"/></clipPath>
+  <g filter="url(#wobble)">
+    <image href="data:image/png;base64,${drawing}" width="720" height="720" clip-path="url(#tile)"/>
+    <rect x="40" y="40" width="640" height="640" rx="100" fill="none" stroke="#1f2328" stroke-width="30"/>
+  </g>
+</svg>
+`;
+fs.writeFileSync(path.join(root, 'public', 'icon.svg'), svg);
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const shot = async (size, file, padded) => {
+    await page.setViewportSize({ width: size, height: size });
+    const pad = padded ? Math.round(size * 0.12) : 0;
+    await page.setContent(`<body style="margin:0;background:${padded ? '#fbfaf6' : 'transparent'}">
+      <div style="padding:${pad}px;width:${size - 2 * pad}px;height:${size - 2 * pad}px">
+      ${svg.replace('<svg ', '<svg width="100%" height="100%" ')}</div></body>`);
+    await page.screenshot({ path: path.join(root, 'public', file), omitBackground: !padded });
+    console.log(`  made public/${file}`);
+  };
+  await shot(192, 'icon-192.png', false);
+  await shot(512, 'icon-512.png', false);
+  await shot(512, 'icon-maskable.png', true);
+  await shot(180, 'apple-touch-icon.png', true);
+  await browser.close();
+  console.log('  made public/icon.svg');
+})();

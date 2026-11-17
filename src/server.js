@@ -11,10 +11,6 @@ const port = Number(process.env.PORT) || 3000;
 const publicDirectory = path.join(__dirname, '..', 'public');
 
 app.disable('x-powered-by');
-// Most hosts put the site behind a proxy that handles HTTPS. TRUST_PROXY=1 tells Express to read
-// the visitor's real address and whether they used HTTPS from that proxy. Without it every visitor
-// looks like the proxy, so the request limits would treat everyone as one person.
-if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
 app.use(express.json({ limit: '100kb' }));
 
 app.use((_request, response, next) => {

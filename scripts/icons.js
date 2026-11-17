@@ -1,7 +1,3 @@
-// Builds the site's icons from design/logo.png. Run with: npm run icons
-// The drawing is a 720 x 720 tile, 640 wide with a 30 wide border and corners rounded by 100,
-// like the one made in Figma. Its corners are clipped off, its border is drawn again on top so the
-// grid lines never poke through, and the whole thing gets the same hand-drawn wobble as the site.
 const fs = require('node:fs');
 const path = require('node:path');
 

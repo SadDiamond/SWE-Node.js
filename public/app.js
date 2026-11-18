@@ -15,7 +15,7 @@ function element(tag, text, className) {
 
 // "1 go" or "3 goes".
 function goesText(count) {
-  return count === 1 ? '1 go' : `${count} goes`;
+  return count === 1 ? '1 attempt' : `${count} attempts`;
 }
 
 // Fetches JSON from the server and turns a failed request into a readable error.
@@ -24,12 +24,12 @@ async function request(url, options = {}) {
   try {
     response = await fetch(url, options);
   } catch (_error) {
-    throw new Error('You are offline. This needs a connection to the server.');
+    throw new Error("You're offline, and this needs a connection to the server.");
   }
 
   const isJson = (response.headers.get('Content-Type') || '').includes('application/json');
   const data = isJson ? await response.json() : null;
-  if (!response.ok) throw new Error(data?.error || 'The request could not be completed.');
+  if (!response.ok) throw new Error(data?.error || 'Something went wrong, so try that again.');
   return data;
 }
 
@@ -153,8 +153,8 @@ async function start() {
     find('#goes-text').textContent = `${goesText(game.maxGoes - round.goes)} left`;
 
     find('#stroke-info').textContent = round.strokesPerGo === 1
-      ? 'One stroke per go. Lift your pen and it is marked.'
-      : `This curve is in ${round.strokesPerGo} pieces, so each go is ${round.strokesPerGo} strokes.`;
+      ? "You get one stroke per attempt and it's marked when you lift your pen."
+      : `This one's in ${round.strokesPerGo} pieces, so you get ${round.strokesPerGo} strokes each attempt.`;
     find('#stroke-info').hidden = Boolean(round.result);
     find('.under-graph').hidden = Boolean(round.result);
     graph.classList.toggle('finished', Boolean(round.result));
@@ -164,7 +164,7 @@ async function start() {
       const result = round.result;
       find('#result-heading').textContent = result.solved
         ? `Cracked it in ${goesText(round.goes)} with ${result.accuracy}%`
-        : `Out of goes. Your last one scored ${result.accuracy}%`;
+        : `You're out of attempts, and your last one scored ${result.accuracy}%`;
       find('#result-stars').textContent = starsText(result.stars);
       find('#result-stars').setAttribute('aria-label', `${result.stars} out of 3 stars`);
       find('#result-family').textContent = result.familyName;
@@ -238,11 +238,11 @@ async function start() {
       round.ghost = beforeMarks.ghost;
       round.missed = beforeMarks.missed;
       showGraph();
-      return message('That was too short to count. Draw a longer line.');
+      return message('That line was too short to count, so try drawing a longer one.');
     }
     if (round.strokes.length < round.strokesPerGo) {
       showGraph();
-      return message(`Piece ${round.strokes.length} of ${round.strokesPerGo} drawn. Now draw the next piece.`);
+      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}, now draw the next one.`);
     }
 
     waiting = true;
@@ -258,7 +258,7 @@ async function start() {
         message('');
       } else {
         flashPercent(result.accuracy);
-        message(`${result.accuracy}%. Trace the green parts and fix the rest.`);
+        message(`${result.accuracy}%, keep the green bits and fix up the rest.`);
       }
     } catch (error) {
       message(error.message);
@@ -300,7 +300,7 @@ async function start() {
         endStroke();
       } else if (startStroke(pen)) {
         pen.down = true;
-        message('Pen down. Move with the arrow keys, then press Space to lift it.');
+        message('Your pen is down, so move it with the arrow keys and press Space to lift it.');
       }
     }
     if (moves[event.key]) {

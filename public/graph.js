@@ -214,6 +214,6 @@ function drawGraph(svg, picture, limit) {
 
   // A description for screen readers. It is a label and not a <title>, so it does not pop up on hover.
   svg.setAttribute('aria-label', `Graph from −${limit} to ${limit}.`
-    + (picture.percent !== null ? ` Your last go scored ${picture.percent}%.` : '')
+    + (picture.percent !== null ? ` Your last attempt scored ${picture.percent}%.` : '')
     + (picture.curve ? ' The real curve is shown.' : ''));
 }

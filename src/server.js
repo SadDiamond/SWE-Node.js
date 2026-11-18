@@ -52,10 +52,10 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   const { drawing, go } = request.body;
 
   if (!rules.validDrawing(drawing)) {
-    return response.status(400).json({ error: 'That drawing is not in the right format.' });
+    return response.status(400).json({ error: "That drawing didn't come through right, so try again." });
   }
   if (!Number.isInteger(go) || go < 1 || go > rules.MAX_GOES) {
-    return response.status(400).json({ error: 'That go number is not valid.' });
+    return response.status(400).json({ error: "That attempt number doesn't look right." });
   }
 
   const machines = await all(`
@@ -64,7 +64,7 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
     INNER JOIN families ON families.id = machines.family_id
     WHERE machines.id = ? AND machines.play_date <= ?
   `, [id, rules.todayDate()]);
-  if (machines.length === 0) return response.status(404).json({ error: 'Curve not found.' });
+  if (machines.length === 0) return response.status(404).json({ error: "We couldn't find that curve." });
 
   const machine = machines[0];
   const result = rules.judge(drawing, machine);
@@ -90,18 +90,18 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
 }));
 
 app.use('/api', (_request, response) => {
-  response.status(404).json({ error: 'That address does not exist on the server.' });
+  response.status(404).json({ error: "That page doesn't exist." });
 });
 
 app.use((error, _request, response, _next) => {
   if (error.type === 'entity.parse.failed') {
-    return response.status(400).json({ error: 'The request was not valid JSON.' });
+    return response.status(400).json({ error: 'Something went wrong sending that, so try again.' });
   }
   if (error.type === 'entity.too.large') {
-    return response.status(413).json({ error: 'That drawing is too detailed to send. Try a simpler line.' });
+    return response.status(413).json({ error: 'That drawing is too detailed to send, so try a simpler line.' });
   }
   console.error(error);
-  response.status(500).json({ error: 'The server could not complete that request.' });
+  response.status(500).json({ error: 'Something went wrong on our end, so try again.' });
 });
 
 initialiseDatabase()

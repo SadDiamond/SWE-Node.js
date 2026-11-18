@@ -61,8 +61,8 @@ nav ul {
 .mark.l3 { stroke: orange; stroke-width: 3; }
 .mark.l4 { stroke: red; stroke-width: 2; }
 .faded { opacity: 0.3; }
-.truth { stroke: black; stroke-width: 3; }
-.asymptote { stroke: #888; stroke-width: 1; stroke-dasharray: 6 4; }
+.truth { stroke: black; stroke-width: 3.5; }
+.asymptote { stroke: #888; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 9 9; }
 .percent { fill: black; pointer-events: none; animation: fade 1.8s forwards; }
 @keyframes fade { 50% { opacity: 1; } 100% { opacity: 0; } }
 .exit { fill: black; }

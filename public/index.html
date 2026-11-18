@@ -20,12 +20,15 @@
     </header>
 
     <main id="main">
-      <h1>Today's curve</h1>
+      <h1>Today's curves</h1>
       <p id="machine-details" class="details">Loading…</p>
       <p class="intro">
-        A curve is hiding on this graph. Draw where you think it goes. When you lift your pen
-        your line gets marked: green where you're on it, red where you're way off. You only get 5 attempts, so make them count.
+        Three curves are hiding today: one easy, one medium, one hard. Draw where you think
+        a curve goes. When you lift your pen your line gets marked: green where you're on it,
+        red where you're way off. You only get 5 attempts at each, so make them count.
       </p>
+
+      <div id="tabs" class="tabs" role="group" aria-label="Choose a curve"></div>
 
       <section aria-labelledby="graph-heading">
         <h2 id="graph-heading" class="visually-hidden">Graph</h2>
@@ -48,7 +51,8 @@
         <p>Type of curve: <strong id="result-family"></strong></p>
         <p id="result-formula" class="formula"></p>
         <p class="help">The real curve is the black line and dashed lines are asymptotes.</p>
-        <p>Come back tomorrow for a new one.</p>
+        <button type="button" id="next-curve" class="primary">Next curve</button>
+        <p id="day-done" hidden>That's all three for today. Come back tomorrow for new ones.</p>
       </section>
 
       <section class="key" aria-labelledby="key-heading">
@@ -63,6 +67,7 @@
           <li><strong>▲ An arrow on the top or bottom edge</strong>: the curve leaves the graph here.</li>
           <li><strong>A grey bar along the bottom</strong>: the curve is somewhere above, and you drew nothing.</li>
           <li>Your last attempt stays on the graph, faded, so you can trace the good parts.</li>
+          <li>You can draw any shape you like, including loops and straight up and down.</li>
         </ul>
 
         <details>

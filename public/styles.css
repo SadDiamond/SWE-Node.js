@@ -99,3 +99,9 @@ nav ul {
   max-width: 20rem;
   margin-top: 0.25rem;
 }
+
+/* Tabs for the three curves */
+
+.tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.tab { flex: 1 1 6rem; display: flex; flex-direction: column; align-items: flex-start; }
+.tab[aria-pressed="true"] { background: #333; color: #fff; }

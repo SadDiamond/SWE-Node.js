@@ -1,107 +1,605 @@
-body {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 1rem;
-  font: 1rem/1.5 system-ui, sans-serif;
+/* Design tokens: every colour, font and space used on the site is named here once.
+   The graph itself is clean. Everything around it looks drawn by hand. */
+
+/* A handwriting font that comes with the site, so it looks the same on every device.
+   Patrick Hand, SIL Open Font License. The licence is in public/fonts. */
+@font-face {
+  font-family: "Patrick Hand";
+  src: url("/fonts/patrick-hand.woff2") format("woff2");
+  font-display: swap;
 }
 
+:root {
+  --page: #fbfaf6;
+  --ink: #1f2328;
+  --muted: #5a626c;
+  --grid: #e3e7eb;
+  --grid-major: #c3cad2;
+  --fresh: #1b4fc4;
+  --wrong: #c22f27;
+  /* Closeness, from spot on to way off. */
+  --level-0: #1c8139;
+  --level-1: #7da511;
+  --level-2: #d8a200;
+  --level-3: #e06c12;
+  --level-4: #c22f27;
+
+  --text: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --hand: "Patrick Hand", "Bradley Hand", "Segoe Print", cursive;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* An uneven corner radius makes a box look drawn with a pen instead of a ruler. */
+  --wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Makes the hidden attribute win over display rules set further down. */
 [hidden] {
   display: none !important;
 }
 
-.visually-hidden,
-.skip-link:not(:focus) {
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 1rem/1.55 var(--text);
+}
+
+.visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Layout */
+
+.top,
+main,
+footer {
+  width: min(100% - 2rem, 76rem);
+  margin-inline: auto;
+}
+
+/* On a phone the page is one column: the lead, then the graph, then the rest.
+   On a wide screen the graph fills the left and everything else sits in a column beside it. */
+.layout {
+  display: grid;
+  gap: 0 2.5rem;
+  grid-template-areas:
+    "lead"
+    "board"
+    "rest";
+}
+
+.lead {
+  grid-area: lead;
+}
+
+.board {
+  grid-area: board;
+}
+
+.rest {
+  grid-area: rest;
+}
+
+@media (min-width: 60rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "board lead"
+      "board rest";
+    align-items: start;
+  }
+
+  /* The graph is as big as fits on screen without scrolling. */
+  .graph {
+    max-width: calc(100vh - 8rem);
+    margin-inline: auto;
+  }
 }
 
 .top {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1.5rem;
+  padding: 1rem 0 0.5rem;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 0 0 var(--wobble);
+}
+
+.brand {
+  color: var(--ink);
+  font: 400 1.75rem var(--hand);
+  text-decoration: none;
 }
 
 nav ul {
-  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
   padding: 0;
+  list-style: none;
 }
 
-/* Graph */
+nav a {
+  display: block;
+  padding: 0.375rem 0;
+  color: var(--ink);
+  font: 400 1.1875rem var(--hand);
+  text-decoration: none;
+}
+
+nav a:hover,
+nav a[aria-current="page"] {
+  text-decoration: underline wavy;
+  text-underline-offset: 0.3em;
+}
+
+main {
+  padding: 1.5rem 0 3rem;
+}
+
+footer {
+  padding: 1rem 0 2rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+h1,
+h2 {
+  font-family: var(--hand);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 6vw, 3.25rem);
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.625rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+.details {
+  margin: 0.125rem 0 0.75rem;
+  color: var(--muted);
+}
+
+.help {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* The three curves of the day, chosen like tabs */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+}
+
+.tab {
+  flex: 1 1 6rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: 0.5rem 0.875rem;
+}
+
+.tab[aria-pressed="true"] {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.tab[aria-pressed="true"]:hover {
+  background: var(--ink);
+}
+
+.tab-stars {
+  font-family: var(--text);
+  font-size: 0.9375rem;
+  letter-spacing: 0.1em;
+}
+
+.stroke-info {
+  margin: 1rem 0 0.75rem;
+  font: 400 1.1875rem var(--hand);
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.switch {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.switch label,
+button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.375rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble);
+  background: #ffffff;
+  color: var(--ink);
+  font: 400 1.1875rem var(--hand);
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.switch label:has(input:checked) {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.switch label:has(input:focus-visible) {
+  outline: 3px solid var(--fresh);
+  outline-offset: 2px;
+}
+
+button:hover:not(:disabled),
+.switch label:hover:not(:has(input:checked)) {
+  background: var(--grid);
+}
+
+button.primary {
+  padding-inline: 1.25rem;
+  background: var(--fresh);
+  border-color: var(--ink);
+  color: #ffffff;
+  font-size: 1.3125rem;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #163f9c;
+}
+
+:focus-visible {
+  outline: 3px solid var(--fresh);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 1;
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+}
+
+/* The graph: square, plain and clean like a graphing calculator */
 
 .graph {
   display: block;
   width: 100%;
-  border: 1px solid #999;
+  aspect-ratio: 1 / 1;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
   cursor: crosshair;
+  /* The graph is for drawing on, so a finger must not scroll the page from here. */
   touch-action: none;
+  user-select: none;
 }
 
-.paper { fill: #fff; }
-.grid { stroke: #eee; }
-.grid.major { stroke: #ccc; }
-.axis { stroke: #333; }
-.tick { fill: #666; font-size: 10px; }
+.graph.finished {
+  cursor: default;
+}
+
+/* Clicking the graph with a mouse should not draw a focus ring. Keyboard focus still does. */
+.graph:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.paper {
+  fill: #ffffff;
+}
+
+.grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.grid.major {
+  stroke: var(--grid-major);
+}
+
+.axis {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.tick {
+  fill: var(--muted);
+  font: 12px var(--text);
+}
+
+/* Lines on the graph */
 
 .stroke,
 .mark,
-.truth,
-.asymptote {
+.truth {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.stroke { stroke: blue; stroke-width: 3; }
-.mark.l0 { stroke: green; stroke-width: 6; }
-.mark.l1 { stroke: yellowgreen; stroke-width: 5; }
-.mark.l2 { stroke: gold; stroke-width: 4; }
-.mark.l3 { stroke: orange; stroke-width: 3; }
-.mark.l4 { stroke: red; stroke-width: 2; }
-.faded { opacity: 0.3; }
-.truth { stroke: black; stroke-width: 3.5; }
-.asymptote { stroke: #888; stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 9 9; }
-.percent { fill: black; pointer-events: none; animation: fade 1.8s forwards; }
-@keyframes fade { 50% { opacity: 1; } 100% { opacity: 0; } }
-.exit { fill: black; }
-.missed { fill: #bbb; }
-.pen { fill: none; stroke: #333; }
-.pen.down { fill: #333; }
+/* The line being drawn right now. */
+.stroke {
+  stroke: var(--fresh);
+  stroke-width: 6;
+}
 
-/* Goes left */
+/* A marked line. The closer to the curve, the greener and thicker it is. */
+.mark.l0 {
+  stroke: var(--level-0);
+  stroke-width: 8;
+}
+
+.mark.l1 {
+  stroke: var(--level-1);
+  stroke-width: 7;
+}
+
+.mark.l2 {
+  stroke: var(--level-2);
+  stroke-width: 6;
+}
+
+.mark.l3 {
+  stroke: var(--level-3);
+  stroke-width: 5;
+}
+
+.mark.l4 {
+  stroke: var(--level-4);
+  stroke-width: 4;
+}
+
+/* The go before last, left behind to trace over. */
+.faded {
+  opacity: 0.25;
+}
+
+.truth {
+  stroke: var(--ink);
+  stroke-width: 3.5;
+}
+
+/* The score across the middle of the graph. The white edge keeps it readable over the grid. */
+.percent {
+  animation: flash 1.8s ease-in forwards;
+  fill: var(--ink);
+  font-family: var(--hand);
+  opacity: 0.85;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 10px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.asymptote {
+  stroke: var(--muted);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 9 9;
+}
+
+.exit {
+  fill: var(--ink);
+}
+
+.missed {
+  fill: var(--muted);
+}
+
+.pen {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.pen.down {
+  fill: var(--fresh);
+}
+
+/* Under the graph */
+
+.under-graph {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.goes {
+  display: flex;
+  gap: 0.375rem;
+}
 
 .go {
-  display: inline-block;
-  width: 0.8rem;
-  height: 0.8rem;
-  margin-right: 0.25rem;
-  border: 1px solid #333;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid var(--ink);
   border-radius: 50%;
 }
 
-.go.used { background: #333; }
+.go.used {
+  background: var(--ink);
+}
 
-/* Colour key */
+.goes-text {
+  margin: 0;
+  font: 400 1.1875rem var(--hand);
+}
 
-.scale { display: flex; max-width: 20rem; }
-.scale span { flex: 1; height: 6px; }
-.scale .l0 { background: green; }
-.scale .l1 { background: yellowgreen; }
-.scale .l2 { background: gold; }
-.scale .l3 { background: orange; }
-.scale .l4 { background: red; }
+.status {
+  min-height: 1.6rem;
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+}
+
+/* Result */
+
+.result {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble);
+  background: #ffffff;
+}
+
+.result button {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.stars {
+  margin: 0 0 0.5rem;
+  color: var(--wrong);
+  font-size: 1.75rem;
+  letter-spacing: 0.15em;
+  line-height: 1;
+}
+
+/* The formula with a crayon loop scribbled round it */
+
+.circled {
+  position: relative;
+  display: inline-block;
+  margin: 0.25rem 0 1rem;
+  padding: 1.25rem 2.5rem;
+}
+
+.formula {
+  position: relative;
+  font: 700 1.125rem var(--mono);
+}
+
+.crayon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.crayon path {
+  fill: none;
+  stroke: var(--wrong);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.8;
+  /* Keeps the crayon the same thickness however far the loop is stretched. */
+  vector-effect: non-scaling-stroke;
+}
+
+/* Key */
+
+.key {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--grid-major);
+}
+
+.scale {
+  display: flex;
+  align-items: center;
+  max-width: 20rem;
+}
+
+.scale span {
+  flex: 1;
+}
+
+.scale .l0 {
+  height: 8px;
+  background: var(--level-0);
+}
+
+.scale .l1 {
+  height: 7px;
+  background: var(--level-1);
+}
+
+.scale .l2 {
+  height: 6px;
+  background: var(--level-2);
+}
+
+.scale .l3 {
+  height: 5px;
+  background: var(--level-3);
+}
+
+.scale .l4 {
+  height: 4px;
+  background: var(--level-4);
+}
 
 .scale-labels {
   display: flex;
   justify-content: space-between;
   max-width: 20rem;
-  margin-top: 0.25rem;
+  margin: 0.25rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
-/* Tabs for the three curves */
+.key ul {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+}
 
-.tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-.tab { flex: 1 1 6rem; display: flex; flex-direction: column; align-items: flex-start; }
-.tab[aria-pressed="true"] { background: #333; color: #fff; }
+.key li {
+  padding: 0.125rem 0;
+}
+
+summary {
+  padding: 0.375rem 0;
+  font: 400 1.1875rem var(--hand);
+  cursor: pointer;
+}
+
+/* The score appears at full strength, holds, then fades away. */
+@keyframes flash {
+  0%,
+  45% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

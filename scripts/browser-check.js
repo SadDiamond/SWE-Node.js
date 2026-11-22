@@ -15,7 +15,7 @@ try {
 
 const PORT = 3123;
 const SITE = `http://localhost:${PORT}`;
-const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'placeholder-check-'));
+const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'close-enough-check-'));
 
 function startServer() {
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'server.js')], {

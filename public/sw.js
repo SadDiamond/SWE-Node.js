@@ -1,6 +1,6 @@
 // Keeps a copy of the site's files so it still opens without a connection.
 // Endless can then be played offline. Everything else needs the server.
-const CACHE = 'placeholder-v1';
+const CACHE = 'close-enough-v1';
 const FILES = [
   '/', '/endless.html', '/past.html', '/history.html', '/stats.html', '/account.html',
   '/styles.css', '/app.js', '/graph.js', '/theme.js', '/curves.js', '/katex/katex.min.js',

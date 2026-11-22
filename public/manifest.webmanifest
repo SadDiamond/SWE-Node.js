@@ -1,6 +1,6 @@
 {
-  "name": "Placeholder",
-  "short_name": "Placeholder",
+  "name": "Close Enough",
+  "short_name": "Close Enough",
   "description": "A daily puzzle: find the hidden curve by drawing it.",
   "start_url": "/",
   "display": "standalone",

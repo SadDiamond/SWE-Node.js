@@ -1,4 +1,4 @@
-# Placeholder
+# Close Enough
 
 A daily puzzle about working out the rule hidden inside a machine.
 

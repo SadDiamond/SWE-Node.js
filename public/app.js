@@ -419,7 +419,7 @@ async function playPage(endless) {
   find('#copy-result').addEventListener('click', async () => {
     const date = new Date(`${game.date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
     const scores = rounds.map((item) => `${SLOT_NAMES[item.slot]} ${item.result.score}`).join(' · ');
-    const text = `Placeholder, ${date}\n${scores}\nTotal ${totalScore()}`;
+    const text = `Close Enough, ${date}\n${scores}\nTotal ${totalScore()}`;
     try {
       await navigator.clipboard.writeText(text);
       find('#copy-status').textContent = 'Copied.';
@@ -740,7 +740,7 @@ async function accountPage() {
 
 function showPastDay(date) {
   const day = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
-  document.title = `${day} · Placeholder`;
+  document.title = `${day} · Close Enough`;
   find('h1').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   find('#today-date').textContent = 'Past day';
   find('.intro').textContent = "These are the three curves from that day. They count towards your points and history, but not your day streak.";

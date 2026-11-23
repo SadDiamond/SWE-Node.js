@@ -83,7 +83,7 @@ function limited(counter, keyOf, error) {
 }
 
 const limitAccounts = limited(accountRequests, (request) => request.ip,
-  'There have been a lot of log ins from here recently. Wait a few minutes and try again.');
+  'There have been a lot of logins from here recently. Wait a few minutes and try again.');
 const limitMarking = (request, response, next) => (request.user
   ? limited(playerMarking, () => `user ${request.user.id}`, "You're going really fast. Wait a moment and try again.")
   : limited(guestMarking, () => request.ip, "You're going really fast. Wait a moment and try again."))(request, response, next);

@@ -35,7 +35,7 @@
         <h1>Endless</h1>
         <p class="details"><span id="today-date">Loading…</span> · <span id="total" class="total">0</span> points</p>
         <p class="intro">
-          Play random curves for as long as you like. They don't count towards your points or stats.
+          Endless gives you random curves one after another. They don't count towards your points or stats.
         </p>
         <button type="button" id="open-how-to-play" class="help-button"><span class="help-mark" aria-hidden="true">?</span>How to play</button>
 
@@ -77,7 +77,7 @@
 
         <section id="result" class="result" aria-labelledby="result-heading" hidden>
           <h2 id="result-heading"></h2>
-          <p id="result-close" class="help" hidden>Your last attempt was the right shape, just a bit out of place, so it still counts as cracked. Drawing it closer would have scored more.</p>
+          <p id="result-close" class="help" hidden>It was the right shape, just a bit out of place. That still counts as cracked.</p>
           <p class="score"><span id="result-score"></span> <span id="result-top" class="score-top"></span></p>
           <ul id="result-working" class="working"></ul>
           <p class="answer">Type of curve: <strong id="result-family"></strong></p>
@@ -94,7 +94,7 @@
               </g>
             </svg>
           </p>
-          <p id="result-kept" class="help" hidden>You'll see the answer tomorrow in Past days. Log in now and your attempts move to your account, so you can see it straight away.</p>
+          <p id="result-kept" class="help" hidden>The answer shows up tomorrow in Past days. If you log in, your attempts move to your account and you can see it now.</p>
           <p class="help answer">
             The bold line is the real curve and your last attempt is faded out behind it.
           </p>
@@ -115,18 +115,18 @@
         </svg>
         <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
         <ul>
-          <li><strong>● Dot</strong>: a spot that's on the curve, which you get from a hint.</li>
-          <li><strong>▲ Arrow on an edge</strong>: the curve leaves the graph here.</li>
-          <li><strong>→ Arrow on your line</strong>: you're way off here and the curve is in that direction.</li>
-          <li><strong>Grey bars on the edges</strong>: part of the curve you haven't drawn yet. It's somewhere above a bar on the bottom edge, or level with a bar on the left edge.</li>
+          <li><strong>● Dot</strong>: a spot on the curve, from a hint.</li>
+          <li><strong>▲ Arrow on an edge</strong>: where the curve leaves the graph.</li>
+          <li><strong>→ Arrow on your line</strong>: you're way off here, and the curve is that way.</li>
+          <li><strong>Grey bars on the edges</strong>: part of the curve you haven't drawn yet. Look above the bars on the bottom edge and across from the ones on the left.</li>
           <li><strong>Grey dots</strong>: your line joins two pieces of the curve that aren't connected.</li>
         </ul>
 
         <details>
           <summary>Drawing with a keyboard</summary>
           <p id="keyboard-help">
-            Tab to the graph and use the arrow keys to move the pen around. Press Space to put it down,
-            then press Space again when you want to lift it and finish the stroke.
+            Tab to the graph and move the pen with the arrow keys. Press Space to put it down and
+            Space again to lift it.
           </p>
         </details>
       </section>
@@ -137,7 +137,7 @@
         <ol id="summary-rows" class="summary-rows"></ol>
         <p id="save-prompt" class="save-prompt" hidden>
           <a href="/account.html" class="button primary">Log in to save your score</a>
-          <span class="help">If you don't have an account, you can sign up on the same page and your score will be saved.</span>
+          <span class="help">If you don't have one, you can sign up there too.</span>
         </p>
         <button type="button" id="copy-result">Copy result</button>
         <p id="copy-status" class="help" role="status" aria-live="polite"></p>
@@ -156,32 +156,31 @@
         </figure>
         <ol>
           <li>
-            <strong>Find the hidden curve.</strong> There's a curve hidden on the graph and your job is to
-            work out where it goes. Pick how hard you want them at the top and keep going for as long as you like. The little
-            arrows on the edges show where the curve goes off the graph, so they're a good place to start.
+            <strong>Find the hidden curve.</strong> There's a curve hidden on the graph and you have to work
+            out where it goes. Choose a difficulty at the top, or Any for a mix. The arrows on the edges show
+            where it leaves the graph, which makes them a good place to start.
           </li>
           <li>
-            <strong>Draw your guess.</strong> Draw the curve with your mouse or finger and it gets marked as
-            soon as you let go. If the curve is split into pieces, you draw each piece as its own line. You
-            only get so much ink, so you can't just scribble over the whole graph.
+            <strong>Draw your guess.</strong> Draw it with your mouse or finger and it gets marked when you let
+            go. If the curve comes in pieces, draw each piece as its own line. You only get so much ink, so
+            you can't just scribble over the whole graph.
           </li>
           <li>
-            <strong>See how close you were.</strong> Your line turns green where it's on the curve and goes
-            red and dashed where it's off, and wherever you're way off a small arrow points you towards the real curve.
+            <strong>See how close you were.</strong> Your line turns green where it's on the curve and red and
+            dashed where it's off. Where you're way off, a small arrow points towards the real curve.
           </li>
           <li>
-            <strong>Fix it up.</strong> You get 5 attempts per curve. Each one is a fresh drawing, but your last
-            one stays faded on the graph so you can trace over the good bits and fix the rest. Get 85% or more and
-            you've cracked it. If you're
-            stuck, your first hint tells you what kind of curve it is and the next ones show you spots on it.
+            <strong>Fix it up.</strong> You get 5 attempts per curve. Each attempt is a new drawing, but the last
+            one stays faded on the graph for you to trace over. Get 85% or more and you've cracked it. If you're
+            stuck, the first hint tells you the type of curve and the next two show you spots on it.
           </li>
           <li>
-            <strong>Scoring.</strong> Each curve is out of 1000 depending on how close you get, and you lose
-            100 for every extra attempt and 150 for every hint you use. Scores never go below 0.
+            <strong>Scoring.</strong> Each curve is out of 1000 depending on how close you get. You lose 100
+            for each extra attempt and 150 for each hint, and scores never go below 0.
           </li>
         </ol>
         <div class="dialog-actions">
-          <button type="button" id="close-how-to-play" class="primary">Got it, let's play</button>
+          <button type="button" id="close-how-to-play" class="primary">Got it</button>
         </div>
       </dialog>
     </main>

@@ -48,7 +48,11 @@ const OLDEST_KEPT = 9;
 // schema.sql always describes the latest tables, so a brand new database skips these.
 const UPGRADES = [
   // 10: the V shape hint says which way it can point.
-  `UPDATE families SET description = 'Two straight lines meeting at a sharp corner, pointing up or down.' WHERE id = 3;`
+  `UPDATE families SET description = 'Two straight lines meeting at a sharp corner, pointing up or down.' WHERE id = 3;`,
+  // 11: plainer descriptions for the hyperbolas and the circle.
+  `UPDATE families SET description = 'Two separate pieces that get closer and closer to a vertical line and a flat line without touching them.' WHERE id = 8;
+   UPDATE families SET description = 'Two pieces that get closer and closer to a vertical line and a sloping line.' WHERE id = 9;
+   UPDATE families SET description = 'A perfectly round loop.' WHERE id = 15;`
 ];
 const SCHEMA_VERSION = OLDEST_KEPT + UPGRADES.length;
 

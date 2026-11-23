@@ -319,8 +319,8 @@ async function playPage(endless) {
 
     const hintsLeft = game.maxHints - hintsUsed(round);
     find('#hint').disabled = hintsLeft === 0;
-    let hintText = `Your first hint tells you what kind of curve this is and the next ones show you spots on it. Each costs ${game.hintPenalty} points (${hintsLeft} left).`;
-    if (round.shape) hintText = `Another hint shows you a spot on the curve but costs ${game.hintPenalty} points (${hintsLeft} left).`;
+    let hintText = `The first hint tells you the type of curve and the next ones show spots on it. Each one costs ${game.hintPenalty} points (${hintsLeft} left).`;
+    if (round.shape) hintText = `Another hint shows a spot on the curve for ${game.hintPenalty} points (${hintsLeft} left).`;
     if (hintsLeft === 0) hintText = "You've used all your hints for this curve.";
     find('#hint-text').textContent = hintText;
     find('#hint-text').hidden = Boolean(round.result);
@@ -328,8 +328,8 @@ async function playPage(endless) {
     find('#shape-text').hidden = !round.shape || Boolean(round.result);
 
     find('#stroke-info').textContent = round.strokesPerGo === 1
-      ? "You get one stroke per attempt and it's marked when you lift your pen."
-      : `This one's in ${round.strokesPerGo} pieces, so you get ${round.strokesPerGo} strokes each attempt.`;
+      ? "You get one stroke per attempt. It's marked when you lift your pen."
+      : `This one comes in ${round.strokesPerGo} pieces. You get ${round.strokesPerGo} strokes per attempt.`;
     find('#stroke-info').hidden = Boolean(round.result);
     find('.under-graph').hidden = Boolean(round.result);
     graph.classList.toggle('finished', Boolean(round.result));
@@ -577,7 +577,7 @@ async function playPage(endless) {
         endStroke();
       } else if (startStroke(pen)) {
         pen.down = true;
-        message('Your pen is down, so use the arrow keys to draw and press Space to lift it.');
+        message('Your pen is down. Use the arrow keys to draw and press Space to lift it.');
       }
     }
     if (moves[event.key]) {

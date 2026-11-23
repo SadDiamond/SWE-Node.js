@@ -163,6 +163,18 @@ assert.strictEqual(farOff.closeEnough, false, 'the right shape five units to one
 assert.strictEqual(rules.judge(flatLine(-5), bowl).closeEnough, false, 'a flat line is not a parabola');
 assert.strictEqual(rules.judge(flatLine(9), gentle).closeEnough, false);
 
+const corner = { family_id: V_SHAPE, a: -3, b: 1, c: -1 };
+const arch = [[]];
+for (let x = -10; x <= 10; x += 0.1) {
+  const y = -1 - (x - 1) ** 2 / 4;
+  if (y >= -10) arch[0].push([x, y]);
+}
+const archOnCorner = rules.judge(arch, corner);
+assert.ok(archOnCorner.accuracy >= 30 && archOnCorner.accuracy < 85, `the arch is near the V, got ${archOnCorner.accuracy}`);
+assert.strictEqual(archOnCorner.closeEnough, false, 'a smooth arch is not the right shape for a sharp V');
+const raisedCorner = rules.judge(traced(rules.visibleCurve(corner), 0, 1.5), corner);
+assert.strictEqual(raisedCorner.closeEnough, true, 'the V itself drawn 1.5 too high is the right shape');
+
 const vertical = rules.judge([[[0, -9], [0, 9]]], steep);
 assert.ok(vertical.accuracy > flat.accuracy, 'a vertical line through a steep curve beats a flat one');
 const loop = [[[3, 0], [0, 3], [-3, 0], [0, -3], [3, 0]]];

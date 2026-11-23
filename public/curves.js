@@ -13,6 +13,8 @@ const REACH = 10;
 const SHAPE_SHIFTS = [-2, -1, 0, 1, 2];
 const SHAPE_SIZES = [0.85, 1, 1.15];
 const SHAPE_FLOOR = 30;
+const SHAPE_TOLERANCE = 0.4;
+const FINE_SHIFTS = [-0.5, -0.25, 0, 0.25, 0.5];
 const NUDGE_FROM_LEVEL = 3;
 const NUDGE_SPACING = 1.5;
 const INK_TO_SPARE = 1.5;
@@ -562,8 +564,21 @@ function rightShape(strokes, whole, visible, walls) {
           middleX + (x - middleX) * scale + across,
           middleY + (y - middleY) * scale + up
         ]));
-        if (accuracyOf(moved, whole, visible, walls) >= SOLVED_AT) return true;
+        if (accuracyOf(moved, whole, visible, walls) >= SOLVED_AT && followsClosely(moved, whole, walls)) return true;
       }
+    }
+  }
+  return false;
+}
+
+// The marking bands are generous, so a smooth bend can pass for a sharp corner. Once moved into
+// place, nearly all of a drawing of the right shape should hug the curve far more tightly than that.
+function followsClosely(strokes, whole, walls) {
+  const points = strokes.flat();
+  for (const across of FINE_SHIFTS) {
+    for (const up of FINE_SHIFTS) {
+      const distances = points.map(([x, y]) => nearestOnCurve(x + across, y + up, whole, walls).distance).sort((a, b) => a - b);
+      if (distances[Math.floor(distances.length * 0.9)] <= SHAPE_TOLERANCE) return true;
     }
   }
   return false;

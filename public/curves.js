@@ -1045,7 +1045,7 @@ function hintFor(machine, number) {
 const FAMILIES = {
   1: { name: 'Straight line', difficulty: 1, description: 'Goes up or down by the same amount with every step across.' },
   2: { name: 'Parabola', difficulty: 1, description: 'A smooth U shape, or an upside-down U, with one turning point.' },
-  3: { name: 'V shape', difficulty: 1, description: 'Two straight lines meeting at a sharp corner.' },
+  3: { name: 'V shape', difficulty: 1, description: 'Two straight lines meeting at a sharp corner, pointing up or down.' },
   4: { name: 'Cubic', difficulty: 2, description: 'A curve with one hill and one dip, heading off in opposite directions at each end.' },
   5: { name: 'Wave', difficulty: 2, description: 'Rises and falls in a repeating pattern, like ripples.' },
   6: { name: 'Cube root', difficulty: 2, description: 'A sideways S: steep in the middle and flattening out towards both sides.' },

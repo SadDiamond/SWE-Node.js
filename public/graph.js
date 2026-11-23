@@ -29,7 +29,13 @@ function graphPosition(svg, event, limit) {
   };
 }
 
-function drawGrid(svg, scale, limit) {
+// The numbers at the ends of the axes sit right where an edge arrow can be, so a number is
+// left out when an arrow is close enough to cover it.
+function coveredByExit(exits, side, along) {
+  return exits.some((exit) => exit.side === side && Math.abs((exit.input ?? exit.output) - along) < 1.5);
+}
+
+function drawGrid(svg, scale, limit, exits) {
   svg.append(svgElement('rect', { class: 'paper', x: 0, y: 0, width: scale.size, height: scale.size }));
 
   for (let value = -limit; value <= limit; value += 1) {
@@ -48,13 +54,16 @@ function drawGrid(svg, scale, limit) {
   for (const value of [-limit, -limit / 2, limit / 2, limit]) {
     const nearEdge = Math.abs(value) === limit;
     const label = String(value).replace('-', '−');
-    svg.append(
+    const acrossCovered = nearEdge && coveredByExit(exits, value < 0 ? 'left' : 'right', 0);
+    const upCovered = nearEdge && coveredByExit(exits, value < 0 ? 'bottom' : 'top', 0);
+    if (!acrossCovered) svg.append(
       svgElement('text', {
         class: 'tick',
         x: scale.xFor(value) + (value < 0 && nearEdge ? 4 : -4),
         y: scale.yFor(0) + 16,
         'text-anchor': value < 0 && nearEdge ? 'start' : 'end'
-      }, label),
+      }, label));
+    if (!upCovered) svg.append(
       svgElement('text', {
         class: 'tick',
         x: scale.xFor(0) - 6,
@@ -138,7 +147,7 @@ function drawGraph(svg, picture, limit) {
 
   svg.replaceChildren();
   svg.setAttribute('viewBox', `0 0 ${scale.size} ${scale.size}`);
-  drawGrid(svg, scale, limit);
+  drawGrid(svg, scale, limit, picture.exits);
 
   if (picture.ghost) {
     const faded = svgElement('g', { class: 'faded' });

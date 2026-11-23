@@ -696,9 +696,12 @@ async function statsPage() {
   find('#stat-cracked').textContent = `${totals.cracked} of ${totals.played}`;
   find('#stat-average').textContent = totals.average_score ?? '–';
   find('#stat-goes').textContent = totals.average_goes ?? '–';
-  find('#stat-best-day').textContent = stats.bestDay
-    ? `${stats.bestDay.points} on ${shortDate(stats.bestDay.date)}`
-    : '–';
+  if (stats.bestDay) {
+    const day = new Date(`${stats.bestDay.date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    find('#stat-best-day').replaceChildren(String(stats.bestDay.points), element('span', ` on ${day}`, 'figure-note'));
+  } else {
+    find('#stat-best-day').textContent = '–';
+  }
 
   stats.byDifficulty.forEach((row) => {
     addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.cracked, row.average_score, row.average_goes]);
@@ -761,9 +764,9 @@ async function pastPage() {
   days.forEach((day) => {
     const link = element('a', undefined, day.finished === 3 ? 'day done' : 'day');
     link.href = `/?date=${day.date}`;
-    let note = currentUser ? 'Not played yet' : 'Play';
+    let note = 'Play';
     if (day.finished === 3) note = `Done · ${day.points} points`;
-    else if (day.finished > 0) note = `${day.finished} of 3 done`;
+    else if (day.finished > 0) note = `Carry on · ${day.finished} of 3 done`;
     const name = new Date(`${day.date}T00:00`).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
     link.append(element('span', name, 'day-name'), element('span', note, 'day-note'));
     const row = element('li');

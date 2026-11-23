@@ -111,7 +111,7 @@ CREATE INDEX IF NOT EXISTS idx_goes_play ON goes(play_id);
 INSERT OR IGNORE INTO families (id, name, difficulty, description) VALUES
   (1, 'Straight line', 1, 'Goes up or down by the same amount with every step across.'),
   (2, 'Parabola', 1, 'A smooth U shape, or an upside-down U, with one turning point.'),
-  (3, 'V shape', 1, 'Two straight lines meeting at a sharp corner.'),
+  (3, 'V shape', 1, 'Two straight lines meeting at a sharp corner, pointing up or down.'),
   (4, 'Cubic', 2, 'A curve with one hill and one dip, heading off in opposite directions at each end.'),
   (5, 'Wave', 2, 'Rises and falls in a repeating pattern, like ripples.'),
   (6, 'Cube root', 2, 'A sideways S: steep in the middle and flattening out towards both sides.'),

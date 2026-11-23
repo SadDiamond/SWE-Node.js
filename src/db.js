@@ -33,32 +33,42 @@ function all(sql, parameters = []) {
   });
 }
 
-const SCHEMA_VERSION = 9;
-
 function exec(sql) {
   return new Promise((resolve, reject) => {
     getDatabase().exec(sql, (error) => (error ? reject(error) : resolve()));
   });
 }
 
+// Databases from before version 9 were made while the game itself was still changing shape,
+// so they are cleared once and rebuilt. From version 9 on, changes are made in place below.
+const OLDEST_KEPT = 9;
+
+// Each change to an existing database, in order. A database at version 9 runs all of them,
+// one at version 10 skips the first, and so on, so nobody's accounts or scores are lost.
+// schema.sql always describes the latest tables, so a brand new database skips these.
+const UPGRADES = [
+  // 10: the V shape hint says which way it can point.
+  `UPDATE families SET description = 'Two straight lines meeting at a sharp corner, pointing up or down.' WHERE id = 3;`
+];
+const SCHEMA_VERSION = OLDEST_KEPT + UPGRADES.length;
+
 async function initialiseDatabase() {
   await fs.mkdir(path.dirname(databasePath), { recursive: true });
 
-  // SQLite keeps a version number inside the database file. If the file was made by an
-  // older version of the app, its tables are removed once so the new ones can be created.
-  const version = await all('PRAGMA user_version');
-  if (version[0].user_version < SCHEMA_VERSION) {
+  // SQLite keeps a version number inside the database file.
+  const [{ user_version: version }] = await all('PRAGMA user_version');
+  const fresh = version < OLDEST_KEPT;
+  if (fresh) {
     await exec('DROP TABLE IF EXISTS goes; DROP TABLE IF EXISTS plays; DROP TABLE IF EXISTS machines; DROP TABLE IF EXISTS families;');
   }
-
   await exec(await fs.readFile(schemaPath, 'utf8'));
-  // Databases made before curves could have a fourth number get the column added in place,
-  // so nobody's saved curves or scores are lost.
-  const columns = await all('PRAGMA table_info(machines)');
-  if (!columns.some((column) => column.name === 'd')) {
-    await exec('ALTER TABLE machines ADD COLUMN d INTEGER CHECK (d BETWEEN 1 AND 9)');
+
+  if (!fresh) {
+    for (let next = version + 1; next <= SCHEMA_VERSION; next += 1) {
+      await exec(`BEGIN; ${UPGRADES[next - OLDEST_KEPT - 1]} PRAGMA user_version = ${next}; COMMIT;`);
+    }
   }
   await run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 
-module.exports = { all, initialiseDatabase, run };
+module.exports = { all, initialiseDatabase, run, SCHEMA_VERSION };

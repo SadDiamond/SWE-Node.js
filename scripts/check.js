@@ -404,3 +404,37 @@ for (let seed = 1; seed < 3000; seed += 37) {
 }
 
 console.log('All rule checks passed.');
+
+// An older database is upgraded in place: the player and their score are still there afterwards.
+const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const upgradeFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'close-enough-upgrade-'));
+const upgraded = execFileSync(process.execPath, ['-e', `
+  const fs = require('node:fs');
+  const sqlite3 = require('sqlite3');
+  const old = new sqlite3.Database(process.env.DATABASE_PATH);
+  old.exec(fs.readFileSync('database/schema.sql', 'utf8') + \`
+    UPDATE families SET description = 'Two straight lines meeting at a sharp corner.' WHERE id = 3;
+    INSERT INTO users (id, username, display_name, password_hash, password_salt)
+      VALUES (1, 'kept', 'Kept', '\${'0'.repeat(128)}', '\${'0'.repeat(32)}');
+    INSERT INTO machines (id, play_date, slot, family_id, a, b, c) VALUES (1, '2026-01-01', 1, 3, 2, 0, 0);
+    INSERT INTO plays (user_id, machine_id, status, goes, accuracy, score) VALUES (1, 1, 'solved', 1, 90, 900);
+    PRAGMA user_version = 9;\`, async () => {
+    old.close();
+    const db = require('./src/db');
+    await db.initialiseDatabase();
+    const [play] = await db.all('SELECT score FROM plays');
+    const [family] = await db.all('SELECT description FROM families WHERE id = 3');
+    const [version] = await db.all('PRAGMA user_version');
+    console.log(JSON.stringify({ score: play && play.score, description: family.description, version: version.user_version }));
+  });
+`], { cwd: path.join(__dirname, '..'), env: { ...process.env, DATABASE_PATH: path.join(upgradeFolder, 'old.db') } });
+const afterUpgrade = JSON.parse(upgraded);
+assert.strictEqual(afterUpgrade.score, 900, "upgrading the database keeps everyone's scores");
+assert.ok(afterUpgrade.description.includes('pointing up or down'), 'and makes the changes in place');
+assert.strictEqual(afterUpgrade.version, require('../src/db').SCHEMA_VERSION);
+fs.rmSync(upgradeFolder, { recursive: true });
+
+console.log('Database upgrade check passed.');

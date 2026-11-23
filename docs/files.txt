@@ -25,7 +25,6 @@ public/theme.js
 scripts/browser-check.js
 scripts/check.js
 scripts/create-structure.sh
-scripts/demo-video.js
 scripts/icons.js
 src/auth.js
 src/db.js

@@ -38,7 +38,7 @@
           There are three hidden curves to find today, and the arrows on the edges show you where each one
           leaves the graph. Just draw where you think it goes and it gets marked as soon as you lift your pen.
         </p>
-        <button type="button" id="open-how-to-play" class="link-button">How to play</button>
+        <button type="button" id="open-how-to-play" class="help-button"><span class="help-mark" aria-hidden="true">?</span>How to play</button>
 
         <ol id="tabs" class="tabs" aria-label="Today's three curves"></ol>
         <p id="stroke-info" class="stroke-info"></p>
@@ -141,12 +141,12 @@
       <dialog id="how-to-play" class="how-to-play" aria-labelledby="how-to-play-heading">
         <h2 id="how-to-play-heading" tabindex="-1" autofocus>How to play</h2>
         <figure class="demo">
-          <video id="demo" muted loop playsinline controls preload="metadata" width="480" height="480"
+          <video id="demo" muted loop playsinline controls preload="metadata" width="640" height="640"
                  poster="/media/how-to-play.png" aria-describedby="demo-caption">
             <source src="/media/how-to-play.webm" type="video/webm">
             <source src="/media/how-to-play.mp4" type="video/mp4">
           </video>
-          <figcaption id="demo-caption">The first attempt gets 67%. The second follows the arrows more closely and cracks it.</figcaption>
+          <figcaption id="demo-caption">The first guess is close on the left but too low on the right, where the arrows point up. The second leans further right and cracks it.</figcaption>
         </figure>
         <ol>
           <li>
@@ -174,7 +174,9 @@
             100 for every extra attempt and 150 for every hint you use. Scores never go below 0.
           </li>
         </ol>
-        <button type="button" id="close-how-to-play" class="primary">Got it, let's play</button>
+        <div class="dialog-actions">
+          <button type="button" id="close-how-to-play" class="primary">Got it, let's play</button>
+        </div>
       </dialog>
     </main>
 

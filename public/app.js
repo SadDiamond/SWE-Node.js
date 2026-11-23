@@ -71,15 +71,21 @@ const SEEN_HOW_TO_PLAY = 'seenHowToPlay';
 
 function setUpHowToPlay() {
   const dialog = find('#how-to-play');
-  find('#open-how-to-play').addEventListener('click', () => dialog.showModal());
+  const demo = find('#demo');
+  const open = () => {
+    dialog.showModal();
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) demo.play().catch(() => {});
+  };
+  find('#open-how-to-play').addEventListener('click', open);
   find('#close-how-to-play').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => demo.pause());
   try {
     if (localStorage.getItem(SEEN_HOW_TO_PLAY)) return;
     localStorage.setItem(SEEN_HOW_TO_PLAY, 'yes');
   } catch {
     return;
   }
-  dialog.showModal();
+  open();
 }
 
 // With no connection, Endless makes and marks its own curve with the same maths the server uses.

@@ -14,6 +14,9 @@ public/icon-dark.svg
 public/icon.svg
 public/index.html
 public/manifest.json
+public/media/how-to-play.mp4
+public/media/how-to-play.png
+public/media/how-to-play.webm
 public/past.html
 public/stats.html
 public/styles.css
@@ -22,6 +25,7 @@ public/theme.js
 scripts/browser-check.js
 scripts/check.js
 scripts/create-structure.sh
+scripts/demo-video.js
 scripts/icons.js
 src/auth.js
 src/db.js

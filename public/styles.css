@@ -1180,10 +1180,14 @@ main > h2,
   padding: 1.5rem;
   border: 1px solid var(--grid-major);
   border-radius: 6px;
-  background: repeating-linear-gradient(to bottom, var(--card) 0 calc(1.75rem - 1px), var(--rule) calc(1.75rem - 1px) 1.75rem);
-  background-position: 0 0.4rem;
+  background: var(--card);
   color: var(--ink);
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+}
+
+.how-to-play[open] {
+  display: flex;
+  flex-direction: column;
 }
 
 .how-to-play::backdrop {
@@ -1194,16 +1198,46 @@ main > h2,
   margin-top: 0;
   padding-bottom: 0.25rem;
   border-bottom: 2px solid var(--margin-line);
+}
+
+.demo {
+  display: flex;
+  flex-shrink: 0;
+  gap: 1rem;
+  align-items: center;
+  margin: 0 0 1rem;
+}
+
+.demo video {
+  width: min(11rem, 30vw, 30vh);
+  height: auto;
+  border: 1px solid var(--grid-major);
+  border-radius: 4px;
   background: var(--card);
 }
 
-.how-to-play ol {
-  margin: 0 0 1.25rem;
-  padding-left: 1.25rem;
+.demo figcaption {
+  color: var(--muted);
 }
 
-.how-to-play li {
-  padding: 0.25rem 0;
+.how-to-play ol {
+  --line: 1.75rem;
+  min-height: 0;
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  overflow-y: auto;
+  line-height: var(--line);
+  background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px) var(--line));
+  background-attachment: local;
+}
+
+.how-to-play li + li {
+  margin-top: var(--line);
+}
+
+.how-to-play .primary {
+  flex-shrink: 0;
+  align-self: start;
 }
 
 .how-to-play h2:focus {

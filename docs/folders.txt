@@ -6,3 +6,4 @@ public
 public/fonts
 scripts
 src
+public/media

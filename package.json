@@ -11,7 +11,8 @@
     "check": "node --check src/server.js && node --check src/db.js && node --check src/rules.js && node --check src/auth.js && node --check public/app.js && node --check public/graph.js && node --check public/theme.js && node --check public/curves.js",
     "test": "node scripts/check.js",
     "test:browser": "node scripts/browser-check.js",
-    "icons": "node scripts/icons.js"
+    "icons": "node scripts/icons.js",
+    "demo": "node scripts/demo-video.js"
   },
   "dependencies": {
     "express": "^5.1.0",

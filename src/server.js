@@ -181,7 +181,7 @@ async function openPlay(userId, machine) {
 
   await run('INSERT OR IGNORE INTO plays (user_id, machine_id) VALUES (?, ?)', [userId, machine.id]);
   const play = await findPlay(userId, machine.id);
-  if (play.status !== 'playing') return { error: 'You already finished this curve.' };
+  if (play.status !== 'playing') return { error: "You've already finished this curve." };
   return { play };
 }
 
@@ -294,10 +294,10 @@ app.post('/api/machines/:id/go', limitMarking, route(async (request, response) =
   let { go, hints } = request.body;
 
   if (!rules.validDrawing(drawing)) {
-    return response.status(400).json({ error: "That drawing didn't come through right." });
+    return response.status(400).json({ error: "That drawing didn't come through properly. Try again." });
   }
   const machine = await findMachine(request.params.id);
-  if (!machine) return response.status(404).json({ error: 'Curve not found.' });
+  if (!machine) return response.status(404).json({ error: "We couldn't find that curve." });
   if (drawing.length > rules.pieces(machine)) {
     return response.status(400).json({ error: 'Too many strokes for this curve.' });
   }
@@ -316,10 +316,10 @@ app.post('/api/machines/:id/go', limitMarking, route(async (request, response) =
     hints = play.hints;
   } else {
     if (!Number.isInteger(go) || go < 1 || go > rules.MAX_GOES) {
-      return response.status(400).json({ error: 'That attempt number is not valid.' });
+      return response.status(400).json({ error: 'Something went wrong with that attempt. Try reloading the page.' });
     }
     if (!Number.isInteger(hints) || hints < 0 || hints > rules.MAX_HINTS) {
-      return response.status(400).json({ error: 'That number of hints is not valid.' });
+      return response.status(400).json({ error: 'Something went wrong with that hint. Try reloading the page.' });
     }
   }
 
@@ -347,7 +347,7 @@ app.post('/api/machines/:id/go', limitMarking, route(async (request, response) =
 
 app.post('/api/machines/:id/hint', limitMarking, route(async (request, response) => {
   const machine = await findMachine(request.params.id);
-  if (!machine) return response.status(404).json({ error: 'Curve not found.' });
+  if (!machine) return response.status(404).json({ error: "We couldn't find that curve." });
 
   let { number } = request.body;
   let play = null;
@@ -516,7 +516,7 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
 }));
 
 app.use('/api', (_request, response) => {
-  response.status(404).json({ error: 'Page not found.' });
+  response.status(404).json({ error: "We couldn't find that page." });
 });
 
 app.use((error, _request, response, _next) => {

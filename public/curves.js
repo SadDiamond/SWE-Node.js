@@ -944,14 +944,19 @@ function machineFromSeed(seed, slot) {
   return machine;
 }
 
+// Names like "V shape" and "S-curve" start with a letter that stands for the shape, so they keep it.
+function lowerName(name) {
+  return /^[A-Z][ -]/.test(name) ? name : name[0].toLowerCase() + name.slice(1);
+}
+
 function kindName(machine) {
   return machine.extra_name
-    ? `${machine.family_name} + ${machine.extra_name.toLowerCase()}`
+    ? `${machine.family_name} + ${lowerName(machine.extra_name)}`
     : machine.family_name;
 }
 
 function shapeOf(machine) {
-  const added = machine.extra_name ? ` It has a ${machine.extra_name.toLowerCase()} added on to it.` : '';
+  const added = machine.extra_name ? ` It has a ${lowerName(machine.extra_name)} added on to it.` : '';
   return `${kindName(machine)}. ${machine.family_description}${added}`;
 }
 

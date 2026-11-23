@@ -35,7 +35,7 @@
         <h1>Endless</h1>
         <p class="details"><span id="today-date">Loading…</span> · <span id="total" class="total">0</span> points</p>
         <p class="intro">
-          Keep playing random curves for as long as you want (these don't count towards your daily score or stats).
+          Play random curves for as long as you like. They don't count towards your points or stats.
         </p>
         <button type="button" id="open-how-to-play" class="link-button">How to play</button>
 
@@ -77,7 +77,7 @@
 
         <section id="result" class="result" aria-labelledby="result-heading" hidden>
           <h2 id="result-heading"></h2>
-          <p id="result-close" class="help" hidden>Your last attempt was the right shape, just a bit out of place, so it still counts as cracked (drawing it closer would have got you more points though).</p>
+          <p id="result-close" class="help" hidden>Your last attempt was the right shape, just a bit out of place, so it still counts as cracked. Drawing it closer would have scored more.</p>
           <p class="score"><span id="result-score"></span> <span id="result-top" class="score-top"></span></p>
           <ul id="result-working" class="working"></ul>
           <p>Type of curve: <strong id="result-family"></strong></p>
@@ -95,7 +95,7 @@
             </svg>
           </p>
           <p class="help">
-            The black line is the real curve and your last attempt is faded out behind it.
+            The bold line is the real curve and your last attempt is faded out behind it.
           </p>
           <button type="button" id="next-curve" class="primary">Next curve</button>
         </section>
@@ -117,7 +117,7 @@
           <li><strong>● Dot</strong>: a spot that's on the curve, which you get from a hint.</li>
           <li><strong>▲ Arrow on an edge</strong>: the curve leaves the graph here.</li>
           <li><strong>→ Arrow on your line</strong>: you're way off here and the curve is in that direction.</li>
-          <li><strong>Grey bars on the edges</strong>: you missed the curve somewhere above the bar, or somewhere level with it.</li>
+          <li><strong>Grey bars on the edges</strong>: part of the curve you haven't drawn yet. It's somewhere above a bar on the bottom edge, or level with a bar on the left edge.</li>
           <li><strong>Grey dots</strong>: your line joins two pieces of the curve that aren't connected.</li>
         </ul>
 
@@ -135,8 +135,8 @@
         <p class="summary-total"><span id="summary-total">0</span> <span class="score-top">points</span></p>
         <ol id="summary-rows" class="summary-rows"></ol>
         <p id="save-prompt" class="save-prompt" hidden>
-          <a href="/account.html" class="button primary">Log in to save this score</a>
-          <span class="help">If you don't have an account you can sign up on the same page and your run will get saved.</span>
+          <a href="/account.html" class="button primary">Log in to save your score</a>
+          <span class="help">If you don't have an account, you can sign up on the same page and your score will be saved.</span>
         </p>
         <button type="button" id="copy-result">Copy result</button>
         <p id="copy-status" class="help" role="status" aria-live="polite"></p>

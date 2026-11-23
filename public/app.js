@@ -30,7 +30,7 @@ async function request(url, options = {}) {
   try {
     response = await fetch(url, options);
   } catch (_error) {
-    const error = new Error("You're offline right now, so this page needs a connection. Endless still works offline though.");
+    const error = new Error("You're offline, and this page needs a connection. Endless still works offline, though.");
     error.offline = true;
     throw error;
   }
@@ -38,7 +38,7 @@ async function request(url, options = {}) {
   const isJson = (response.headers.get('Content-Type') || '').includes('application/json');
   const data = isJson ? await response.json() : null;
   if (!response.ok) {
-    const error = new Error(data?.error || 'The request could not be completed.');
+    const error = new Error(data?.error || 'Something went wrong. Try again.');
     error.status = response.status;
     throw error;
   }
@@ -478,7 +478,7 @@ async function playPage(endless) {
     const points = round.strokes.reduce((total, item) => total + item.length, 0);
     if (points >= game.mostPoints) return;
     if (round.inkSpent + moved > round.ink) {
-      return message("You're out of ink, so lift your pen and it'll get marked.");
+      return message("You're out of ink. Lift your pen and it'll get marked.");
     }
 
     stroke.push(rounded(position));
@@ -500,12 +500,12 @@ async function playPage(endless) {
       round.missedRows = beforeMarks.missedRows;
       showGraph();
       if (round.strokes.length === 0 || !outOfInk()) {
-        return message("That line was too short to count, so try drawing a longer one.");
+        return message("That line was too short to count. Try a longer one.");
       }
     }
     if (round.strokes.length < round.strokesPerGo && !outOfInk()) {
       showGraph();
-      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}, now draw the next one.`);
+      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}. Now draw the next one.`);
     }
 
     waiting = true;
@@ -525,9 +525,9 @@ async function playPage(endless) {
       } else {
         flashPercent(result.accuracy);
         const joined = result.levels.some((stroke) => stroke.includes(5));
-        let advice = 'keep the green bits and fix up the rest.';
-        if (result.closeEnough) advice = "that's the right shape, it's just a bit out of place, so try drawing it closer.";
-        message(`${result.accuracy}%, ${advice}`
+        let advice = 'Trace over the green bits and fix the rest.';
+        if (result.closeEnough) advice = "That's the right shape, just a bit out of place. Try drawing it closer.";
+        message(`${result.accuracy}%. ${advice}`
           + (joined ? " The grey bit is where your line joins two pieces of the curve that aren't connected." : ''));
       }
       saveGuestRun();
@@ -675,9 +675,10 @@ async function historyPage() {
         row.score
       ]);
     });
-    find('#count').textContent = rows.length === 0
-      ? "There's nothing here yet, so finish a curve or try changing the filters."
-      : `${rows.length} ${rows.length === 1 ? 'curve' : 'curves'}`;
+    const filtered = ['slot', 'family', 'status'].some((name) => choices.get(name));
+    let count = `${rows.length} ${rows.length === 1 ? 'curve' : 'curves'}`;
+    if (rows.length === 0) count = filtered ? 'No curves match these filters.' : "No curves yet. Finish one and it'll show up here.";
+    find('#count').textContent = count;
   }
 
   form.addEventListener('change', () => load().catch((error) => message(error.message)));
@@ -840,7 +841,7 @@ start().catch((error) => {
   const endless = element('a', 'Endless');
   endless.href = '/endless.html';
   const note = element('p', undefined, 'offline-note');
-  note.append("You're offline right now, so this page needs a connection. ", endless, ' still works offline though.');
+  note.append("You're offline, and this page needs a connection. ", endless, ' still works offline, though.');
   find('main').classList.add('offline');
   find('main').prepend(note);
 });

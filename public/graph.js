@@ -222,18 +222,26 @@ function drawGraph(svg, picture, limit) {
     }));
   }
 
-  if (picture.percent !== null) {
-    svg.append(svgElement('text', {
-      class: 'percent',
-      x: scale.size / 2,
-      y: scale.size / 2,
-      'font-size': scale.size * 0.24,
-      'text-anchor': 'middle',
-      'dominant-baseline': 'middle'
-    }, `${picture.percent}%`));
-  }
+  svg.setAttribute('aria-label', describeGraph(picture, limit));
+}
 
-  svg.setAttribute('aria-label', `Graph from −${limit} to ${limit}.`
-    + (picture.percent !== null ? ` Your last go scored ${picture.percent}%.` : '')
-    + (picture.curve ? ' The real curve is shown.' : ''));
+function describeGraph(picture, limit) {
+  const number = (value) => String(Math.round(value * 10) / 10).replace('-', '−');
+  const exits = picture.exits.map((exit) => (exit.input === undefined
+    ? `the ${exit.side} edge at y = ${number(exit.output)}`
+    : `the ${exit.side} edge at x = ${number(exit.input)}`));
+  const parts = [`Graph from −${limit} to ${limit}.`];
+  if (picture.curve) {
+    parts.push('The real curve is shown.');
+  } else if (exits.length > 0) {
+    parts.push(`The curve goes off ${exits.join(', ')}.`);
+  } else {
+    parts.push("The curve doesn't go off the graph.");
+  }
+  if (picture.dots.length > 0) parts.push(`Hint spots at ${picture.dots.map(([x, y]) => `(${number(x)}, ${number(y)})`).join(', ')}.`);
+  if (picture.percent !== null) parts.push(`Your last attempt scored ${picture.percent}%.`);
+  if (!picture.curve && (picture.missed.some(Boolean) || picture.missedRows.some(Boolean))) {
+    parts.push('Grey bars on the edges show parts of the curve you have not drawn yet.');
+  }
+  return parts.join(' ');
 }

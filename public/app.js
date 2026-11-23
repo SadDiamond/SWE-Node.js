@@ -229,14 +229,8 @@ async function playPage(endless) {
     });
   }
 
-  let percentTimer = null;
   function flashPercent(value) {
     percent = value;
-    clearTimeout(percentTimer);
-    percentTimer = setTimeout(() => {
-      percent = null;
-      showGraph();
-    }, 1800);
   }
 
   function countUp(target, from, to) {
@@ -420,11 +414,11 @@ async function playPage(endless) {
     if (!next) return showSummary();
 
     round = next;
-    clearTimeout(percentTimer);
     percent = null;
     message('');
     showRound();
     find('#tabs').scrollIntoView({ block: 'nearest' });
+    graph.focus({ preventScroll: true });
   });
 
   find('#copy-result').addEventListener('click', async () => {
@@ -466,7 +460,6 @@ async function playPage(endless) {
       round.missed = [];
       round.missedRows = [];
     }
-    clearTimeout(percentTimer);
     percent = null;
     strokeLength = 0;
     round.strokes.push([rounded(position)]);
@@ -532,7 +525,7 @@ async function playPage(endless) {
         const joined = result.levels.some((stroke) => stroke.includes(5));
         let advice = 'Trace over the green bits and fix the rest.';
         if (result.closeEnough) advice = "That's the right shape, just a bit out of place. Try drawing it closer.";
-        message(`${result.accuracy}%. ${advice}`
+        find('#form-status').replaceChildren(element('strong', `${result.accuracy}%`, 'percent'), ` ${advice}`
           + (joined ? " The grey bit is where your line joins two pieces of the curve that aren't connected." : ''));
       }
       saveGuestRun();

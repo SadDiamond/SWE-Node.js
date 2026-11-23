@@ -1199,6 +1199,7 @@ main > h2,
   border: 1px solid var(--grid-major);
   border-radius: 4px;
   background: var(--card);
+  pointer-events: none;
 }
 
 .demo figcaption {

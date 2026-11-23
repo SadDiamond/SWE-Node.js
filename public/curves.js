@@ -551,7 +551,20 @@ function accuracyOf(strokes, whole, visible, walls) {
   return ((precision + coverage) / 2) * 100;
 }
 
+function curveLength(visible) {
+  let length = 0;
+  for (const branch of visible) {
+    for (let column = 1; column < branch.length; column += 1) {
+      if (branch[column] === null || branch[column - 1] === null) continue;
+      length += Math.hypot(inputFor(column) - inputFor(column - 1), branch[column] - branch[column - 1]);
+    }
+  }
+  return length;
+}
+
+// Each check below is cheaper than the next, so most drawings are ruled out before the slow one.
 function rightShape(strokes, whole, visible, walls) {
+  if (inkUsed(strokes) * SHAPE_SIZES[SHAPE_SIZES.length - 1] < curveLength(visible) * 0.5) return false;
   const light = strokes.map((stroke) => stroke.filter((_point, index) => index % 4 === 0 || index === stroke.length - 1));
   const points = light.flat();
   const middleX = (Math.min(...points.map(([x]) => x)) + Math.max(...points.map(([x]) => x))) / 2;
@@ -564,7 +577,7 @@ function rightShape(strokes, whole, visible, walls) {
           middleX + (x - middleX) * scale + across,
           middleY + (y - middleY) * scale + up
         ]));
-        if (accuracyOf(moved, whole, visible, walls) >= SOLVED_AT && followsClosely(moved, whole, walls)) return true;
+        if (followsClosely(moved, whole, walls) && accuracyOf(moved, whole, visible, walls) >= SOLVED_AT) return true;
       }
     }
   }
@@ -575,10 +588,16 @@ function rightShape(strokes, whole, visible, walls) {
 // place, nearly all of a drawing of the right shape should hug the curve far more tightly than that.
 function followsClosely(strokes, whole, walls) {
   const points = strokes.flat();
+  const tightest = (across, up) => {
+    const distances = points.map(([x, y]) => nearestOnCurve(x + across, y + up, whole, walls).distance).sort((a, b) => a - b);
+    return distances[Math.floor(distances.length * 0.9)];
+  };
+  // Nudging by at most half a unit each way moves every point less than 0.75, so a drawing
+  // further off than this can be ruled out without trying every nudge.
+  if (tightest(0, 0) > SHAPE_TOLERANCE + 0.75) return false;
   for (const across of FINE_SHIFTS) {
     for (const up of FINE_SHIFTS) {
-      const distances = points.map(([x, y]) => nearestOnCurve(x + across, y + up, whole, walls).distance).sort((a, b) => a - b);
-      if (distances[Math.floor(distances.length * 0.9)] <= SHAPE_TOLERANCE) return true;
+      if (tightest(across, up) <= SHAPE_TOLERANCE) return true;
     }
   }
   return false;
@@ -598,6 +617,21 @@ function validDrawing(strokes) {
     }
   }
   return points <= MOST_POINTS;
+}
+
+// The page never records pen positions closer together than this, so anything closer was sent some
+// other way. Dropping those points stops a drawing padded with thousands of repeats from being slow to mark.
+const THINNEST = 0.04;
+
+function thinned(strokes) {
+  return strokes.map((stroke) => {
+    const kept = [stroke[0]];
+    for (const point of stroke.slice(1, -1)) {
+      const [lastX, lastY] = kept[kept.length - 1];
+      if (Math.hypot(point[0] - lastX, point[1] - lastY) >= THINNEST) kept.push(point);
+    }
+    return [...kept, stroke[stroke.length - 1]];
+  });
 }
 
 const MAX_HINTS = 3;
@@ -1039,7 +1073,7 @@ publish({
   SLANTED, BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT, CIRCLE, ELLIPSE, SIDEWAYS, DIAMOND, ROUNDED_SQUARE,
   SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA, asymptotes, describe, numberMaker, evaluate, exits,
   inputFor, judge, machineFromSeed, hintDots, inkFor, inkUsed, isRelation, kindName, pastDates, pieces,
-  scoreFor, shapeOf, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, FAMILIES,
+  scoreFor, shapeOf, thinned, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, FAMILIES,
   SOLVED_AT, dayNumber, hintFor, markAttempt, revealed
 });
 }((api) => {

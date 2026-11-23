@@ -1,22 +1,30 @@
 const crypto = require('node:crypto');
+const util = require('node:util');
 const { all, run } = require('./db');
 
 const SESSION_DAYS = 30;
 
 // Passwords are never stored. Only a salted scrypt hash is kept, which cannot be turned back
 // into the password. scrypt is slow on purpose, so guessing passwords takes a very long time.
-function hashPassword(password, salt) {
-  return crypto.scryptSync(password, salt, 64).toString('hex');
+const scrypt = util.promisify(crypto.scrypt);
+
+async function hashPassword(password, salt) {
+  return (await scrypt(password, salt, 64)).toString('hex');
 }
 
 function newSalt() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-function passwordMatches(password, user) {
-  const given = Buffer.from(hashPassword(password, user.password_salt), 'hex');
-  const stored = Buffer.from(user.password_hash, 'hex');
-  return crypto.timingSafeEqual(given, stored);
+// Checking against a made-up account when the username doesn't exist takes just as long,
+// so how fast the answer comes back doesn't give away which usernames are real.
+const NOBODY = { password_salt: newSalt(), password_hash: '0'.repeat(128) };
+
+async function passwordMatches(password, user) {
+  const account = user || NOBODY;
+  const given = Buffer.from(await hashPassword(password, account.password_salt), 'hex');
+  const stored = Buffer.from(account.password_hash, 'hex');
+  return crypto.timingSafeEqual(given, stored) && Boolean(user);
 }
 
 function readCookie(request, name) {

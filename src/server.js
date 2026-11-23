@@ -12,6 +12,10 @@ const publicDirectory = path.join(__dirname, '..', 'public');
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '100kb' }));
+app.use((request, _response, next) => {
+  if (!request.body || typeof request.body !== 'object') request.body = {};
+  next();
+});
 
 app.use((_request, response, next) => {
   response.set({
@@ -67,7 +71,7 @@ function limiter(most, minutes) {
 const wrongPasswords = limiter(5, 15);
 const accountRequests = limiter(100, 15);
 const playerMarking = limiter(60, 1);
-const guestMarking = limiter(300, 1);
+const guestMarking = limiter(150, 1);
 
 function limited(counter, keyOf, error) {
   return (request, response, next) => {
@@ -79,10 +83,10 @@ function limited(counter, keyOf, error) {
 }
 
 const limitAccounts = limited(accountRequests, (request) => request.ip,
-  'There have been a lot of log ins from here recently, so wait a few minutes and try again.');
+  'There have been a lot of log ins from here recently. Wait a few minutes and try again.');
 const limitMarking = (request, response, next) => (request.user
-  ? limited(playerMarking, () => `user ${request.user.id}`, "You're going really fast, so wait a moment and try again.")
-  : limited(guestMarking, () => request.ip, "You're going really fast, so wait a moment and try again."))(request, response, next);
+  ? limited(playerMarking, () => `user ${request.user.id}`, "You're going really fast. Wait a moment and try again.")
+  : limited(guestMarking, () => request.ip, "You're going really fast. Wait a moment and try again."))(request, response, next);
 
 function cleanText(value, longest) {
   return typeof value === 'string' ? value.trim().slice(0, longest) : '';
@@ -100,8 +104,11 @@ app.post('/api/signup', limitAccounts, route(async (request, response) => {
   if (!/^[a-z0-9_]{3,20}$/.test(username)) {
     return response.status(400).json({ error: 'Usernames need 3 to 20 letters, numbers or underscores.' });
   }
-  if (password.length < 8 || password.length > 100) {
+  if (password.length < 8) {
     return response.status(400).json({ error: 'Passwords need at least 8 characters.' });
+  }
+  if (password.length > 100) {
+    return response.status(400).json({ error: 'Passwords can be up to 100 characters long.' });
   }
   const taken = await all('SELECT id FROM users WHERE username = ?', [username]);
   if (taken.length > 0) {
@@ -109,10 +116,17 @@ app.post('/api/signup', limitAccounts, route(async (request, response) => {
   }
 
   const salt = auth.newSalt();
-  const result = await run(
-    'INSERT INTO users (username, display_name, password_hash, password_salt) VALUES (?, ?, ?, ?)',
-    [username, displayName, auth.hashPassword(password, salt), salt]
-  );
+  const hash = await auth.hashPassword(password, salt);
+  let result;
+  try {
+    result = await run(
+      'INSERT INTO users (username, display_name, password_hash, password_salt) VALUES (?, ?, ?, ?)',
+      [username, displayName, hash, salt]
+    );
+  } catch (error) {
+    if (error.code === 'SQLITE_CONSTRAINT') return response.status(409).json({ error: 'That username is taken.' });
+    throw error;
+  }
   await auth.startSession(response, result.id);
   response.status(201).json({ id: result.id });
 }));
@@ -120,15 +134,17 @@ app.post('/api/signup', limitAccounts, route(async (request, response) => {
 app.post('/api/login', limitAccounts, route(async (request, response) => {
   const username = cleanText(request.body.username, 20).toLowerCase();
   const password = typeof request.body.password === 'string' ? request.body.password : '';
-  if (wrongPasswords.full(username)) {
-    return response.status(429).json({ error: 'Too many wrong passwords for this account, so wait 15 minutes and try again.' });
+  // Counted per address as well, so someone guessing from elsewhere can't lock the real owner out.
+  const guessKey = `${username} ${request.ip}`;
+  if (wrongPasswords.full(guessKey)) {
+    return response.status(429).json({ error: 'Too many wrong passwords. Wait 15 minutes and try again.' });
   }
 
   // The same message is used for a wrong username and a wrong password,
   // so nobody can use this form to find out which usernames exist.
   const users = await all('SELECT * FROM users WHERE username = ?', [username]);
-  if (users.length === 0 || !auth.passwordMatches(password, users[0])) {
-    wrongPasswords.add(username);
+  if (!(await auth.passwordMatches(password, users[0]))) {
+    wrongPasswords.add(guessKey);
     return response.status(401).json({ error: 'Wrong username or password.' });
   }
   await run("DELETE FROM sessions WHERE expires_at <= datetime('now')");
@@ -290,12 +306,12 @@ app.get('/api/endless', route(async (request, response) => {
 }));
 
 app.post('/api/machines/:id/go', limitMarking, route(async (request, response) => {
-  const { drawing } = request.body;
   let { go, hints } = request.body;
 
-  if (!rules.validDrawing(drawing)) {
+  if (!rules.validDrawing(request.body.drawing)) {
     return response.status(400).json({ error: "That drawing didn't come through properly. Try again." });
   }
+  const drawing = rules.thinned(request.body.drawing);
   const machine = await findMachine(request.params.id);
   if (!machine) return response.status(404).json({ error: "We couldn't find that curve." });
   if (drawing.length > rules.pieces(machine)) {
@@ -324,7 +340,16 @@ app.post('/api/machines/:id/go', limitMarking, route(async (request, response) =
   }
 
   const reply = rules.markAttempt(drawing, machine, go, hints);
-  if (reply.finished) reply.formulaMath = formulaMath(machine, true);
+  // A guest picks their own attempt number, so they could skip straight to the last one.
+  // Today's answer is kept back from guests who didn't crack it until the day is over.
+  const keepBack = !request.user && !machine.endless && machine.play_date === rules.todayDate() && !reply.solved;
+  if (reply.finished && keepBack) {
+    for (const key of ['curve', 'formula', 'familyName']) delete reply[key];
+    reply.asymptotes = [];
+    reply.keptBack = true;
+  } else if (reply.finished) {
+    reply.formulaMath = formulaMath(machine, true);
+  }
 
   if (play) {
     await run(
@@ -521,13 +546,18 @@ app.use('/api', (_request, response) => {
 
 app.use((error, _request, response, _next) => {
   if (error.type === 'entity.parse.failed') {
-    return response.status(400).json({ error: 'Something went wrong sending that, so try again.' });
+    return response.status(400).json({ error: 'Something went wrong sending that. Try again.' });
   }
   if (error.type === 'entity.too.large') {
-    return response.status(413).json({ error: 'That drawing has too much detail, so try a simpler line.' });
+    return response.status(413).json({ error: 'That drawing has too much detail. Try a simpler line.' });
+  }
+  // Two of the same request at once (a double click) both pass the checks, then the database
+  // refuses the second one. The page reloads on a 409 and shows what was saved.
+  if (error.code === 'SQLITE_CONSTRAINT') {
+    return response.status(409).json({ error: 'That was sent twice. Reload the page to see where you are.' });
   }
   console.error(error);
-  response.status(500).json({ error: 'Something went wrong on our end, so try again.' });
+  response.status(500).json({ error: 'Something went wrong on our end. Try again.' });
 });
 
 initialiseDatabase()

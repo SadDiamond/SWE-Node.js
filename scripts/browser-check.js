@@ -79,7 +79,13 @@ async function main() {
         assert.match(await status(page), /\d+%/);
       }
       await page.waitForSelector('#result:not([hidden])');
-      assert.ok((await page.locator('#result-formula').textContent()).length > 0, 'the formula is revealed');
+      const cracked = (await page.locator('#result-heading').textContent()).startsWith('Cracked');
+      if (cracked) {
+        assert.ok((await page.locator('#result-formula').textContent()).length > 0, 'the formula is revealed');
+      } else {
+        assert.ok(await page.locator('#result-kept').isVisible(), "a guest who missed today's curve is told the answer comes tomorrow");
+        assert.strictEqual(await page.locator('#result-formula').isVisible(), false);
+      }
     });
 
     await check('running out of ink on a curve in pieces still gets the attempt marked', async () => {
@@ -103,8 +109,14 @@ async function main() {
       await page.locator('#days a').nth(4).click();
       await page.waitForSelector('#tabs li');
       assert.match(await page.locator('h1').textContent(), /\d+ [A-Z][a-z]+/);
-      await draw(page, across);
-      await page.waitForFunction(() => /\d+%/.test(document.querySelector('#form-status').textContent));
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        await draw(page, across);
+        await page.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+          || !document.querySelector('#result').hidden, attempt);
+        if (await page.locator('#result').isVisible()) break;
+      }
+      await page.waitForSelector('#result:not([hidden])');
+      assert.ok((await page.locator('#result-formula').textContent()).length > 0, "a past day's formula is shown to guests");
     });
 
     await check('a logged in player keeps their attempts after reloading', async () => {
@@ -254,6 +266,29 @@ async function main() {
       }
       assert.ok(!statuses.slice(0, 60).includes(429), 'sixty requests a minute are fine');
       assert.strictEqual(statuses[60], 429, 'the sixty-first is refused');
+    });
+
+    await check('odd or doubled requests get a clear answer, and guests cannot skip to the answer', async () => {
+      const today = await (await fetch(`${SITE}/api/today`)).json();
+      const hard = today.curves[2];
+      const send = (address, options) => fetch(SITE + address, { method: 'POST', ...options });
+      assert.strictEqual((await send(`/api/machines/${hard.id}/hint`)).status, 400, 'a request with no body is not a server error');
+      assert.strictEqual((await send('/api/login', { body: 'username=a&password=b',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })).status, 401, 'neither is a form instead of JSON');
+
+      const scribble = [[[-9, -9], [-8, -8]]];
+      const skipped = await (await send(`/api/machines/${hard.id}/go`, {
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drawing: scribble, go: 5, hints: 0 })
+      })).json();
+      assert.strictEqual(skipped.finished, true);
+      assert.strictEqual(skipped.formula, undefined, "a guest who jumps to the last attempt doesn't see today's formula");
+      assert.strictEqual(skipped.curve, undefined, 'or the curve');
+
+      const username = `twice${Date.now() % 100000}`;
+      const signups = await Promise.all([1, 2, 3].map(() => send('/api/signup', {
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password: 'a fine password' })
+      })));
+      assert.deepStrictEqual(signups.map((reply) => reply.status).sort(), [201, 409, 409], 'signing up twice at once is not a server error');
     });
 
     await check('with no connection the site still opens and endless can be played', async () => {

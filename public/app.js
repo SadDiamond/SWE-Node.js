@@ -359,8 +359,13 @@ async function playPage(endless) {
         lines.push(`${hints === 1 ? '1 hint' : `${hints} hints`}: −${hints * game.hintPenalty}`);
       }
       find('#result-working').replaceChildren(...lines.map((line) => element('li', line)));
-      find('#result-family').textContent = result.familyName;
-      find('#result-formula').replaceChildren(mathNode(result.formulaMath));
+      const keptBack = Boolean(result.keptBack);
+      document.querySelectorAll('#result .answer').forEach((part) => { part.hidden = keptBack; });
+      find('#result-kept').hidden = !keptBack;
+      if (!keptBack) {
+        find('#result-family').textContent = result.familyName;
+        find('#result-formula').replaceChildren(mathNode(result.formulaMath));
+      }
 
       const more = rounds.some((item) => !item.result);
       let nextLabel = 'Next curve';
@@ -380,7 +385,7 @@ async function playPage(endless) {
     rounds.forEach((item, index) => {
       const row = document.createElement('li');
       row.style.setProperty('--order', index);
-      const detail = `${item.result.familyName} · ${goesText(item.goes)}`
+      const detail = `${item.result.familyName || 'Answer tomorrow'} · ${goesText(item.goes)}`
         + (hintsUsed(item) > 0 ? ` · ${hintsUsed(item) === 1 ? '1 hint' : `${hintsUsed(item)} hints`}` : '');
       row.append(
         element('span', SLOT_NAMES[item.slot], 'summary-name'),

@@ -1,9 +1,8 @@
 data
 database
+design
 docs
 public
 public/fonts
-public/icons
-public/images
 scripts
 src

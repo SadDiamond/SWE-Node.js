@@ -653,6 +653,16 @@ function hintDots(machine) {
   return [dots[1], dots[0], dots[2]];
 }
 
+// A loop that never reaches the edges has no arrows to start from, so it gets its highest point for free.
+function startDot(machine) {
+  if (exits(machine).length > 0) return null;
+  let best = null;
+  visibleBranches(machine).forEach((branch) => branch.forEach((output, column) => {
+    if (output !== null && (best === null || output > best[1])) best = [Math.round(inputFor(column) * 10) / 10, output];
+  }));
+  return best;
+}
+
 function inkFor(machine) {
   let length = 0;
   for (const visible of visibleBranches(machine)) {
@@ -1073,7 +1083,7 @@ publish({
   SLANTED, BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT, CIRCLE, ELLIPSE, SIDEWAYS, DIAMOND, ROUNDED_SQUARE,
   SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA, asymptotes, describe, numberMaker, evaluate, exits,
   inputFor, judge, machineFromSeed, hintDots, inkFor, inkUsed, isRelation, kindName, pastDates, pieces,
-  scoreFor, shapeOf, thinned, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, FAMILIES,
+  scoreFor, shapeOf, startDot, thinned, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, FAMILIES,
   SOLVED_AT, dayNumber, hintFor, markAttempt, revealed
 });
 }((api) => {

@@ -247,7 +247,7 @@ function describeGraph(picture, limit) {
   } else {
     parts.push("The curve doesn't go off the graph.");
   }
-  if (picture.dots.length > 0) parts.push(`Hint spots at ${picture.dots.map(([x, y]) => `(${number(x)}, ${number(y)})`).join(', ')}.`);
+  if (picture.dots.length > 0) parts.push(`Spots on the curve at ${picture.dots.map(([x, y]) => `(${number(x)}, ${number(y)})`).join(', ')}.`);
   if (picture.percent !== null) parts.push(`Your last attempt scored ${picture.percent}%.`);
   if (!picture.curve && (picture.missed.some(Boolean) || picture.missedRows.some(Boolean))) {
     parts.push('Grey bars on the edges show parts of the curve you have not drawn yet.');

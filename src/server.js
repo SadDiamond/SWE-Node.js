@@ -45,8 +45,7 @@ function route(handler) {
 }
 
 // Counts recent requests for each key (an account, a username or an address).
-// ponytail: the counts live in this server's memory, so they reset when it restarts and are not
-// shared between servers. That is fine for one server; keep them in the database if that ever changes.
+// The counts are kept in memory, so they reset when the server restarts.
 function limiter(most, minutes) {
   const recent = new Map();
   const cutoff = () => Date.now() - minutes * 60 * 1000;
@@ -251,6 +250,7 @@ async function sendDay(request, response, date) {
       strokesPerGo: rules.pieces(machine),
       ink: rules.inkFor(machine),
       exits: rules.exits(machine),
+      start: rules.startDot(machine),
       saved: request.user ? await savedState(request.user.id, machine) : null
     });
   }
@@ -300,6 +300,7 @@ app.get('/api/endless', route(async (request, response) => {
       strokesPerGo: rules.pieces(machine),
       ink: rules.inkFor(machine),
       exits: rules.exits(machine),
+      start: rules.startDot(machine),
       saved: null
     }]
   });

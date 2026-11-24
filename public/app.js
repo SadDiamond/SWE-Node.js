@@ -118,6 +118,7 @@ function offlineEndless() {
       strokesPerGo: Curves.pieces(machine),
       ink: Curves.inkFor(machine),
       exits: Curves.exits(machine),
+      start: Curves.startDot(machine),
       saved: null
     }]
   };
@@ -205,7 +206,7 @@ async function playPage(endless) {
       missed: round.missed,
       missedRows: round.missedRows,
       exits: round.exits,
-      dots: round.dots,
+      dots: round.start ? [round.start, ...round.dots] : round.dots,
       curve: round.result ? round.result.curve : null,
       asymptotes: round.result ? round.result.asymptotes : [],
       pen: pen.visible && !round.result ? pen : null

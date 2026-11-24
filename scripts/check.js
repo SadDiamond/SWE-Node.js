@@ -405,6 +405,11 @@ for (let seed = 1; seed < 3000; seed += 37) {
 
 console.log('All rule checks passed.');
 
+const loopWithNoArrows = { family_id: rules.CIRCLE, a: 4, b: -1, c: 2 };
+const [startX, startY] = rules.startDot(loopWithNoArrows);
+assert.ok(Math.abs(Math.hypot(startX + 1, startY - 2) - 4) < 0.1, 'a loop with no arrows starts with a dot that is on it');
+assert.strictEqual(rules.startDot({ family_id: PARABOLA, a: 2, b: 0, c: -5 }), null, 'a curve with arrows does not get one');
+
 // An older database is upgraded in place: the player and their score are still there afterwards.
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');

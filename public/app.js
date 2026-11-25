@@ -21,7 +21,7 @@ function mathNode(markup) {
   return holder;
 }
 
-function goesText(count) {
+function attemptsText(count) {
   return count === 1 ? '1 attempt' : `${count} attempts`;
 }
 
@@ -94,45 +94,45 @@ function offlineEndless() {
   const asked = Number(new URLSearchParams(location.search).get('slot'));
   const slot = [1, 2, 3, 4].includes(asked) ? asked : 1 + Math.floor(Math.random() * 3);
   const seed = 1 + Math.floor(Math.random() * 1999999999);
-  const made = Curves.machineFromSeed(seed, slot);
-  const machine = {
+  const made = Curves.curveFromSeed(seed, slot);
+  const curve = {
     ...made,
-    family_name: Curves.FAMILIES[made.family_id].name,
-    family_description: Curves.FAMILIES[made.family_id].description,
-    extra_name: made.extra_family_id ? Curves.FAMILIES[made.extra_family_id].name : null
+    type_name: Curves.TYPES[made.type_id].name,
+    type_description: Curves.TYPES[made.type_id].description,
+    extra_name: made.extra_type_id ? Curves.TYPES[made.extra_type_id].name : null
   };
   const game = {
     date: null,
     offline: true,
     limit: Curves.LIMIT,
-    maxGoes: Curves.MAX_GOES,
+    maxAttempts: Curves.MAX_ATTEMPTS,
     maxHints: Curves.MAX_HINTS,
     topScore: Curves.TOP_SCORE,
-    goPenalty: Curves.GO_PENALTY,
+    attemptPenalty: Curves.ATTEMPT_PENALTY,
     hintPenalty: Curves.HINT_PENALTY,
     shortestStroke: Curves.SHORTEST_STROKE,
     mostPoints: Curves.MOST_POINTS,
     curves: [{
       id: `r${seed}s${slot}`,
       slot,
-      strokesPerGo: Curves.pieces(machine),
-      ink: Curves.inkFor(machine),
-      exits: Curves.exits(machine),
-      start: Curves.startDot(machine),
+      strokesPerAttempt: Curves.pieces(curve),
+      ink: Curves.inkFor(curve),
+      exits: Curves.exits(curve),
+      start: Curves.startDot(curve),
       saved: null
     }]
   };
-  return { game, machine };
+  return { game, curve };
 }
 
-async function answerOffline(machine, url, body) {
+async function answerOffline(curve, url, body) {
   if (url.endsWith('/hint')) {
     if (!Number.isInteger(body.number) || body.number < 1 || body.number > Curves.MAX_HINTS) {
       throw new Error("You've used all your hints for this curve.");
     }
-    return Curves.hintFor(machine, body.number);
+    return Curves.hintFor(curve, body.number);
   }
-  const reply = Curves.markAttempt(body.drawing, machine, body.go, body.hints);
+  const reply = Curves.markAttempt(body.drawing, curve, body.attempt, body.hints);
   if (reply.finished) {
     reply.formulaMath = katex.renderToString(reply.formula, { output: 'mathml', displayMode: true, throwOnError: false });
   }
@@ -146,17 +146,17 @@ async function playPage(endless) {
   if (endless) address = `/api/endless${location.search}`;
   if (pastDate) address = `/api/day/${encodeURIComponent(pastDate)}`;
   let game;
-  let offlineMachine = null;
+  let offlineCurve = null;
   try {
     game = await request(address);
   } catch (error) {
     if (!endless || !error.offline) throw error;
-    ({ game, machine: offlineMachine } = offlineEndless());
+    ({ game, curve: offlineCurve } = offlineEndless());
   }
-  const post = (url, body) => (offlineMachine ? answerOffline(offlineMachine, url, body) : send(url, body));
+  const post = (url, body) => (offlineCurve ? answerOffline(offlineCurve, url, body) : send(url, body));
   const past = !endless && !game.today;
   const graph = find('#graph');
-  const guestKey = endless || currentUser ? null : `guestRun:${game.date}`;
+  const guestKey = endless || currentUser ? null : `guestDay:${game.date}`;
   const guestSaved = guestKey ? readStored(guestKey) || [] : [];
 
   const rounds = game.curves.map((curve) => {
@@ -171,7 +171,7 @@ async function playPage(endless) {
       missedRows: saved && saved.last && saved.last.missedRows ? saved.last.missedRows : [],
       shape: saved && saved.shape ? saved.shape : null,
       dots: saved ? saved.dots : [],
-      goes: saved ? saved.goes : 0,
+      attempts: saved ? saved.attempts : 0,
       history: saved && saved.history ? saved.history : [],
       result: saved ? saved.result : null
     };
@@ -182,7 +182,7 @@ async function playPage(endless) {
     if (!guestKey) return;
     writeStored(guestKey, rounds.map((item) => ({
       id: item.id,
-      goes: item.goes,
+      attempts: item.attempts,
       dots: item.dots,
       history: item.history,
       result: item.result,
@@ -311,12 +311,12 @@ async function playPage(endless) {
   }
 
   function showRound() {
-    const dots = find('#goes');
+    const dots = find('#attempts');
     dots.replaceChildren();
-    for (let index = 0; index < game.maxGoes; index += 1) {
-      dots.append(element('span', undefined, index < round.goes ? 'go used' : 'go'));
+    for (let index = 0; index < game.maxAttempts; index += 1) {
+      dots.append(element('span', undefined, index < round.attempts ? 'attempt used' : 'attempt'));
     }
-    find('#goes-text').textContent = `${goesText(game.maxGoes - round.goes)} left`;
+    find('#attempts-text').textContent = `${attemptsText(game.maxAttempts - round.attempts)} left`;
 
     const hintsLeft = game.maxHints - hintsUsed(round);
     find('#hint').disabled = hintsLeft === 0;
@@ -328,9 +328,9 @@ async function playPage(endless) {
     find('#shape-text').textContent = round.shape || '';
     find('#shape-text').hidden = !round.shape || Boolean(round.result);
 
-    find('#stroke-info').textContent = round.strokesPerGo === 1
+    find('#stroke-info').textContent = round.strokesPerAttempt === 1
       ? "You get one stroke per attempt. It's marked when you lift your pen."
-      : `This one comes in ${round.strokesPerGo} pieces. You get ${round.strokesPerGo} strokes per attempt.`;
+      : `This one comes in ${round.strokesPerAttempt} pieces. You get ${round.strokesPerAttempt} strokes per attempt.`;
     find('#stroke-info').hidden = Boolean(round.result);
     find('.under-graph').hidden = Boolean(round.result);
     graph.classList.toggle('finished', Boolean(round.result));
@@ -339,16 +339,16 @@ async function playPage(endless) {
     if (round.result) {
       const result = round.result;
       let heading = 'Out of attempts';
-      if (result.solved) heading = `Cracked it in ${goesText(round.goes)}`;
-      if (result.closeEnough) heading = `Close enough in ${goesText(round.goes)}`;
+      if (result.cracked) heading = `Cracked it in ${attemptsText(round.attempts)}`;
+      if (result.closeEnough) heading = `Close enough in ${attemptsText(round.attempts)}`;
       find('#result-heading').textContent = heading;
       find('#result-close').hidden = !result.closeEnough;
       find('#result-top').textContent = `/ ${game.topScore}`;
       countUp(find('#result-score'), 0, result.score);
 
-      const extraGoes = round.goes - 1;
+      const extraAttempts = round.attempts - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
-      if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: −${extraGoes * game.goPenalty}`);
+      if (extraAttempts > 0) lines.push(`${attemptsText(extraAttempts).replace('attempt', 'extra attempt')}: −${extraAttempts * game.attemptPenalty}`);
       const hints = hintsUsed(round);
       if (hints > 0) {
         lines.push(`${hints === 1 ? '1 hint' : `${hints} hints`}: −${hints * game.hintPenalty}`);
@@ -358,7 +358,7 @@ async function playPage(endless) {
       document.querySelectorAll('#result .answer').forEach((part) => { part.hidden = keptBack; });
       find('#result-kept').hidden = !keptBack;
       if (!keptBack) {
-        find('#result-family').textContent = result.familyName;
+        find('#result-type').textContent = result.typeName;
         find('#result-formula').replaceChildren(mathNode(result.formulaMath));
       }
 
@@ -380,7 +380,7 @@ async function playPage(endless) {
     rounds.forEach((item, index) => {
       const row = document.createElement('li');
       row.style.setProperty('--order', index);
-      const detail = `${item.result.familyName || 'Answer tomorrow'} · ${goesText(item.goes)}`
+      const detail = `${item.result.typeName || 'Answer tomorrow'} · ${attemptsText(item.attempts)}`
         + (hintsUsed(item) > 0 ? ` · ${hintsUsed(item) === 1 ? '1 hint' : `${hintsUsed(item)} hints`}` : '');
       row.append(
         element('span', SLOT_NAMES[item.slot], 'summary-name'),
@@ -392,9 +392,9 @@ async function playPage(endless) {
 
     find('#save-prompt').hidden = Boolean(currentUser);
     if (!currentUser) {
-      const pending = readStored(PENDING_RUN) || {};
-      pending[game.date] = rounds.map((item) => ({ id: item.id, hints: hintsUsed(item), goes: item.history }));
-      writeStored(PENDING_RUN, pending);
+      const pending = readStored(PENDING_DAYS) || {};
+      pending[game.date] = rounds.map((item) => ({ id: item.id, hints: hintsUsed(item), attempts: item.history }));
+      writeStored(PENDING_DAYS, pending);
     }
 
     summaryOpen = true;
@@ -439,7 +439,7 @@ async function playPage(endless) {
     waiting = true;
     const asking = round;
     try {
-      const hint = await post(`/api/machines/${asking.id}/hint`, { number: hintsUsed(asking) + 1 });
+      const hint = await post(`/api/curves/${asking.id}/hint`, { number: hintsUsed(asking) + 1 });
       if (hint.shape) asking.shape = hint.shape;
       else asking.dots.push(hint.dot);
       saveGuestRun();
@@ -502,18 +502,18 @@ async function playPage(endless) {
         return message("That line was too short to count. Try a longer one.");
       }
     }
-    if (round.strokes.length < round.strokesPerGo && !outOfInk()) {
+    if (round.strokes.length < round.strokesPerAttempt && !outOfInk()) {
       showGraph();
-      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}. Now draw the next one.`);
+      return message(`That's piece ${round.strokes.length} of ${round.strokesPerAttempt}. Now draw the next one.`);
     }
 
     waiting = true;
     const marking = round;
     try {
-      const result = await post(`/api/machines/${marking.id}/go`, {
-        drawing: marking.strokes, go: marking.goes + 1, hints: hintsUsed(marking)
+      const result = await post(`/api/curves/${marking.id}/attempts`, {
+        drawing: marking.strokes, attempt: marking.attempts + 1, hints: hintsUsed(marking)
       });
-      marking.goes += 1;
+      marking.attempts += 1;
       marking.history.push(marking.strokes);
       marking.shown = { strokes: marking.strokes, levels: result.levels, nudges: result.nudges };
       marking.missed = result.missed;
@@ -620,7 +620,7 @@ async function playPage(endless) {
   if (rounds.every((item) => item.result)) showSummary();
 }
 
-const STATUS_NAMES = { solved: 'Cracked', failed: 'Out of attempts' };
+const STATUS_NAMES = { cracked: 'Cracked', failed: 'Out of attempts' };
 
 function shortDate(date) {
   return new Date(`${date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -646,7 +646,7 @@ function membersOnly() {
 
 function curveCell(row) {
   const cell = document.createElement('span');
-  cell.append(`${row.familyName}: `, mathNode(row.formulaMath));
+  cell.append(`${row.typeName}: `, mathNode(row.formulaMath));
   return cell;
 }
 
@@ -654,8 +654,8 @@ async function historyPage() {
   if (!membersOnly()) return;
   const form = find('#filters');
 
-  const families = await request('/api/families');
-  families.forEach((family) => find('#family').add(new Option(family.name, family.id)));
+  const types = await request('/api/types');
+  types.forEach((type) => find('#type').add(new Option(type.name, type.id)));
 
   async function load() {
     const choices = new URLSearchParams(new FormData(form));
@@ -669,12 +669,12 @@ async function historyPage() {
         SLOT_NAMES[row.slot],
         curveCell(row),
         STATUS_NAMES[row.status],
-        row.goes,
+        row.attempts,
         row.hints,
         row.score
       ]);
     });
-    const filtered = ['slot', 'family', 'status'].some((name) => choices.get(name));
+    const filtered = ['slot', 'type', 'status'].some((name) => choices.get(name));
     let count = `${rows.length} ${rows.length === 1 ? 'curve' : 'curves'}`;
     if (rows.length === 0) count = filtered ? 'No curves match these filters.' : "No curves yet. Finish one and it'll show up here.";
     find('#count').textContent = count;
@@ -696,7 +696,7 @@ async function statsPage() {
   find('#stat-best-streak').textContent = days(stats.streak.best);
   find('#stat-cracked').textContent = `${totals.cracked} of ${totals.played}`;
   find('#stat-average').textContent = totals.average_score ?? '–';
-  find('#stat-goes').textContent = totals.average_goes ?? '–';
+  find('#stat-attempts').textContent = totals.average_attempts ?? '–';
   if (stats.bestDay) {
     const day = new Date(`${stats.bestDay.date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
     find('#stat-best-day').replaceChildren(String(stats.bestDay.points), element('span', ` on ${day}`, 'figure-note'));
@@ -705,10 +705,10 @@ async function statsPage() {
   }
 
   stats.byDifficulty.forEach((row) => {
-    addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.cracked, row.average_score, row.average_goes]);
+    addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.cracked, row.average_score, row.average_attempts]);
   });
-  stats.byFamily.forEach((row) => {
-    addRow(find('#family-rows'), [row.name, row.played, row.cracked, row.average_score, row.best_score]);
+  stats.byType.forEach((row) => {
+    addRow(find('#type-rows'), [row.name, row.played, row.cracked, row.average_score, row.best_score]);
   });
 }
 
@@ -776,7 +776,7 @@ async function pastPage() {
   });
 }
 
-const PENDING_RUN = 'pendingRuns';
+const PENDING_DAYS = 'pendingDays';
 
 function readStored(key) {
   try {
@@ -795,9 +795,9 @@ function writeStored(key, value) {
 }
 
 async function savePendingRun() {
-  const pending = readStored(PENDING_RUN);
+  const pending = readStored(PENDING_DAYS);
   if (!pending) return;
-  localStorage.removeItem(PENDING_RUN);
+  localStorage.removeItem(PENDING_DAYS);
   for (const [date, curves] of Object.entries(pending)) await savePendingDay(date, curves).catch(() => {});
 }
 
@@ -807,10 +807,10 @@ async function savePendingDay(date, curves) {
 
   for (const curve of curves) {
     for (let hint = 0; hint < curve.hints; hint += 1) {
-      await send(`/api/machines/${curve.id}/hint`, {});
+      await send(`/api/curves/${curve.id}/hint`, {});
     }
-    for (const drawing of curve.goes) {
-      await send(`/api/machines/${curve.id}/go`, { drawing });
+    for (const drawing of curve.attempts) {
+      await send(`/api/curves/${curve.id}/attempts`, { drawing });
     }
   }
 }

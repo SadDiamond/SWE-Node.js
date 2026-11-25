@@ -52,7 +52,37 @@ const UPGRADES = [
   // 11: plainer descriptions for the hyperbolas and the circle.
   `UPDATE families SET description = 'Two separate pieces that get closer and closer to a vertical line and a flat line without touching them.' WHERE id = 8;
    UPDATE families SET description = 'Two pieces that get closer and closer to a vertical line and a sloping line.' WHERE id = 9;
-   UPDATE families SET description = 'A perfectly round loop.' WHERE id = 15;`
+   UPDATE families SET description = 'A perfectly round loop.' WHERE id = 15;`,
+  // 12: tables and columns renamed to the words the site uses (curves, types of curve, attempts, cracked).
+  // SQLite can't change a CHECK rule in place, so plays is copied into a new table and swapped over.
+  `ALTER TABLE machines RENAME TO curves;
+   ALTER TABLE curves RENAME COLUMN family_id TO type_id;
+   ALTER TABLE curves RENAME COLUMN extra_family_id TO extra_type_id;
+   ALTER TABLE families RENAME TO curve_types;
+   ALTER TABLE goes RENAME TO attempts;
+   DROP INDEX IF EXISTS idx_machines_family;
+   DROP INDEX IF EXISTS idx_goes_play;
+   CREATE TABLE plays_new (
+     id INTEGER PRIMARY KEY,
+     user_id INTEGER NOT NULL,
+     curve_id INTEGER NOT NULL,
+     status TEXT NOT NULL DEFAULT 'playing' CHECK (status IN ('playing', 'cracked', 'failed')),
+     attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
+     hints INTEGER NOT NULL DEFAULT 0 CHECK (hints BETWEEN 0 AND 3),
+     accuracy INTEGER CHECK (accuracy BETWEEN 0 AND 100),
+     score INTEGER CHECK (score BETWEEN 0 AND 1000),
+     started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     finished_at TEXT,
+     UNIQUE (user_id, curve_id),
+     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+     FOREIGN KEY (curve_id) REFERENCES curves(id)
+   );
+   INSERT INTO plays_new (id, user_id, curve_id, status, attempts, hints, accuracy, score, started_at, finished_at)
+     SELECT id, user_id, machine_id, CASE status WHEN 'solved' THEN 'cracked' ELSE status END,
+            goes, hints, accuracy, score, started_at, finished_at
+     FROM plays;
+   DROP TABLE plays;
+   ALTER TABLE plays_new RENAME TO plays;`
 ];
 const SCHEMA_VERSION = OLDEST_KEPT + UPGRADES.length;
 
@@ -65,13 +95,18 @@ async function initialiseDatabase() {
   if (fresh) {
     await exec('DROP TABLE IF EXISTS goes; DROP TABLE IF EXISTS plays; DROP TABLE IF EXISTS machines; DROP TABLE IF EXISTS families;');
   }
-  await exec(await fs.readFile(schemaPath, 'utf8'));
 
-  if (!fresh) {
+  // Upgrades run before schema.sql, which would otherwise make new empty tables beside the old ones.
+  // Foreign keys are switched off while tables are swapped, so dropping the old plays table
+  // doesn't also delete every attempt that points at it.
+  if (!fresh && version < SCHEMA_VERSION) {
+    await exec('PRAGMA foreign_keys = OFF');
     for (let next = version + 1; next <= SCHEMA_VERSION; next += 1) {
       await exec(`BEGIN; ${UPGRADES[next - OLDEST_KEPT - 1]} PRAGMA user_version = ${next}; COMMIT;`);
     }
+    await exec('PRAGMA foreign_keys = ON');
   }
+  await exec(await fs.readFile(schemaPath, 'utf8'));
   await run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 

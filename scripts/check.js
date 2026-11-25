@@ -7,28 +7,28 @@ const {
   BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT
 } = rules;
 
-assert.strictEqual(rules.evaluate({ family_id: LINE, a: 3, b: -2, c: 0 }, 4), 4);
-assert.strictEqual(rules.evaluate({ family_id: PARABOLA, a: 4, b: 1, c: -3 }, 3), 1);
-assert.strictEqual(rules.evaluate({ family_id: V_SHAPE, a: 2, b: 0, c: 0 }, -5), 5);
-assert.strictEqual(rules.evaluate({ family_id: CUBIC, a: 2, b: 1, c: 4 }, 3), -3);
-assert.strictEqual(rules.evaluate({ family_id: CUBIC, a: 2, b: 1, c: 4 }, 5), 0, 'a cubic crosses zero at b + c');
-assert.strictEqual(rules.evaluate({ family_id: WAVE, a: 3, b: 4, c: 1 }, 2), 4);
-assert.strictEqual(rules.evaluate({ family_id: CUBE_ROOT, a: 2, b: -4, c: 0 }, 4), 4);
-assert.strictEqual(rules.evaluate({ family_id: CUBE_ROOT, a: 2, b: -4, c: 0 }, -12), -4, 'a cube root exists on both sides');
-assert.strictEqual(rules.evaluate({ family_id: EXPONENTIAL, a: 1, b: 2, c: -1 }, 4), 3);
-assert.strictEqual(rules.evaluate({ family_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 5), 3);
-assert.strictEqual(rules.evaluate({ family_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 2), null, 'nothing exists on the asymptote');
-assert.strictEqual(rules.evaluate({ family_id: SLANTED, a: 4, b: 0, c: 2 }, 2), 4);
-assert.strictEqual(rules.evaluate({ family_id: BELL, a: 6, b: 1, c: 4 }, 1), 6, 'a bell curve peaks at b');
-assert.strictEqual(rules.evaluate({ family_id: BELL, a: 6, b: 1, c: 4 }, 3), 3, 'and halves two steps away when c is 4');
-assert.strictEqual(rules.evaluate({ family_id: S_CURVE, a: 8, b: 0, c: -4 }, 0), 0, 'an S-curve is halfway up at b');
-assert.strictEqual(rules.evaluate({ family_id: QUARTIC, a: 2, b: 0, c: 3 }, 3), 0, 'a quartic touches zero at b plus or minus c');
-assert.strictEqual(rules.evaluate({ family_id: INVERSE_SQUARE, a: -4, b: 2, c: 3 }, 4), 2);
-assert.strictEqual(rules.evaluate({ family_id: INVERSE_SQUARE, a: -4, b: 2, c: 3 }, 2), null);
-assert.strictEqual(rules.evaluate({ family_id: TANGENT, a: 1, b: 8, c: 0 }, 4), null, 'a tangent has an asymptote at half its period');
-assert.strictEqual(rules.pieces({ family_id: TANGENT, a: 1, b: 8, c: 0 }), 3, 'and is in three pieces');
+assert.strictEqual(rules.evaluate({ type_id: LINE, a: 3, b: -2, c: 0 }, 4), 4);
+assert.strictEqual(rules.evaluate({ type_id: PARABOLA, a: 4, b: 1, c: -3 }, 3), 1);
+assert.strictEqual(rules.evaluate({ type_id: V_SHAPE, a: 2, b: 0, c: 0 }, -5), 5);
+assert.strictEqual(rules.evaluate({ type_id: CUBIC, a: 2, b: 1, c: 4 }, 3), -3);
+assert.strictEqual(rules.evaluate({ type_id: CUBIC, a: 2, b: 1, c: 4 }, 5), 0, 'a cubic crosses zero at b + c');
+assert.strictEqual(rules.evaluate({ type_id: WAVE, a: 3, b: 4, c: 1 }, 2), 4);
+assert.strictEqual(rules.evaluate({ type_id: CUBE_ROOT, a: 2, b: -4, c: 0 }, 4), 4);
+assert.strictEqual(rules.evaluate({ type_id: CUBE_ROOT, a: 2, b: -4, c: 0 }, -12), -4, 'a cube root exists on both sides');
+assert.strictEqual(rules.evaluate({ type_id: EXPONENTIAL, a: 1, b: 2, c: -1 }, 4), 3);
+assert.strictEqual(rules.evaluate({ type_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 5), 3);
+assert.strictEqual(rules.evaluate({ type_id: HYPERBOLA, a: 6, b: 2, c: 1 }, 2), null, 'nothing exists on the asymptote');
+assert.strictEqual(rules.evaluate({ type_id: SLANTED, a: 4, b: 0, c: 2 }, 2), 4);
+assert.strictEqual(rules.evaluate({ type_id: BELL, a: 6, b: 1, c: 4 }, 1), 6, 'a bell curve peaks at b');
+assert.strictEqual(rules.evaluate({ type_id: BELL, a: 6, b: 1, c: 4 }, 3), 3, 'and halves two steps away when c is 4');
+assert.strictEqual(rules.evaluate({ type_id: S_CURVE, a: 8, b: 0, c: -4 }, 0), 0, 'an S-curve is halfway up at b');
+assert.strictEqual(rules.evaluate({ type_id: QUARTIC, a: 2, b: 0, c: 3 }, 3), 0, 'a quartic touches zero at b plus or minus c');
+assert.strictEqual(rules.evaluate({ type_id: INVERSE_SQUARE, a: -4, b: 2, c: 3 }, 4), 2);
+assert.strictEqual(rules.evaluate({ type_id: INVERSE_SQUARE, a: -4, b: 2, c: 3 }, 2), null);
+assert.strictEqual(rules.evaluate({ type_id: TANGENT, a: 1, b: 8, c: 0 }, 4), null, 'a tangent has an asymptote at half its period');
+assert.strictEqual(rules.pieces({ type_id: TANGENT, a: 1, b: 8, c: 0 }), 3, 'and is in three pieces');
 
-const formula = (familyId, a, b, c) => rules.describe({ family_id: familyId, a, b, c });
+const formula = (typeId, a, b, c) => rules.describe({ type_id: typeId, a, b, c });
 assert.strictEqual(formula(LINE, 3, -2, 0), 'y = \\frac{3}{2}x - 2');
 assert.strictEqual(formula(LINE, -2, 0, 0), 'y = -x');
 assert.strictEqual(formula(LINE, 4, 1, 0), 'y = 2x + 1');
@@ -51,14 +51,14 @@ assert.strictEqual(formula(QUARTIC, 2, 0, 3), 'y = \\frac{1}{32}\\left(x^2 - 9\\
 assert.strictEqual(formula(INVERSE_SQUARE, -4, 2, 3), 'y = -\\frac{4}{(x - 2)^2} + 3');
 assert.strictEqual(formula(TANGENT, -2, 8, 1), 'y = -2\\tan\\left(\\frac{\\pi x}{8}\\right) + 1');
 
-const steep = { family_id: LINE, a: 6, b: 0, c: 0 };
-const curve = rules.visibleCurve(steep);
-assert.strictEqual(curve.length, COLUMNS);
-assert.strictEqual(curve[100], 0, 'the middle column is input 0');
-assert.strictEqual(curve[0], null, 'y = 3x is off the bottom at the left edge');
+const steep = { type_id: LINE, a: 6, b: 0, c: 0 };
+const steepValues = rules.visibleCurve(steep);
+assert.strictEqual(steepValues.length, COLUMNS);
+assert.strictEqual(steepValues[100], 0, 'the middle column is input 0');
+assert.strictEqual(steepValues[0], null, 'y = 3x is off the bottom at the left edge');
 
 assert.deepStrictEqual(rules.exits(steep).map((exit) => exit.side), ['bottom', 'top']);
-const hyperbola = { family_id: HYPERBOLA, a: 3, b: 0, c: 0 };
+const hyperbola = { type_id: HYPERBOLA, a: 3, b: 0, c: 0 };
 assert.deepStrictEqual(rules.exits(hyperbola).map((exit) => exit.side), ['bottom', 'top', 'left', 'right']);
 assert.deepStrictEqual(rules.exits(hyperbola).find((exit) => exit.side === 'left'), { output: -0.3, side: 'left' },
   'side arrows sit at the height where the curve meets the edge');
@@ -73,15 +73,15 @@ function traced(values, across = 0, up = 0) {
   return [stroke.filter(([x, y]) => Math.abs(x) <= 10 && Math.abs(y) <= 10)];
 }
 
-const perfect = rules.judge(traced(curve), steep);
+const perfect = rules.judge(traced(steepValues), steep);
 assert.strictEqual(perfect.accuracy, 100);
-assert.strictEqual(perfect.solved, true);
+assert.strictEqual(perfect.cracked, true);
 
-const sideways = rules.judge(traced(curve, 0.4), steep);
+const sideways = rules.judge(traced(steepValues, 0.4), steep);
 assert.ok(sideways.accuracy >= 85, `a steep line drawn just to one side scores ${sideways.accuracy}`);
 assert.ok(!sideways.missed.includes(true), 'the curve is not missed when the drawing is right beside it');
 
-const gentle = { family_id: LINE, a: 1, b: 0, c: 0 };
+const gentle = { type_id: LINE, a: 1, b: 0, c: 0 };
 const raised = rules.judge(traced(rules.visibleCurve(gentle), 0, 1), gentle);
 assert.ok(raised.levels[0].includes(1) && !raised.levels[0].includes(0), 'one unit off is level 1, not spot on');
 assert.ok(raised.accuracy >= 70 && raised.accuracy <= 80, `one unit off scores about 75, got ${raised.accuracy}`);
@@ -105,16 +105,16 @@ assert.strictEqual(perfect.nudges.length, 0, 'a line on the curve gets no nudges
 assert.strictEqual(raised.nudges.length, 0, 'a line that is only a little off gets no nudges');
 
 // The daily curves depend on this server's secret, so these try a spread of days and every kind turns up.
-const sampleMachines = [];
+const sampleCurves = [];
 for (let day = 1; day <= 30; day += 1) {
-  for (const slot of [1, 2, 3]) sampleMachines.push(rules.makeMachine(`2026-11-${String(day).padStart(2, '0')}`, slot));
+  for (const slot of [1, 2, 3]) sampleCurves.push(rules.makeCurve(`2026-11-${String(day).padStart(2, '0')}`, slot));
 }
-const onCurve = (machine, [x, y]) => rules.visibleBranches(machine)
+const onCurve = (curve, [x, y]) => rules.visibleBranches(curve)
   .some((branch) => Math.abs(branch[Math.round((x + 10) * rules.STEPS_PER_UNIT)] - y) < 0.01);
 // Each branch traced as its own stroke, split wherever the curve has a gap.
-function tracedBranches(machine) {
+function tracedBranches(curve) {
   const strokes = [];
-  for (const branch of rules.visibleBranches(machine)) {
+  for (const branch of rules.visibleBranches(curve)) {
     let stroke = [];
     branch.forEach((value, column) => {
       if (value === null) {
@@ -129,28 +129,28 @@ function tracedBranches(machine) {
   return strokes;
 }
 
-for (const machine of sampleMachines) {
-  const dots = rules.hintDots(machine);
+for (const curve of sampleCurves) {
+  const dots = rules.hintDots(curve);
   assert.strictEqual(dots.length, 3);
   assert.strictEqual(new Set(dots.map((dot) => dot.join())).size, 3, 'the three dots are in different places');
-  assert.ok(dots.every((dot) => onCurve(machine, dot)), 'each dot sits on the curve');
+  assert.ok(dots.every((dot) => onCurve(curve, dot)), 'each dot sits on the curve');
 }
 
 assert.strictEqual(rules.inkUsed([[[0, 0], [3, 4]], [[0, 0], [0, 2]]]), 7);
 assert.strictEqual(rules.inkFor(gentle), 34, 'a gentle line 22.4 long gets half as much again');
-assert.strictEqual(rules.inkFor({ family_id: PARABOLA, a: 4, b: 0, c: 9 }), 30, 'a short visible curve still gets the smallest amount');
-for (const machine of sampleMachines) {
-  const ownLength = rules.inkUsed(tracedBranches(machine));
-  assert.ok(rules.inkFor(machine) >= ownLength, 'there is always enough ink to draw the curve itself');
-  assert.ok(rules.inkFor(machine) < 400, 'there is never enough to fill the graph');
+assert.strictEqual(rules.inkFor({ type_id: PARABOLA, a: 4, b: 0, c: 9 }), 30, 'a short visible curve still gets the smallest amount');
+for (const curve of sampleCurves) {
+  const ownLength = rules.inkUsed(tracedBranches(curve));
+  assert.ok(rules.inkFor(curve) >= ownLength, 'there is always enough ink to draw the curve itself');
+  assert.ok(rules.inkFor(curve) < 400, 'there is never enough to fill the graph');
 }
 
-const bowl = { family_id: PARABOLA, a: 2, b: 0, c: -5 };
+const bowl = { type_id: PARABOLA, a: 2, b: 0, c: -5 };
 const bowlCurve = rules.visibleCurve(bowl);
 const shifted = rules.judge(traced(bowlCurve, 1.5, 1), bowl);
 assert.ok(shifted.accuracy < 85, `a parabola drawn 1.5 across and 1 up misses the pass mark, got ${shifted.accuracy}`);
 assert.strictEqual(shifted.closeEnough, true, 'but it is the right shape, so it can be accepted');
-assert.strictEqual(shifted.solved, false, 'only on the last attempt, which the server decides');
+assert.strictEqual(shifted.cracked, false, 'only on the last attempt, which the server decides');
 assert.ok(rules.scoreFor(shifted.accuracy, 1, 0) < rules.scoreFor(100, 1, 0), 'and it scores less than a perfect one');
 
 const spotOn = rules.judge(traced(bowlCurve), bowl);
@@ -163,7 +163,7 @@ assert.strictEqual(farOff.closeEnough, false, 'the right shape five units to one
 assert.strictEqual(rules.judge(flatLine(-5), bowl).closeEnough, false, 'a flat line is not a parabola');
 assert.strictEqual(rules.judge(flatLine(9), gentle).closeEnough, false);
 
-const corner = { family_id: V_SHAPE, a: -3, b: 1, c: -1 };
+const corner = { type_id: V_SHAPE, a: -3, b: 1, c: -1 };
 const arch = [[]];
 for (let x = -10; x <= 10; x += 0.1) {
   const y = -1 - (x - 1) ** 2 / 4;
@@ -196,9 +196,9 @@ assert.strictEqual(rules.validDrawing('nope'), false);
 
 assert.strictEqual(rules.pieces(steep), 1);
 assert.strictEqual(rules.pieces(hyperbola), 2, 'a hyperbola is in two pieces');
-assert.strictEqual(rules.pieces({ family_id: EXPONENTIAL, a: 1, b: 1, c: 0 }), 1, 'a flat asymptote does not split a curve');
+assert.strictEqual(rules.pieces({ type_id: EXPONENTIAL, a: 1, b: 1, c: 0 }), 1, 'a flat asymptote does not split a curve');
 
-const swapped = { family_id: HYPERBOLA, a: -5, b: 0, c: -2 };
+const swapped = { type_id: HYPERBOLA, a: -5, b: 0, c: -2 };
 const wrongSide = rules.judge([[[0.3, 9], [0.3, 3]], [[-0.3, -3], [-0.3, -9]]], swapped);
 assert.ok(wrongSide.levels.flat().every((level) => level === 4), 'branches drawn on the wrong side of the asymptote are way off');
 assert.strictEqual(wrongSide.closeEnough, false, 'the wrong-side drawing is not even close enough');
@@ -218,10 +218,10 @@ assert.strictEqual(rules.judge(branches, swapped).accuracy, 100, 'tracing each b
 const {
   CIRCLE, ELLIPSE, SIDEWAYS, DIAMOND, ROUNDED_SQUARE, SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA
 } = rules;
-const circle = { family_id: CIRCLE, a: 5, b: 1, c: -2 };
+const circle = { type_id: CIRCLE, a: 5, b: 1, c: -2 };
 assert.strictEqual(rules.describe(circle), '(x - 1)^2 + (y + 2)^2 = 25');
-assert.strictEqual(rules.describe({ family_id: ELLIPSE, a: 4, b: 0, c: 1, d: 2 }), '\\frac{x^2}{16} + \\frac{(y - 1)^2}{4} = 1');
-assert.strictEqual(rules.describe({ family_id: SIDEWAYS, a: -2, b: 3, c: 0 }), 'x = -\\frac{1}{2}y^2 + 3');
+assert.strictEqual(rules.describe({ type_id: ELLIPSE, a: 4, b: 0, c: 1, d: 2 }), '\\frac{x^2}{16} + \\frac{(y - 1)^2}{4} = 1');
+assert.strictEqual(rules.describe({ type_id: SIDEWAYS, a: -2, b: 3, c: 0 }), 'x = -\\frac{1}{2}y^2 + 3');
 assert.strictEqual(rules.pieces(circle), 1, 'a circle is drawn in one stroke');
 assert.deepStrictEqual(rules.exits(circle), [], 'a circle inside the graph touches no edge');
 const ring = [];
@@ -233,13 +233,13 @@ assert.strictEqual(rules.judge([ring], circle).accuracy, 100, 'tracing the circl
 const halfLoop = rules.judge([ring.slice(0, 101)], circle);
 assert.ok(halfLoop.accuracy < 85, `half a circle does not pass, got ${halfLoop.accuracy}`);
 assert.ok(halfLoop.missedRows.some(Boolean), 'missing the bottom half shows grey bars down the side');
-assert.ok(rules.judge([ring], { family_id: CIRCLE, a: 3, b: 1, c: -2 }).accuracy < 85, 'a circle the wrong size does not pass');
-assert.strictEqual(rules.describe({ family_id: DIAMOND, a: 4, b: 1, c: 0, d: 4 }), '\\left|x - 1\\right| + \\left|y\\right| = 4');
-assert.strictEqual(rules.describe({ family_id: ROUNDED_SQUARE, a: 3, b: 0, c: -2 }), 'x^4 + (y + 2)^4 = 81');
-assert.strictEqual(rules.describe({ family_id: SIDEWAYS_V, a: -2, b: 3, c: 1 }), 'x = -\\left|y - 1\\right| + 3');
-assert.strictEqual(rules.describe({ family_id: UPRIGHT_HYPERBOLA, a: 2, b: 4, c: -1, d: 1 }), '(y + 1)^2 - \\frac{(x - 4)^2}{4} = 1');
+assert.ok(rules.judge([ring], { type_id: CIRCLE, a: 3, b: 1, c: -2 }).accuracy < 85, 'a circle the wrong size does not pass');
+assert.strictEqual(rules.describe({ type_id: DIAMOND, a: 4, b: 1, c: 0, d: 4 }), '\\left|x - 1\\right| + \\left|y\\right| = 4');
+assert.strictEqual(rules.describe({ type_id: ROUNDED_SQUARE, a: 3, b: 0, c: -2 }), 'x^4 + (y + 2)^4 = 81');
+assert.strictEqual(rules.describe({ type_id: SIDEWAYS_V, a: -2, b: 3, c: 1 }), 'x = -\\left|y - 1\\right| + 3');
+assert.strictEqual(rules.describe({ type_id: UPRIGHT_HYPERBOLA, a: 2, b: 4, c: -1, d: 1 }), '(y + 1)^2 - \\frac{(x - 4)^2}{4} = 1');
 
-const diamond = { family_id: DIAMOND, a: 4, b: 0, c: 0, d: 6 };
+const diamond = { type_id: DIAMOND, a: 4, b: 0, c: 0, d: 6 };
 const diamondTrace = [[4, 0], [0, 6], [-4, 0], [0, -6], [4, 0]].flatMap(([x, y], index, corners) => {
   if (index === corners.length - 1) return [[x, y]];
   const [nextX, nextY] = corners[index + 1];
@@ -247,7 +247,7 @@ const diamondTrace = [[4, 0], [0, 6], [-4, 0], [0, -6], [4, 0]].flatMap(([x, y],
 });
 assert.strictEqual(rules.judge([diamondTrace], diamond).accuracy, 100, 'tracing the diamond is perfect');
 
-const sidewaysHyperbola = { family_id: SIDEWAYS_HYPERBOLA, a: 2, b: 0, c: 0, d: 2 };
+const sidewaysHyperbola = { type_id: SIDEWAYS_HYPERBOLA, a: 2, b: 0, c: 0, d: 2 };
 assert.strictEqual(rules.pieces(sidewaysHyperbola), 2, 'a sideways hyperbola is two strokes');
 const arm = (side) => {
   const points = [];
@@ -257,7 +257,7 @@ const arm = (side) => {
 assert.ok(rules.judge([arm(1), arm(-1)], sidewaysHyperbola).accuracy >= 98, 'tracing both halves scores full marks');
 assert.ok(rules.judge([arm(1)], sidewaysHyperbola).accuracy < 85, 'drawing only one half does not pass');
 
-const square = { family_id: ROUNDED_SQUARE, a: 5, b: 1, c: -3 };
+const square = { type_id: ROUNDED_SQUARE, a: 5, b: 1, c: -3 };
 const squashed = [];
 for (let t = 0; t <= 1.0001; t += 0.01) squashed.push([5.4 - 9.4 * t, 3.5 * Math.sin(Math.PI * t)]);
 for (let t = 0; t <= 1.0001; t += 0.01) squashed.push([-4 + 9 * t, -1.5 * Math.sin(Math.PI * t)]);
@@ -272,7 +272,7 @@ const nearTopEdge = thinLevels.filter((_level, index) => index > 101 && Math.abs
 assert.ok(nearTopEdge.length > 0 && nearTopEdge.every((level) => level >= 3),
   'a bottom line drawn just under the top edge is coloured as well off, because it stands for the bottom of the shape');
 
-const tightWave = { family_id: WAVE, a: 5, b: 4, c: 3 };
+const tightWave = { type_id: WAVE, a: 5, b: 4, c: 3 };
 const underPeak = [];
 for (let x = -9; x <= 9.001; x += 0.1) underPeak.push([x, 3]);
 const peakLevels = rules.judge([underPeak], tightWave).levels[0];
@@ -280,7 +280,7 @@ const belowPeak = peakLevels.filter((_level, index) => Math.abs(underPeak[index]
 assert.ok(belowPeak.length > 0 && belowPeak.every((level) => level === 4),
   'a flat line under the peak of a tight wave is red there, not green from the steep sides beside it');
 
-const fastWave = { family_id: WAVE, a: 5, b: 2, c: 0 };
+const fastWave = { type_id: WAVE, a: 5, b: 2, c: 0 };
 const acrossWave = [];
 for (let x = -9.5; x <= 9.5; x += 0.05) acrossWave.push([x, 0]);
 assert.ok(rules.judge([acrossWave], fastWave).accuracy <= 50,
@@ -295,10 +295,10 @@ assert.strictEqual(rules.judge([shakyWave.filter(([x]) => Math.abs(x) <= 10)], f
 const schemaRows = [...require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'database', 'schema.sql'), 'utf8')
   .matchAll(/\((\d+), '([^']*)', (\d), '([^']*)'\)/g)]
   .map(([, id, name, difficulty, description]) => [Number(id), { name, difficulty: Number(difficulty), description }]);
-assert.deepStrictEqual(Object.fromEntries(schemaRows), Object.fromEntries(Object.entries(rules.FAMILIES).map(([id, family]) => [Number(id), family])),
-  'the list of families in the browser code matches the one in the database');
+assert.deepStrictEqual(Object.fromEntries(schemaRows), Object.fromEntries(Object.entries(rules.TYPES).map(([id, type]) => [Number(id), type])),
+  'the list of curve_types in the browser code matches the one in the database');
 
-const flatHyperbola = { family_id: HYPERBOLA, a: 4, b: 0, c: 0 };
+const flatHyperbola = { type_id: HYPERBOLA, a: 4, b: 0, c: 0 };
 const hyperbolaPart = (keep) => rules.visibleBranches(flatHyperbola)[0]
   .map((output, column) => (output === null ? null : [rules.inputFor(column), output]))
   .filter((point) => point && keep(point));
@@ -309,48 +309,48 @@ assert.ok(Math.abs(withoutSteep - withoutFlat) <= 5,
 
 const relationsSeen = new Set();
 for (let seed = 1; seed <= 300; seed += 1) {
-  const relation = rules.machineFromSeed(seed * 9973, 4);
-  relationsSeen.add(relation.family_id);
+  const relation = rules.curveFromSeed(seed * 9973, 4);
+  relationsSeen.add(relation.type_id);
   assert.ok(rules.isRelation(relation));
-  const twoPieces = [SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA].includes(relation.family_id);
+  const twoPieces = [SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA].includes(relation.type_id);
   assert.strictEqual(rules.pieces(relation), twoPieces ? 2 : 1);
   assert.ok(rules.inkFor(relation) >= 30);
   assert.doesNotThrow(() => katex.renderToString(rules.describe(relation), { output: 'mathml' }));
   const dots = rules.hintDots(relation);
   assert.strictEqual(new Set(dots.map((dot) => dot.join())).size, 3, 'three different hint dots');
-  if ([CIRCLE, ELLIPSE, DIAMOND, ROUNDED_SQUARE].includes(relation.family_id)) {
+  if ([CIRCLE, ELLIPSE, DIAMOND, ROUNDED_SQUARE].includes(relation.type_id)) {
     assert.deepStrictEqual(rules.exits(relation), [], 'loops stay inside the graph');
   }
 }
 assert.strictEqual(relationsSeen.size, 8, 'every kind of loop and turn comes up');
 
-assert.strictEqual(rules.scoreFor(100, 1, 0), 1000, 'a perfect first go with no hints is full marks');
+assert.strictEqual(rules.scoreFor(100, 1, 0), 1000, 'a perfect first attempt with no hints is full marks');
 assert.strictEqual(rules.scoreFor(92, 1, 0), 920);
-assert.strictEqual(rules.scoreFor(92, 3, 0), 720, 'each extra go costs 100');
+assert.strictEqual(rules.scoreFor(92, 3, 0), 720, 'each extra attempt costs 100');
 assert.strictEqual(rules.scoreFor(92, 3, 2), 420, 'each hint costs 150');
 assert.strictEqual(rules.scoreFor(40, 5, 3), 0, 'a score never goes below zero');
 
 const tiltedRoot = {
-  family_id: CUBE_ROOT, a: 2, b: 0, c: 1, extra_family_id: LINE, extra_a: 2, extra_b: 0, extra_c: 0
+  type_id: CUBE_ROOT, a: 2, b: 0, c: 1, extra_type_id: LINE, extra_a: 2, extra_b: 0, extra_c: 0
 };
 assert.strictEqual(rules.evaluate(tiltedRoot, 8), 13, 'the two parts are added: (2 x 2 + 1) + 8');
 assert.strictEqual(rules.describe(tiltedRoot), 'y = 2\\sqrt[3]{x} + 1 + x');
 const tiltedV = {
-  family_id: V_SHAPE, a: 2, b: 1, c: -3, extra_family_id: LINE, extra_a: -1, extra_b: 0, extra_c: 0
+  type_id: V_SHAPE, a: 2, b: 1, c: -3, extra_type_id: LINE, extra_a: -1, extra_b: 0, extra_c: 0
 };
 assert.strictEqual(rules.describe(tiltedV), 'y = \\left|x - 1\\right| - 3 - \\frac{1}{2}x', 'a second part with a minus sign is taken away');
 const trident = {
-  family_id: HYPERBOLA, a: 3, b: 0, c: 0, extra_family_id: PARABOLA, extra_a: 1, extra_b: 0, extra_c: 0
+  type_id: HYPERBOLA, a: 3, b: 0, c: 0, extra_type_id: PARABOLA, extra_a: 1, extra_b: 0, extra_c: 0
 };
 assert.strictEqual(rules.evaluate(trident, 0), null, 'a mix does not exist where either part does not');
 assert.strictEqual(rules.pieces(trident), 2, 'a hyperbola mix is still in two pieces');
 assert.deepStrictEqual(rules.asymptotes(trident), [{ kind: 'vertical', input: 0 }], 'only the vertical asymptote is a straight line');
 const tiltedHyperbola = {
-  family_id: HYPERBOLA, a: 3, b: 1, c: 2, extra_family_id: LINE, extra_a: 2, extra_b: 0, extra_c: 0
+  type_id: HYPERBOLA, a: 3, b: 1, c: 2, extra_type_id: LINE, extra_a: 2, extra_b: 0, extra_c: 0
 };
 assert.deepStrictEqual(rules.asymptotes(tiltedHyperbola)[1], { kind: 'sloped', slope: 1, start: 2 }, 'a line added on tilts the asymptote');
-assert.strictEqual(rules.kindName({ family_name: 'Hyperbola', extra_name: 'Parabola' }), 'Hyperbola + parabola');
-assert.strictEqual(rules.kindName({ family_name: 'Wave', extra_name: null }), 'Wave');
+assert.strictEqual(rules.typeName({ type_name: 'Hyperbola', extra_name: 'Parabola' }), 'Hyperbola + parabola');
+assert.strictEqual(rules.typeName({ type_name: 'Wave', extra_name: null }), 'Wave');
 
 const exact = rules.numberMaker(1);
 const [first, second] = [exact(2147483648), exact(2147483648)];
@@ -362,53 +362,53 @@ let mixes = 0;
 for (let day = 0; day < 365; day += 1) {
   const date = new Date(Date.UTC(2026, 0, 1 + day)).toISOString().slice(0, 10);
   for (const slot of [1, 2, 3]) {
-    const machine = rules.makeMachine(date, slot);
-    assert.deepStrictEqual(rules.makeMachine(date, slot), machine);
-    assert.ok(machine.a !== 0 && Math.abs(machine.a) <= 9 && Math.abs(machine.b) <= 9 && Math.abs(machine.c) <= 9);
-    assert.ok(machine.d === undefined || (machine.d >= 1 && machine.d <= 9), 'a fourth number fits in the database');
-    assert.ok(!rules.describe(machine).includes('NaN') && !rules.describe(machine).includes('undefined'));
-    assert.ok(rules.inkFor(machine) >= 30 && rules.hintDots(machine).length === 3);
-    if (rules.isRelation(machine)) {
+    const curve = rules.makeCurve(date, slot);
+    assert.deepStrictEqual(rules.makeCurve(date, slot), curve);
+    assert.ok(curve.a !== 0 && Math.abs(curve.a) <= 9 && Math.abs(curve.b) <= 9 && Math.abs(curve.c) <= 9);
+    assert.ok(curve.d === undefined || (curve.d >= 1 && curve.d <= 9), 'a fourth number fits in the database');
+    assert.ok(!rules.describe(curve).includes('NaN') && !rules.describe(curve).includes('undefined'));
+    assert.ok(rules.inkFor(curve) >= 30 && rules.hintDots(curve).length === 3);
+    if (rules.isRelation(curve)) {
       relations += 1;
       assert.strictEqual(slot, 3, 'only the hard curve is ever a loop or turn');
     } else {
-      const visible = rules.visibleCurve(machine).filter((output) => output !== null).length;
-      assert.ok(!rules.stopsShort(machine), 'no curve ends in mid-air beside its asymptote');
+      const visible = rules.visibleCurve(curve).filter((output) => output !== null).length;
+      assert.ok(!rules.stopsShort(curve), 'no curve ends in mid-air beside its asymptote');
       assert.ok(visible >= COLUMNS * 0.5, `the curve is visible across at least half the graph on ${date}`);
-      const gaps = rules.wholeCurve(machine).filter((output) => output === null).length;
-      const walls = rules.asymptotes(machine).filter((line) => line.kind === 'vertical').length;
+      const gaps = rules.wholeCurve(curve).filter((output) => output === null).length;
+      const walls = rules.asymptotes(curve).filter((line) => line.kind === 'vertical').length;
       assert.ok(gaps <= walls, `the curve on ${date} must not start or stop partway across`);
     }
-    assert.doesNotThrow(() => katex.renderToString(rules.describe(machine), { output: 'mathml' }));
-    seen.add(machine.family_id);
-    if (machine.extra_family_id) {
+    assert.doesNotThrow(() => katex.renderToString(rules.describe(curve), { output: 'mathml' }));
+    seen.add(curve.type_id);
+    if (curve.extra_type_id) {
       mixes += 1;
-      assert.notStrictEqual(machine.extra_family_id, WAVE, 'a wave is never the second part of a mix');
-      assert.ok(machine.extra_a !== 0 && Math.abs(machine.extra_a) <= 9, 'the second part has valid numbers');
+      assert.notStrictEqual(curve.extra_type_id, WAVE, 'a wave is never the second part of a mix');
+      assert.ok(curve.extra_a !== 0 && Math.abs(curve.extra_a) <= 9, 'the second part has valid numbers');
     }
   }
-  assert.strictEqual(rules.makeMachine(date, 1).extra_family_id, null, 'the easy curve is always a single kind');
+  assert.strictEqual(rules.makeCurve(date, 1).extra_type_id, null, 'the easy curve is always a single kind');
 }
-assert.strictEqual(seen.size, 22, 'every family, loops and turns included, turns up during the year');
+assert.strictEqual(seen.size, 22, 'every type, loops and turns included, turns up during the year');
 assert.ok(relations > 80 && relations < 170, `about one hard curve in three is a loop or turn, got ${relations}`);
 assert.ok(mixes > 150 && mixes < 600, `a good share of medium and hard curves are mixes, got ${mixes}`);
 
 for (let seed = 1; seed < 3000; seed += 37) {
   for (const slot of [1, 2, 3]) {
-    const machine = rules.machineFromSeed(seed, slot);
-    assert.deepStrictEqual(rules.machineFromSeed(seed, slot), machine);
-    if (!rules.isRelation(machine)) {
-      assert.ok(rules.visibleCurve(machine).filter((output) => output !== null).length >= COLUMNS * 0.5);
+    const curve = rules.curveFromSeed(seed, slot);
+    assert.deepStrictEqual(rules.curveFromSeed(seed, slot), curve);
+    if (!rules.isRelation(curve)) {
+      assert.ok(rules.visibleCurve(curve).filter((output) => output !== null).length >= COLUMNS * 0.5);
     }
   }
 }
 
 console.log('All rule checks passed.');
 
-const loopWithNoArrows = { family_id: rules.CIRCLE, a: 4, b: -1, c: 2 };
+const loopWithNoArrows = { type_id: rules.CIRCLE, a: 4, b: -1, c: 2 };
 const [startX, startY] = rules.startDot(loopWithNoArrows);
 assert.ok(Math.abs(Math.hypot(startX + 1, startY - 2) - 4) < 0.1, 'a loop with no arrows starts with a dot that is on it');
-assert.strictEqual(rules.startDot({ family_id: PARABOLA, a: 2, b: 0, c: -5 }), null, 'a curve with arrows does not get one');
+assert.strictEqual(rules.startDot({ type_id: PARABOLA, a: 2, b: 0, c: -5 }), null, 'a curve with arrows does not get one');
 
 // An older database is upgraded in place: the player and their score are still there afterwards.
 const { execFileSync } = require('node:child_process');
@@ -420,24 +420,28 @@ const upgraded = execFileSync(process.execPath, ['-e', `
   const fs = require('node:fs');
   const sqlite3 = require('sqlite3');
   const old = new sqlite3.Database(process.env.DATABASE_PATH);
-  old.exec(fs.readFileSync('database/schema.sql', 'utf8') + \`
+  old.exec(fs.readFileSync('scripts/fixtures/schema-v11.sql', 'utf8') + \`
     UPDATE families SET description = 'Two straight lines meeting at a sharp corner.' WHERE id = 3;
     INSERT INTO users (id, username, display_name, password_hash, password_salt)
       VALUES (1, 'kept', 'Kept', '\${'0'.repeat(128)}', '\${'0'.repeat(32)}');
     INSERT INTO machines (id, play_date, slot, family_id, a, b, c) VALUES (1, '2026-01-01', 1, 3, 2, 0, 0);
     INSERT INTO plays (user_id, machine_id, status, goes, accuracy, score) VALUES (1, 1, 'solved', 1, 90, 900);
+    INSERT INTO goes (play_id, number, drawing, accuracy) VALUES (1, 1, '[[[0,0],[1,1]]]', 90);
     PRAGMA user_version = 9;\`, async () => {
     old.close();
     const db = require('./src/db');
     await db.initialiseDatabase();
-    const [play] = await db.all('SELECT score FROM plays');
-    const [family] = await db.all('SELECT description FROM families WHERE id = 3');
+    const [play] = await db.all('SELECT score, status, attempts, curve_id FROM plays');
+    const [attempt] = await db.all('SELECT accuracy FROM attempts');
+    const [type] = await db.all('SELECT description FROM curve_types WHERE id = 3');
     const [version] = await db.all('PRAGMA user_version');
-    console.log(JSON.stringify({ score: play && play.score, description: family.description, version: version.user_version }));
+    console.log(JSON.stringify({ play, attempt, description: type.description, version: version.user_version }));
   });
 `], { cwd: path.join(__dirname, '..'), env: { ...process.env, DATABASE_PATH: path.join(upgradeFolder, 'old.db') } });
 const afterUpgrade = JSON.parse(upgraded);
-assert.strictEqual(afterUpgrade.score, 900, "upgrading the database keeps everyone's scores");
+assert.deepStrictEqual(afterUpgrade.play, { score: 900, status: 'cracked', attempts: 1, curve_id: 1 },
+  "upgrading the database keeps everyone's scores, under the new names");
+assert.deepStrictEqual(afterUpgrade.attempt, { accuracy: 90 }, 'and their drawings');
 assert.ok(afterUpgrade.description.includes('pointing up or down'), 'and makes the changes in place');
 assert.strictEqual(afterUpgrade.version, require('../src/db').SCHEMA_VERSION);
 fs.rmSync(upgradeFolder, { recursive: true });

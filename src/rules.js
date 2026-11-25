@@ -18,35 +18,35 @@ function dailySecret() {
 const SECRET = dailySecret();
 
 // Builds one of the three curves for a date. slot is 1 (easy), 2 (medium) or 3 (hard).
-function makeMachine(date, slot) {
+function makeCurve(date, slot) {
   const digest = crypto.createHmac('sha256', SECRET).update(`${date} ${slot}`).digest();
-  return curves.machineFromSeed(digest.readUInt32BE(0) % 2000000000, slot);
+  return curves.curveFromSeed(digest.readUInt32BE(0) % 2000000000, slot);
 }
 
-const MACHINE_SELECT = `
-  SELECT machines.*, families.name AS family_name, families.description AS family_description,
-    families.difficulty, extras.name AS extra_name
-  FROM machines
-  INNER JOIN families ON families.id = machines.family_id
-  LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
+const CURVE_SELECT = `
+  SELECT curves.*, curve_types.name AS type_name, curve_types.description AS type_description,
+    curve_types.difficulty, extras.name AS extra_name
+  FROM curves
+  INNER JOIN curve_types ON curve_types.id = curves.type_id
+  LEFT JOIN curve_types AS extras ON extras.id = curves.extra_type_id
 `;
 
-async function machinesFor(date) {
+async function curvesFor(date) {
   for (const slot of [1, 2, 3]) {
-    const made = makeMachine(date, slot);
+    const made = makeCurve(date, slot);
     await run(
-      `INSERT OR IGNORE INTO machines
-         (play_date, slot, family_id, a, b, c, extra_family_id, extra_a, extra_b, extra_c, d)
+      `INSERT OR IGNORE INTO curves
+         (play_date, slot, type_id, a, b, c, extra_type_id, extra_a, extra_b, extra_c, d)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [date, slot, made.family_id, made.a, made.b, made.c,
-        made.extra_family_id, made.extra_a, made.extra_b, made.extra_c, made.d ?? null]
+      [date, slot, made.type_id, made.a, made.b, made.c,
+        made.extra_type_id, made.extra_a, made.extra_b, made.extra_c, made.d ?? null]
     );
   }
-  return all(`${MACHINE_SELECT} WHERE machines.play_date = ? ORDER BY machines.slot`, [date]);
+  return all(`${CURVE_SELECT} WHERE curves.play_date = ? ORDER BY curves.slot`, [date]);
 }
 
 async function fillHistory() {
-  for (const date of [curves.todayDate(), ...curves.pastDates()]) await machinesFor(date);
+  for (const date of [curves.todayDate(), ...curves.pastDates()]) await curvesFor(date);
 }
 
-module.exports = { ...curves, MACHINE_SELECT, fillHistory, machinesFor, makeMachine };
+module.exports = { ...curves, CURVE_SELECT, fillHistory, curvesFor, makeCurve };

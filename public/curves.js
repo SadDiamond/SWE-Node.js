@@ -5,8 +5,8 @@ const LIMIT = 10;
 const STEPS_PER_UNIT = 10;
 const COLUMNS = 2 * LIMIT * STEPS_PER_UNIT + 1;
 
-const MAX_GOES = 5;
-const SOLVED_AT = 85;
+const MAX_ATTEMPTS = 5;
+const CRACKED_AT = 85;
 const BANDS = [0.6, 1.25, 1.9, 2.6];
 const SHORTEST_STROKE = 1.5;
 const REACH = 10;
@@ -55,8 +55,8 @@ function inputFor(column) {
   return column / STEPS_PER_UNIT - LIMIT;
 }
 
-function partValue(familyId, a, b, c, x) {
-  switch (familyId) {
+function partValue(typeId, a, b, c, x) {
+  switch (typeId) {
     case LINE:
       return (a / 2) * x + b;
     case PARABOLA:
@@ -88,11 +88,11 @@ function partValue(familyId, a, b, c, x) {
   }
 }
 
-function evaluate(machine, x) {
-  const main = partValue(machine.family_id, machine.a, machine.b, machine.c, x);
-  if (main === null || !machine.extra_family_id) return main;
+function evaluate(curve, x) {
+  const main = partValue(curve.type_id, curve.a, curve.b, curve.c, x);
+  if (main === null || !curve.extra_type_id) return main;
 
-  const extra = partValue(machine.extra_family_id, machine.extra_a, machine.extra_b, machine.extra_c, x);
+  const extra = partValue(curve.extra_type_id, curve.extra_a, curve.extra_b, curve.extra_c, x);
   return extra === null ? null : main + extra;
 }
 
@@ -107,24 +107,24 @@ function visibleBranch(whole) {
   });
 }
 
-function visibleCurve(machine) {
-  return visibleBranch(wholeCurve(machine));
+function visibleCurve(curve) {
+  return visibleBranch(wholeCurve(curve));
 }
 
-function visibleBranches(machine) {
-  return wholeBranches(machine).map(visibleBranch);
+function visibleBranches(curve) {
+  return wholeBranches(curve).map(visibleBranch);
 }
 
-function stopsShort(machine) {
-  const whole = wholeCurve(machine);
+function stopsShort(curve) {
+  const whole = wholeCurve(curve);
   const onGraph = (output) => output !== null && output !== undefined && Math.abs(output) <= LIMIT;
   return whole.some((output, column) => output === null
     && (onGraph(whole[column - 1]) || onGraph(whole[column + 1])));
 }
 
-function exits(machine) {
+function exits(curve) {
   const found = [];
-  for (const whole of wholeBranches(machine)) {
+  for (const whole of wholeBranches(curve)) {
     let before = null;
     for (let column = 0; column < COLUMNS; column += 1) {
       const output = whole[column];
@@ -148,59 +148,59 @@ function exits(machine) {
   return found;
 }
 
-function wholeCurve(machine) {
-  const curve = [];
+function wholeCurve(curve) {
+  const outputs = [];
   for (let column = 0; column < COLUMNS; column += 1) {
-    curve.push(evaluate(machine, inputFor(column)));
+    outputs.push(evaluate(curve, inputFor(column)));
   }
-  return curve;
+  return outputs;
 }
 
-function isRelation(machine) {
-  return RELATIONS.includes(machine.family_id);
+function isRelation(curve) {
+  return RELATIONS.includes(curve.type_id);
 }
 
 // A relation such as a circle has two outputs for most inputs, so it is split into two
 // branches (top and bottom, or upper and lower arm). Each branch has at most one output per input.
-function relationSpread(machine, x) {
-  const { a, b, c } = machine;
-  if (machine.family_id === CIRCLE) {
+function relationSpread(curve, x) {
+  const { a, b, c } = curve;
+  if (curve.type_id === CIRCLE) {
     const left = a * a - (x - b) ** 2;
     return left < 0 ? null : { middle: c, spread: Math.sqrt(left) };
   }
-  if (machine.family_id === ELLIPSE) {
+  if (curve.type_id === ELLIPSE) {
     const left = 1 - ((x - b) / a) ** 2;
-    return left < 0 ? null : { middle: c, spread: machine.d * Math.sqrt(left) };
+    return left < 0 ? null : { middle: c, spread: curve.d * Math.sqrt(left) };
   }
-  if (machine.family_id === DIAMOND) {
+  if (curve.type_id === DIAMOND) {
     const left = 1 - Math.abs(x - b) / a;
-    return left < 0 ? null : { middle: c, spread: machine.d * left };
+    return left < 0 ? null : { middle: c, spread: curve.d * left };
   }
-  if (machine.family_id === ROUNDED_SQUARE) {
+  if (curve.type_id === ROUNDED_SQUARE) {
     const left = a ** 4 - (x - b) ** 4;
     return left < 0 ? null : { middle: c, spread: left ** 0.25 };
   }
-  if (machine.family_id === SIDEWAYS_V) {
+  if (curve.type_id === SIDEWAYS_V) {
     const left = (2 * (x - b)) / a;
     return left < 0 ? null : { middle: c, spread: left };
   }
-  if (machine.family_id === SIDEWAYS_HYPERBOLA) {
+  if (curve.type_id === SIDEWAYS_HYPERBOLA) {
     const left = ((x - b) / a) ** 2 - 1;
-    return left < 0 ? null : { middle: c, spread: machine.d * Math.sqrt(left) };
+    return left < 0 ? null : { middle: c, spread: curve.d * Math.sqrt(left) };
   }
-  if (machine.family_id === UPRIGHT_HYPERBOLA) {
-    return { middle: c, spread: machine.d * Math.sqrt(1 + ((x - b) / a) ** 2) };
+  if (curve.type_id === UPRIGHT_HYPERBOLA) {
+    return { middle: c, spread: curve.d * Math.sqrt(1 + ((x - b) / a) ** 2) };
   }
   const left = (4 * (x - b)) / a;
   return left < 0 ? null : { middle: c, spread: Math.sqrt(left) };
 }
 
-function wholeBranches(machine) {
-  if (!isRelation(machine)) return [wholeCurve(machine)];
+function wholeBranches(curve) {
+  if (!isRelation(curve)) return [wholeCurve(curve)];
   const upper = [];
   const lower = [];
   for (let column = 0; column < COLUMNS; column += 1) {
-    const found = relationSpread(machine, inputFor(column));
+    const found = relationSpread(curve, inputFor(column));
     upper.push(found ? found.middle + found.spread : null);
     lower.push(found ? found.middle - found.spread : null);
   }
@@ -369,14 +369,14 @@ function resample(points, count) {
 // instead would call the bottom of a squashed loop "on the curve" because it is near the top.
 const MATCH_WINDOW = 12;
 
-function loopMatch(stroke, machine) {
-  if (!LOOPS.includes(machine.family_id) || stroke.length < 3) return null;
+function loopMatch(stroke, curve) {
+  if (!LOOPS.includes(curve.type_id) || stroke.length < 3) return null;
   const drawn = resample(stroke, MATCH_POINTS);
   const [startX, startY] = stroke[0];
   const [endX, endY] = stroke[stroke.length - 1];
   if (drawn.total === 0 || Math.hypot(endX - startX, endY - startY) > drawn.total / 4) return null;
 
-  const [upper, lower] = visibleBranches(machine).map((branch) => branch
+  const [upper, lower] = visibleBranches(curve).map((branch) => branch
     .map((output, column) => (output === null ? null : [inputFor(column), output]))
     .filter(Boolean));
   const outlinePoints = [...upper, ...lower.reverse()];
@@ -453,17 +453,17 @@ function coverageOf(strokes, whole, visible, walls) {
   return { coverage: samples.length === 0 ? 0 : covered / samples.length, missed, missedRows };
 }
 
-function judge(strokes, machine) {
-  const whole = wholeBranches(machine);
+function judge(strokes, curve) {
+  const whole = wholeBranches(curve);
   const visible = whole.map(visibleBranch);
-  const walls = asymptotes(machine).filter((line) => line.kind === 'vertical').map((line) => line.input);
+  const walls = asymptotes(curve).filter((line) => line.kind === 'vertical').map((line) => line.input);
 
   let inkLength = 0;
   let inkOnCurve = 0;
   const nudges = [];
   let sinceNudge = NUDGE_SPACING / 2;
 
-  const match = strokes.length === 1 ? loopMatch(strokes[0], machine) : null;
+  const match = strokes.length === 1 ? loopMatch(strokes[0], curve) : null;
   const levels = strokes.map((stroke) => {
     const crossedWalls = walls.filter((wall) => stroke.some(([x], index) => index > 0
       && sideOf(stroke[index - 1][0], [wall]) !== sideOf(x, [wall])));
@@ -529,8 +529,8 @@ function judge(strokes, machine) {
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
 
-  const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
-  return { levels, nudges, missed, missedRows, accuracy, closeEnough, solved: accuracy >= SOLVED_AT };
+  const closeEnough = accuracy < CRACKED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
+  return { levels, nudges, missed, missedRows, accuracy, closeEnough, cracked: accuracy >= CRACKED_AT };
 }
 
 function accuracyOf(strokes, whole, visible, walls) {
@@ -577,7 +577,7 @@ function rightShape(strokes, whole, visible, walls) {
           middleX + (x - middleX) * scale + across,
           middleY + (y - middleY) * scale + up
         ]));
-        if (followsClosely(moved, whole, walls) && accuracyOf(moved, whole, visible, walls) >= SOLVED_AT) return true;
+        if (followsClosely(moved, whole, walls) && accuracyOf(moved, whole, visible, walls) >= CRACKED_AT) return true;
       }
     }
   }
@@ -636,9 +636,9 @@ function thinned(strokes) {
 
 const MAX_HINTS = 3;
 
-function hintDots(machine) {
+function hintDots(curve) {
   const visible = [];
-  visibleBranches(machine).forEach((branch, index) => {
+  visibleBranches(curve).forEach((branch, index) => {
     const points = [];
     branch.forEach((output, column) => {
       if (output !== null) points.push([Math.round(inputFor(column) * 10) / 10, output]);
@@ -654,18 +654,18 @@ function hintDots(machine) {
 }
 
 // A loop that never reaches the edges has no arrows to start from, so it gets its highest point for free.
-function startDot(machine) {
-  if (exits(machine).length > 0) return null;
+function startDot(curve) {
+  if (exits(curve).length > 0) return null;
   let best = null;
-  visibleBranches(machine).forEach((branch) => branch.forEach((output, column) => {
+  visibleBranches(curve).forEach((branch) => branch.forEach((output, column) => {
     if (output !== null && (best === null || output > best[1])) best = [Math.round(inputFor(column) * 10) / 10, output];
   }));
   return best;
 }
 
-function inkFor(machine) {
+function inkFor(curve) {
   let length = 0;
-  for (const visible of visibleBranches(machine)) {
+  for (const visible of visibleBranches(curve)) {
     for (let column = 1; column < COLUMNS; column += 1) {
       const here = visible[column];
       const before = visible[column - 1];
@@ -687,17 +687,17 @@ function inkUsed(strokes) {
   return length;
 }
 
-function pieces(machine) {
-  if (isRelation(machine)) return TWO_PIECE_RELATIONS.includes(machine.family_id) ? 2 : 1;
-  return 1 + asymptotes(machine).filter((line) => line.kind === 'vertical').length;
+function pieces(curve) {
+  if (isRelation(curve)) return TWO_PIECE_RELATIONS.includes(curve.type_id) ? 2 : 1;
+  return 1 + asymptotes(curve).filter((line) => line.kind === 'vertical').length;
 }
 
 const TOP_SCORE = 1000;
-const GO_PENALTY = 100;
+const ATTEMPT_PENALTY = 100;
 const HINT_PENALTY = 150;
 
-function scoreFor(accuracy, goes, hints) {
-  const score = accuracy * (TOP_SCORE / 100) - GO_PENALTY * (goes - 1) - HINT_PENALTY * hints;
+function scoreFor(accuracy, attempts, hints) {
+  const score = accuracy * (TOP_SCORE / 100) - ATTEMPT_PENALTY * (attempts - 1) - HINT_PENALTY * hints;
   return Math.max(0, Math.round(score));
 }
 
@@ -729,8 +729,8 @@ function bracket(amount) {
   return amount === 0 ? 'x' : `(${shifted(amount)})`;
 }
 
-function expression(familyId, a, b, c) {
-  switch (familyId) {
+function expression(typeId, a, b, c) {
+  switch (typeId) {
     case LINE:
       return `${multiplier(a, 2)}x${plus(b)}`;
     case PARABOLA:
@@ -778,64 +778,64 @@ function over(top, bottom) {
   return bottom === 1 ? top : `\\frac{${top}}{${bottom}}`;
 }
 
-function describeRelation(machine) {
-  const { a, b, c, d } = machine;
-  if (machine.family_id === CIRCLE) return `${bracket(b)}^2 + ${yBracket(c)}^2 = ${a * a}`;
-  if (machine.family_id === ELLIPSE) {
+function describeRelation(curve) {
+  const { a, b, c, d } = curve;
+  if (curve.type_id === CIRCLE) return `${bracket(b)}^2 + ${yBracket(c)}^2 = ${a * a}`;
+  if (curve.type_id === ELLIPSE) {
     return `\\frac{${bracket(b)}^2}{${a * a}} + \\frac{${yBracket(c)}^2}{${d * d}} = 1`;
   }
-  if (machine.family_id === DIAMOND) {
+  if (curve.type_id === DIAMOND) {
     const across = `\\left|${shifted(b)}\\right|`;
     const down = `\\left|${shifted(c).replace('x', 'y')}\\right|`;
     return a === d ? `${across} + ${down} = ${a}` : `\\frac{${across}}{${a}} + \\frac{${down}}{${d}} = 1`;
   }
-  if (machine.family_id === ROUNDED_SQUARE) return `${bracket(b)}^4 + ${yBracket(c)}^4 = ${a ** 4}`;
-  if (machine.family_id === SIDEWAYS_V) {
+  if (curve.type_id === ROUNDED_SQUARE) return `${bracket(b)}^4 + ${yBracket(c)}^4 = ${a ** 4}`;
+  if (curve.type_id === SIDEWAYS_V) {
     return `x = ${multiplier(a, 2)}\\left|${shifted(c).replace('x', 'y')}\\right|${plus(b)}`;
   }
-  if (machine.family_id === SIDEWAYS_HYPERBOLA) {
+  if (curve.type_id === SIDEWAYS_HYPERBOLA) {
     return `${over(`${bracket(b)}^2`, a * a)} - ${over(`${yBracket(c)}^2`, d * d)} = 1`;
   }
-  if (machine.family_id === UPRIGHT_HYPERBOLA) {
+  if (curve.type_id === UPRIGHT_HYPERBOLA) {
     return `${over(`${yBracket(c)}^2`, d * d)} - ${over(`${bracket(b)}^2`, a * a)} = 1`;
   }
   return `x = ${multiplier(a, 4)}${yBracket(c)}^2${plus(b)}`;
 }
 
-function describe(machine) {
-  if (isRelation(machine)) return describeRelation(machine);
-  const main = expression(machine.family_id, machine.a, machine.b, machine.c);
-  if (!machine.extra_family_id) return `y = ${main}`;
+function describe(curve) {
+  if (isRelation(curve)) return describeRelation(curve);
+  const main = expression(curve.type_id, curve.a, curve.b, curve.c);
+  if (!curve.extra_type_id) return `y = ${main}`;
 
-  const extra = expression(machine.extra_family_id, machine.extra_a, machine.extra_b, machine.extra_c);
+  const extra = expression(curve.extra_type_id, curve.extra_a, curve.extra_b, curve.extra_c);
   return extra.startsWith('-') ? `y = ${main} - ${extra.slice(1)}` : `y = ${main} + ${extra}`;
 }
 
-function asymptotes(machine) {
-  const { a, b, c } = machine;
+function asymptotes(curve) {
+  const { a, b, c } = curve;
   const lines = [];
-  const hugsVertical = [HYPERBOLA, SLANTED, INVERSE_SQUARE].includes(machine.family_id);
+  const hugsVertical = [HYPERBOLA, SLANTED, INVERSE_SQUARE].includes(curve.type_id);
   if (hugsVertical) lines.push({ kind: 'vertical', input: b });
-  if (machine.family_id === TANGENT) {
+  if (curve.type_id === TANGENT) {
     for (let input = b / 2 - Math.ceil(LIMIT / b) * b; input < LIMIT; input += b) {
       if (input > -LIMIT) lines.push({ kind: 'vertical', input });
     }
   }
 
   let tilt = 0;
-  if (machine.extra_family_id === LINE) tilt = machine.extra_a / 2;
-  else if (machine.extra_family_id) return lines;
+  if (curve.extra_type_id === LINE) tilt = curve.extra_a / 2;
+  else if (curve.extra_type_id) return lines;
 
-  if ([HYPERBOLA, EXPONENTIAL, INVERSE_SQUARE, S_CURVE].includes(machine.family_id)) {
+  if ([HYPERBOLA, EXPONENTIAL, INVERSE_SQUARE, S_CURVE].includes(curve.type_id)) {
     lines.push({ kind: 'sloped', slope: tilt, start: c });
   }
-  if (machine.family_id === S_CURVE) lines.push({ kind: 'sloped', slope: tilt, start: a + c });
-  if (machine.family_id === BELL) lines.push({ kind: 'sloped', slope: tilt, start: 0 });
-  if (TWO_PIECE_RELATIONS.includes(machine.family_id)) {
-    const slope = machine.d / a;
+  if (curve.type_id === S_CURVE) lines.push({ kind: 'sloped', slope: tilt, start: a + c });
+  if (curve.type_id === BELL) lines.push({ kind: 'sloped', slope: tilt, start: 0 });
+  if (TWO_PIECE_RELATIONS.includes(curve.type_id)) {
+    const slope = curve.d / a;
     lines.push({ kind: 'sloped', slope, start: c - slope * b }, { kind: 'sloped', slope: -slope, start: c + slope * b });
   }
-  if (machine.family_id === SLANTED) {
+  if (curve.type_id === SLANTED) {
     lines.push({ kind: 'sloped', slope: c / 2 + tilt, start: 0 });
   }
   return lines;
@@ -868,7 +868,7 @@ function todayDate() {
   return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
 }
 
-function randomMachine(next, familyId) {
+function randomCurve(next, typeId) {
   const between = (low, high) => low + next(high - low + 1);
   const nonZero = (low, high) => {
     let value = 0;
@@ -877,7 +877,7 @@ function randomMachine(next, familyId) {
   };
   const pick = (choices) => choices[next(choices.length)];
 
-  switch (familyId) {
+  switch (typeId) {
     case LINE:
       return { a: nonZero(-6, 6), b: between(-6, 6), c: 0 };
     case PARABOLA:
@@ -947,11 +947,11 @@ const RECIPES_FOR_SLOT = {
 // A wave is never used as the second part. A small ripple on a big shape sits inside the
 // marking's tolerance, so the plain shape would pass and the wave would never need finding.
 
-function randomExtra(next, familyId) {
+function randomExtra(next, typeId) {
   const between = (low, high) => low + next(high - low + 1);
   const pick = (choices) => choices[next(choices.length)];
 
-  switch (familyId) {
+  switch (typeId) {
     case LINE:
       return { extra_a: pick([-3, -2, -1, 1, 2, 3]), extra_b: 0, extra_c: 0 };
     case PARABOLA:
@@ -961,31 +961,31 @@ function randomExtra(next, familyId) {
   }
 }
 
-function machineFromSeed(seed, slot) {
+function curveFromSeed(seed, slot) {
   const next = numberMaker(seed);
   // About one hard curve in three is a loop or turn instead.
   const recipes = slot === 3 && next(3) === 0 ? RECIPES_FOR_SLOT[4] : RECIPES_FOR_SLOT[slot];
-  const [familyId, extraFamilyId] = recipes[next(recipes.length)];
+  const [typeId, extraTypeId] = recipes[next(recipes.length)];
 
-  let machine;
+  let curve;
   let onScreen = 0;
   while (onScreen < COLUMNS * SHARE_ON_SCREEN) {
-    machine = {
-      family_id: familyId,
-      ...randomMachine(next, familyId),
-      extra_family_id: null,
+    curve = {
+      type_id: typeId,
+      ...randomCurve(next, typeId),
+      extra_type_id: null,
       extra_a: null,
       extra_b: null,
       extra_c: null
     };
-    if (extraFamilyId) {
-      machine = { ...machine, extra_family_id: extraFamilyId, ...randomExtra(next, extraFamilyId) };
+    if (extraTypeId) {
+      curve = { ...curve, extra_type_id: extraTypeId, ...randomExtra(next, extraTypeId) };
     }
-    if (isRelation(machine)) break;
-    onScreen = visibleCurve(machine).filter((output) => output !== null).length;
-    if (stopsShort(machine)) onScreen = 0;
+    if (isRelation(curve)) break;
+    onScreen = visibleCurve(curve).filter((output) => output !== null).length;
+    if (stopsShort(curve)) onScreen = 0;
   }
-  return machine;
+  return curve;
 }
 
 // Names like "V shape" and "S-curve" start with a letter that stands for the shape, so they keep it.
@@ -993,15 +993,15 @@ function lowerName(name) {
   return /^[A-Z][ -]/.test(name) ? name : name[0].toLowerCase() + name.slice(1);
 }
 
-function kindName(machine) {
-  return machine.extra_name
-    ? `${machine.family_name} + ${lowerName(machine.extra_name)}`
-    : machine.family_name;
+function typeName(curve) {
+  return curve.extra_name
+    ? `${curve.type_name} + ${lowerName(curve.extra_name)}`
+    : curve.type_name;
 }
 
-function shapeOf(machine) {
-  const added = machine.extra_name ? ` It has a ${lowerName(machine.extra_name)} added on to it.` : '';
-  return `${kindName(machine)}. ${machine.family_description}${added}`;
+function shapeOf(curve) {
+  const added = curve.extra_name ? ` It has a ${lowerName(curve.extra_name)} added on to it.` : '';
+  return `${typeName(curve)}. ${curve.type_description}${added}`;
 }
 
 function pastDates() {
@@ -1014,29 +1014,29 @@ function pastDates() {
 }
 
 // Everything shown once a curve is finished, apart from the formula drawn as maths.
-function revealed(machine, accuracy, solved, goes, hints) {
+function revealed(curve, accuracy, cracked, attempts, hints) {
   return {
     accuracy,
-    solved,
+    cracked,
     finished: true,
-    score: scoreFor(accuracy, goes, hints),
-    curve: visibleBranches(machine),
-    familyName: kindName(machine),
-    formula: describe(machine),
-    asymptotes: asymptotes(machine)
+    score: scoreFor(accuracy, attempts, hints),
+    curve: visibleBranches(curve),
+    typeName: typeName(curve),
+    formula: describe(curve),
+    asymptotes: asymptotes(curve)
   };
 }
 
 // Marks one attempt and builds the reply the page shows.
 // The right shape in slightly the wrong place only counts on the last attempt, so it can
 // rescue a curve that would otherwise be failed but never ends one that could still be improved.
-function markAttempt(drawing, machine, go, hints) {
-  const result = judge(drawing, machine);
-  const lastAttempt = go === MAX_GOES;
-  const solved = result.solved || (result.closeEnough && lastAttempt);
-  const reply = solved || lastAttempt
-    ? revealed(machine, result.accuracy, solved, go, hints)
-    : { accuracy: result.accuracy, solved: false, finished: false };
+function markAttempt(drawing, curve, attempt, hints) {
+  const result = judge(drawing, curve);
+  const lastAttempt = attempt === MAX_ATTEMPTS;
+  const cracked = result.cracked || (result.closeEnough && lastAttempt);
+  const reply = cracked || lastAttempt
+    ? revealed(curve, result.accuracy, cracked, attempt, hints)
+    : { accuracy: result.accuracy, cracked: false, finished: false };
   return {
     ...reply,
     closeEnough: result.closeEnough,
@@ -1048,11 +1048,11 @@ function markAttempt(drawing, machine, go, hints) {
 }
 
 // The first hint says what kind of curve it is. The ones after it are spots on the curve.
-function hintFor(machine, number) {
-  return number === 1 ? { shape: shapeOf(machine) } : { dot: hintDots(machine)[number - 2] };
+function hintFor(curve, number) {
+  return number === 1 ? { shape: shapeOf(curve) } : { dot: hintDots(curve)[number - 2] };
 }
 
-const FAMILIES = {
+const TYPES = {
   1: { name: 'Straight line', difficulty: 1, description: 'Goes up or down by the same amount with every step across.' },
   2: { name: 'Parabola', difficulty: 1, description: 'A smooth U shape, or an upside-down U, with one turning point.' },
   3: { name: 'V shape', difficulty: 1, description: 'Two straight lines meeting at a sharp corner, pointing up or down.' },
@@ -1078,13 +1078,13 @@ const FAMILIES = {
 };
 
 publish({
-  COLUMNS, CROSSED, GO_PENALTY, HINT_PENALTY, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE,
+  COLUMNS, CROSSED, ATTEMPT_PENALTY, HINT_PENALTY, LIMIT, MAX_ATTEMPTS, MAX_HINTS, MOST_POINTS, TOP_SCORE,
   SHORTEST_STROKE, STEPS_PER_UNIT, LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA,
   SLANTED, BELL, S_CURVE, QUARTIC, INVERSE_SQUARE, TANGENT, CIRCLE, ELLIPSE, SIDEWAYS, DIAMOND, ROUNDED_SQUARE,
   SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA, asymptotes, describe, numberMaker, evaluate, exits,
-  inputFor, judge, machineFromSeed, hintDots, inkFor, inkUsed, isRelation, kindName, pastDates, pieces,
-  scoreFor, shapeOf, startDot, thinned, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, FAMILIES,
-  SOLVED_AT, dayNumber, hintFor, markAttempt, revealed
+  inputFor, judge, curveFromSeed, hintDots, inkFor, inkUsed, isRelation, typeName, pastDates, pieces,
+  scoreFor, shapeOf, startDot, thinned, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, TYPES,
+  CRACKED_AT, dayNumber, hintFor, markAttempt, revealed
 });
 }((api) => {
   if (typeof module === 'object' && module.exports) module.exports = api;

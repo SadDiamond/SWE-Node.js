@@ -73,7 +73,7 @@ async function main() {
     await check('an attempt is marked and the curve is shown after the last one', async () => {
       for (let attempt = 1; attempt <= 5; attempt += 1) {
         await draw(page, across);
-        await page.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+        await page.waitForFunction((count) => document.querySelectorAll('#attempts .used').length === count
           || !document.querySelector('#result').hidden, attempt);
         if (await page.locator('#result').isVisible()) break;
         assert.match(await status(page), /\d+%/);
@@ -111,7 +111,7 @@ async function main() {
       assert.match(await page.locator('h1').textContent(), /\d+ [A-Z][a-z]+/);
       for (let attempt = 1; attempt <= 5; attempt += 1) {
         await draw(page, across);
-        await page.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+        await page.waitForFunction((count) => document.querySelectorAll('#attempts .used').length === count
           || !document.querySelector('#result').hidden, attempt);
         if (await page.locator('#result').isVisible()) break;
       }
@@ -129,10 +129,10 @@ async function main() {
       await signedIn.waitForURL(`${SITE}/`);
       await signedIn.click('#close-how-to-play');
       await draw(signedIn, across);
-      await signedIn.waitForFunction(() => document.querySelectorAll('#goes .used').length === 1);
+      await signedIn.waitForFunction(() => document.querySelectorAll('#attempts .used').length === 1);
       await signedIn.reload();
       await signedIn.waitForSelector('#tabs li');
-      assert.strictEqual(await signedIn.locator('#goes .used').count(), 1);
+      assert.strictEqual(await signedIn.locator('#attempts .used').count(), 1);
     });
 
     await check('every page loads in dark mode', async () => {
@@ -171,10 +171,10 @@ async function main() {
       await guestPage.click('#hint');
       await guestPage.waitForSelector('circle.dot');
       await draw(guestPage, across);
-      await guestPage.waitForFunction(() => document.querySelectorAll('#goes .used').length === 1);
+      await guestPage.waitForFunction(() => document.querySelectorAll('#attempts .used').length === 1);
       await guestPage.reload();
       await guestPage.waitForSelector('#tabs li');
-      assert.strictEqual(await guestPage.locator('#goes .used').count(), 1, 'the attempt is still used');
+      assert.strictEqual(await guestPage.locator('#attempts .used').count(), 1, 'the attempt is still used');
       assert.strictEqual(await guestPage.locator('circle.dot').count(), 1, 'the hint dot is still there');
       assert.ok(await guestPage.locator('#shape-text').isVisible(), 'and so is the kind of curve');
     });
@@ -194,7 +194,7 @@ async function main() {
       await second.waitForSelector('#tabs li');
       for (let attempt = 0; attempt < 5 && !(await first.locator('#result').isVisible()); attempt += 1) {
         await draw(first, across);
-        await first.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+        await first.waitForFunction((count) => document.querySelectorAll('#attempts .used').length === count
           || !document.querySelector('#result').hidden, attempt + 1);
       }
       await draw(second, across);
@@ -210,12 +210,12 @@ async function main() {
       for (let attempt = 0; attempt < 5 && !(await loops.locator('#result').isVisible()); attempt += 1) {
         await draw(loops, across);
         if (twoStrokes) await draw(loops, [[-9, -2], [0, -2], [9, -2]]);
-        await loops.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+        await loops.waitForFunction((count) => document.querySelectorAll('#attempts .used').length === count
           || !document.querySelector('#result').hidden, attempt + 1);
       }
       await loops.waitForSelector('#result:not([hidden])');
       assert.ok(await loops.locator('path.truth').count() >= 2, 'both halves of the shape are drawn');
-      assert.match(await loops.locator('#result-family').textContent(),
+      assert.match(await loops.locator('#result-type').textContent(),
         /^(Circle|Ellipse|Sideways parabola|Diamond|Rounded square|Sideways V|Sideways hyperbola|Up and down hyperbola)$/);
     });
 
@@ -225,17 +225,17 @@ async function main() {
       let drawing = null;
       while (!drawing) {
         seed += 1;
-        const machine = rules.machineFromSeed(seed, 1);
+        const curve = rules.curveFromSeed(seed, 1);
         const stroke = [];
-        rules.visibleCurve(machine).forEach((output, column) => {
+        rules.visibleCurve(curve).forEach((output, column) => {
           const point = [rules.inputFor(column) + 1.5, output + 1];
           if (output !== null && Math.abs(point[0]) <= 10 && Math.abs(point[1]) <= 10) stroke.push(point);
         });
-        if (stroke.length > 1 && rules.judge([stroke], machine).closeEnough) drawing = [stroke];
+        if (stroke.length > 1 && rules.judge([stroke], curve).closeEnough) drawing = [stroke];
       }
-      const attempt = async (go) => {
-        const response = await fetch(`${SITE}/api/machines/r${seed}s1/go`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drawing, go, hints: 0 })
+      const attempt = async (attempt) => {
+        const response = await fetch(`${SITE}/api/curves/r${seed}s1/attempts`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drawing, attempt, hints: 0 })
         });
         return response.json();
       };
@@ -243,7 +243,7 @@ async function main() {
       assert.strictEqual(first.finished, false, 'the first attempt is not ended by being close enough');
       assert.strictEqual(first.closeEnough, true, 'but the player is told it is the right shape');
       const last = await attempt(5);
-      assert.strictEqual(last.solved, true, 'on the last attempt it counts as cracked');
+      assert.strictEqual(last.cracked, true, 'on the last attempt it counts as cracked');
     });
 
     await check('too many wrong passwords or requests are refused for a while', async () => {
@@ -262,7 +262,7 @@ async function main() {
       const today = await (await fetch(`${SITE}/api/today`)).json();
       const statuses = [];
       for (let request = 0; request < 61; request += 1) {
-        statuses.push((await post(`/api/machines/${today.curves[0].id}/hint`, {}, cookie)).status);
+        statuses.push((await post(`/api/curves/${today.curves[0].id}/hint`, {}, cookie)).status);
       }
       assert.ok(!statuses.slice(0, 60).includes(429), 'sixty requests a minute are fine');
       assert.strictEqual(statuses[60], 429, 'the sixty-first is refused');
@@ -272,13 +272,13 @@ async function main() {
       const today = await (await fetch(`${SITE}/api/today`)).json();
       const hard = today.curves[2];
       const send = (address, options) => fetch(SITE + address, { method: 'POST', ...options });
-      assert.strictEqual((await send(`/api/machines/${hard.id}/hint`)).status, 400, 'a request with no body is not a server error');
+      assert.strictEqual((await send(`/api/curves/${hard.id}/hint`)).status, 400, 'a request with no body is not a server error');
       assert.strictEqual((await send('/api/login', { body: 'username=a&password=b',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })).status, 401, 'neither is a form instead of JSON');
 
       const scribble = [[[-9, -9], [-8, -8]]];
-      const skipped = await (await send(`/api/machines/${hard.id}/go`, {
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drawing: scribble, go: 5, hints: 0 })
+      const skipped = await (await send(`/api/curves/${hard.id}/attempts`, {
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ drawing: scribble, attempt: 5, hints: 0 })
       })).json();
       assert.strictEqual(skipped.finished, true);
       assert.strictEqual(skipped.formula, undefined, "a guest who jumps to the last attempt doesn't see today's formula");
@@ -307,7 +307,7 @@ async function main() {
       await away.waitForSelector('#shape-text:not([hidden])');
       for (let attempt = 0; attempt < 5 && !(await away.locator('#result').isVisible()); attempt += 1) {
         await draw(away, across);
-        await away.waitForFunction((count) => document.querySelectorAll('#goes .used').length === count
+        await away.waitForFunction((count) => document.querySelectorAll('#attempts .used').length === count
           || !document.querySelector('#result').hidden, attempt + 1);
       }
       await away.waitForSelector('#result:not([hidden])');

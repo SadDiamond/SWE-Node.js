@@ -7,3 +7,4 @@ public/fonts
 scripts
 src
 public/media
+scripts/fixtures

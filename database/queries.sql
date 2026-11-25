@@ -33,147 +33,164 @@
 
 -- 2. Curves
 
--- Every type of curve, for the History filter (src/server.js, /api/families)
--- SELECT id, name, difficulty, description FROM families ORDER BY id;
+-- Every type of curve, for the History filter (src/server.js, /api/curve_types)
+-- SELECT id, name, difficulty, description FROM curve_types ORDER BY id;
 
 -- Save a day's three curves; already-saved days are left alone (src/rules.js)
--- INSERT OR IGNORE INTO machines
---   (play_date, slot, family_id, a, b, c, extra_family_id, extra_a, extra_b, extra_c, d)
+-- INSERT OR IGNORE INTO curves
+--   (play_date, slot, type_id, a, b, c, extra_type_id, extra_a, extra_b, extra_c, d)
 -- VALUES ('2026-11-23', 1, 4, 2, -1, 3, NULL, NULL, NULL, NULL, NULL);
 
 -- A day's curves with their type names, using a second join for any extra shape (src/rules.js)
--- SELECT machines.*, families.name AS family_name, families.description AS family_description,
---   families.difficulty, extras.name AS extra_name
--- FROM machines
--- INNER JOIN families ON families.id = machines.family_id
--- LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
--- WHERE machines.play_date = '2026-11-23'
--- ORDER BY machines.slot;
+-- SELECT curves.*, curve_types.name AS type_name, curve_types.description AS type_description,
+--   curve_types.difficulty, extras.name AS extra_name
+-- FROM curves
+-- INNER JOIN curve_types ON curve_types.id = curves.type_id
+-- LEFT JOIN curve_types AS extras ON extras.id = curves.extra_type_id
+-- WHERE curves.play_date = '2026-11-23'
+-- ORDER BY curves.slot;
 
 -- One curve, but never one from the future (src/server.js)
--- SELECT machines.*, families.name AS family_name, families.description AS family_description,
---   families.difficulty, extras.name AS extra_name
--- FROM machines
--- INNER JOIN families ON families.id = machines.family_id
--- LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
--- WHERE machines.id = 7 AND machines.play_date <= '2026-11-23';
+-- SELECT curves.*, curve_types.name AS type_name, curve_types.description AS type_description,
+--   curve_types.difficulty, extras.name AS extra_name
+-- FROM curves
+-- INNER JOIN curve_types ON curve_types.id = curves.type_id
+-- LEFT JOIN curve_types AS extras ON extras.id = curves.extra_type_id
+-- WHERE curves.id = 7 AND curves.play_date <= '2026-11-23';
 
 -- 3. Playing
 
 -- Earlier curves that day still unfinished, so they have to be done first (src/server.js)
--- SELECT machines.slot
--- FROM machines
--- LEFT JOIN plays ON plays.machine_id = machines.id AND plays.user_id = 1
--- WHERE machines.play_date = '2026-11-23' AND machines.slot < 2
+-- SELECT curves.slot
+-- FROM curves
+-- LEFT JOIN plays ON plays.curve_id = curves.id AND plays.user_id = 1
+-- WHERE curves.play_date = '2026-11-23' AND curves.slot < 2
 --   AND (plays.id IS NULL OR plays.status = 'playing');
 
 -- Start playing a curve (src/server.js)
--- INSERT OR IGNORE INTO plays (user_id, machine_id) VALUES (1, 7);
+-- INSERT OR IGNORE INTO plays (user_id, curve_id) VALUES (1, 7);
 
 -- Someone's play of a curve (src/server.js)
--- SELECT * FROM plays WHERE user_id = 1 AND machine_id = 7;
+-- SELECT * FROM plays WHERE user_id = 1 AND curve_id = 7;
 
--- Save an attempt (src/server.js, /api/machines/:id/go)
--- INSERT INTO goes (play_id, number, drawing, accuracy) VALUES (3, 1, '[[[-10,2],[-9.5,2.4]]]', 62);
+-- Save an attempt (src/server.js, /api/curves/:id/attempts)
+-- INSERT INTO attempts (play_id, number, drawing, accuracy) VALUES (3, 1, '[[[-10,2],[-9.5,2.4]]]', 62);
 
 -- Count the attempt while the curve is still going (src/server.js)
--- UPDATE plays SET goes = 1 WHERE id = 3;
+-- UPDATE plays SET attempts = 1 WHERE id = 3;
 
 -- Finish the curve (src/server.js)
 -- UPDATE plays
--- SET goes = 2, status = 'solved', accuracy = 91, score = 760, finished_at = CURRENT_TIMESTAMP
+-- SET attempts = 2, status = 'cracked', accuracy = 91, score = 760, finished_at = CURRENT_TIMESTAMP
 -- WHERE id = 3;
 
--- Use a hint (src/server.js, /api/machines/:id/hint)
+-- Use a hint (src/server.js, /api/curves/:id/hint)
 -- UPDATE plays SET hints = 1 WHERE id = 3;
 
 -- The last attempt, to show it again after a reload (src/server.js)
--- SELECT drawing FROM goes WHERE play_id = 3 ORDER BY number DESC LIMIT 1;
+-- SELECT drawing FROM attempts WHERE play_id = 3 ORDER BY number DESC LIMIT 1;
 
 -- 4. Past days
 
 -- How many curves were finished on each of the last 30 days, and the points (src/server.js, /api/days)
--- SELECT machines.play_date AS date, COUNT(*) AS finished, SUM(plays.score) AS points
+-- SELECT curves.play_date AS date, COUNT(*) AS finished, SUM(plays.score) AS points
 -- FROM plays
--- INNER JOIN machines ON machines.id = plays.machine_id
--- WHERE plays.user_id = 1 AND plays.status != 'playing' AND machines.play_date >= '2026-10-25'
--- GROUP BY machines.play_date;
+-- INNER JOIN curves ON curves.id = plays.curve_id
+-- WHERE plays.user_id = 1 AND plays.status != 'playing' AND curves.play_date >= '2026-10-25'
+-- GROUP BY curves.play_date;
 
 -- 5. History
 
 -- Finished curves with filters and a sort (src/server.js, /api/history)
 -- The app only adds the WHERE parts for the filters that are picked, and the sort comes
--- from a fixed list (newest, oldest, best, worst, goes), never from what the browser sends.
--- SELECT machines.play_date, machines.slot,
---        machines.family_id, machines.a, machines.b, machines.c,
---        machines.extra_family_id, machines.extra_a, machines.extra_b, machines.extra_c, machines.d,
---        families.name AS family_name, extras.name AS extra_name,
---        plays.status, plays.goes, plays.hints, plays.accuracy, plays.score
+-- from a fixed list (newest, oldest, best, worst, attempts), never from what the browser sends.
+-- SELECT curves.play_date, curves.slot,
+--        curves.type_id, curves.a, curves.b, curves.c,
+--        curves.extra_type_id, curves.extra_a, curves.extra_b, curves.extra_c, curves.d,
+--        curve_types.name AS type_name, extras.name AS extra_name,
+--        plays.status, plays.attempts, plays.hints, plays.accuracy, plays.score
 -- FROM plays
--- INNER JOIN machines ON machines.id = plays.machine_id
--- INNER JOIN families ON families.id = machines.family_id
--- LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
+-- INNER JOIN curves ON curves.id = plays.curve_id
+-- INNER JOIN curve_types ON curve_types.id = curves.type_id
+-- LEFT JOIN curve_types AS extras ON extras.id = curves.extra_type_id
 -- WHERE plays.user_id = 1 AND plays.status != 'playing'
---   AND machines.slot = 3
---   AND (machines.family_id = 15 OR machines.extra_family_id = 15)
---   AND plays.status = 'solved'
--- ORDER BY plays.score DESC, machines.play_date DESC
+--   AND curves.slot = 3
+--   AND (curves.type_id = 15 OR curves.extra_type_id = 15)
+--   AND plays.status = 'cracked'
+-- ORDER BY plays.score DESC, curves.play_date DESC
 -- LIMIT 200;
 
 -- 6. Stats
 
 -- Totals across everything someone has finished (src/server.js, /api/stats)
 -- SELECT COUNT(*) AS played,
---        COALESCE(SUM(plays.status = 'solved'), 0) AS cracked,
+--        COALESCE(SUM(plays.status = 'cracked'), 0) AS cracked,
 --        COALESCE(SUM(plays.score), 0) AS points,
 --        ROUND(AVG(plays.score)) AS average_score,
 --        MAX(plays.score) AS best_score,
---        ROUND(AVG(plays.goes), 1) AS average_goes,
+--        ROUND(AVG(plays.attempts), 1) AS average_attempts,
 --        COALESCE(SUM(plays.hints), 0) AS hints,
---        COUNT(DISTINCT machines.play_date) AS days
+--        COUNT(DISTINCT curves.play_date) AS days
 -- FROM plays
--- INNER JOIN machines ON machines.id = plays.machine_id
+-- INNER JOIN curves ON curves.id = plays.curve_id
 -- WHERE plays.user_id = 1 AND plays.status != 'playing';
 
 -- Best day, grouping each day's three curves together
--- SELECT machines.play_date AS date, SUM(plays.score) AS points
+-- SELECT curves.play_date AS date, SUM(plays.score) AS points
 -- FROM plays
--- INNER JOIN machines ON machines.id = plays.machine_id
+-- INNER JOIN curves ON curves.id = plays.curve_id
 -- WHERE plays.user_id = 1 AND plays.status != 'playing'
--- GROUP BY machines.play_date
--- ORDER BY points DESC, machines.play_date DESC
+-- GROUP BY curves.play_date
+-- ORDER BY points DESC, curves.play_date DESC
 -- LIMIT 1;
 
 -- How it's going on easy, medium and hard
--- SELECT machines.slot,
+-- SELECT curves.slot,
 --        COUNT(*) AS played,
---        SUM(plays.status = 'solved') AS cracked,
+--        SUM(plays.status = 'cracked') AS cracked,
 --        ROUND(AVG(plays.score)) AS average_score,
---        ROUND(AVG(plays.goes), 1) AS average_goes
+--        ROUND(AVG(plays.attempts), 1) AS average_attempts
 -- FROM plays
--- INNER JOIN machines ON machines.id = plays.machine_id
+-- INNER JOIN curves ON curves.id = plays.curve_id
 -- WHERE plays.user_id = 1 AND plays.status != 'playing'
--- GROUP BY machines.slot
--- ORDER BY machines.slot;
+-- GROUP BY curves.slot
+-- ORDER BY curves.slot;
 
 -- Each type of curve, best average first, leaving out types never played
--- SELECT families.name,
+-- SELECT curve_types.name,
 --        COUNT(plays.id) AS played,
---        SUM(plays.status = 'solved') AS cracked,
+--        SUM(plays.status = 'cracked') AS cracked,
 --        ROUND(AVG(plays.score)) AS average_score,
 --        MAX(plays.score) AS best_score
--- FROM families
--- INNER JOIN machines ON machines.family_id = families.id
--- INNER JOIN plays ON plays.machine_id = machines.id
+-- FROM curve_types
+-- INNER JOIN curves ON curves.type_id = curve_types.id
+-- INNER JOIN plays ON plays.curve_id = curves.id
 -- WHERE plays.user_id = 1 AND plays.status != 'playing'
--- GROUP BY families.id
+-- GROUP BY curve_types.id
 -- HAVING COUNT(plays.id) > 0
 -- ORDER BY average_score DESC;
 
 -- Days played on time, for working out streaks
--- SELECT DISTINCT machines.play_date AS date
+-- SELECT DISTINCT curves.play_date AS date
 -- FROM plays
--- INNER JOIN machines ON machines.id = plays.machine_id
+-- INNER JOIN curves ON curves.id = plays.curve_id
 -- WHERE plays.user_id = 1 AND plays.status != 'playing'
---   AND date(plays.finished_at, 'localtime') <= date(machines.play_date, '+1 day')
--- ORDER BY machines.play_date DESC;
+--   AND date(plays.finished_at, 'localtime') <= date(curves.play_date, '+1 day')
+-- ORDER BY curves.play_date DESC;
+
+-- 7. Upgrading an older database (src/db.js)
+
+-- Renaming everything to the words the site uses: curves, types of curve, attempts and cracked
+-- ALTER TABLE machines RENAME TO curves;
+-- ALTER TABLE curves RENAME COLUMN family_id TO type_id;
+-- ALTER TABLE curves RENAME COLUMN extra_family_id TO extra_type_id;
+-- ALTER TABLE families RENAME TO curve_types;
+-- ALTER TABLE goes RENAME TO attempts;
+
+-- plays needs a new CHECK rule, so it's copied into a new table, changing 'solved' to 'cracked' on the way
+-- INSERT INTO plays_new (id, user_id, curve_id, status, attempts, hints, accuracy, score, started_at, finished_at)
+--   SELECT id, user_id, machine_id, CASE status WHEN 'solved' THEN 'cracked' ELSE status END,
+--          goes, hints, accuracy, score, started_at, finished_at
+--   FROM plays;
+-- DROP TABLE plays;
+-- ALTER TABLE plays_new RENAME TO plays;

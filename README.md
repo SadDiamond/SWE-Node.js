@@ -1,6 +1,6 @@
 # Close Enough
 
-A daily puzzle about working out the rule hidden inside a machine.
+A daily puzzle: find the hidden curve by drawing it.
 
 ## Running the project
 

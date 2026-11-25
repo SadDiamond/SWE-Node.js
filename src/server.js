@@ -34,8 +34,8 @@ app.use('/api', (request, response, next) => {
 });
 app.use(auth.loadUser);
 
-function formulaMath(machine, large) {
-  return katex.renderToString(rules.describe(machine), {
+function formulaMath(curve, large) {
+  return katex.renderToString(rules.describe(curve), {
     output: 'mathml', displayMode: large, throwOnError: false
   });
 }
@@ -156,72 +156,72 @@ app.post('/api/logout', route(async (request, response) => {
   response.status(204).end();
 }));
 
-async function findMachine(id) {
+async function findCurve(id) {
   const endless = /^r(\d{1,10})s([1234])$/.exec(id);
   if (endless) {
     const slot = Number(endless[2]);
-    const machine = rules.machineFromSeed(Number(endless[1]), slot);
+    const curve = rules.curveFromSeed(Number(endless[1]), slot);
     return {
-      ...machine,
+      ...curve,
       id,
       slot,
       endless: true,
-      family_name: rules.FAMILIES[machine.family_id].name,
-      family_description: rules.FAMILIES[machine.family_id].description,
-      extra_name: machine.extra_family_id ? rules.FAMILIES[machine.extra_family_id].name : null
+      type_name: rules.TYPES[curve.type_id].name,
+      type_description: rules.TYPES[curve.type_id].description,
+      extra_name: curve.extra_type_id ? rules.TYPES[curve.extra_type_id].name : null
     };
   }
 
-  const machines = await all(
-    `${rules.MACHINE_SELECT} WHERE machines.id = ? AND machines.play_date <= ?`,
+  const curves = await all(
+    `${rules.CURVE_SELECT} WHERE curves.id = ? AND curves.play_date <= ?`,
     [Number.parseInt(id, 10), rules.todayDate()]
   );
-  return machines[0];
+  return curves[0];
 }
 
-async function findPlay(userId, machineId) {
-  const plays = await all('SELECT * FROM plays WHERE user_id = ? AND machine_id = ?', [userId, machineId]);
+async function findPlay(userId, curveId) {
+  const plays = await all('SELECT * FROM plays WHERE user_id = ? AND curve_id = ?', [userId, curveId]);
   return plays[0];
 }
 
-async function openPlay(userId, machine) {
+async function openPlay(userId, curve) {
   const earlier = await all(`
-    SELECT machines.slot
-    FROM machines
-    LEFT JOIN plays ON plays.machine_id = machines.id AND plays.user_id = ?
-    WHERE machines.play_date = ? AND machines.slot < ?
+    SELECT curves.slot
+    FROM curves
+    LEFT JOIN plays ON plays.curve_id = curves.id AND plays.user_id = ?
+    WHERE curves.play_date = ? AND curves.slot < ?
       AND (plays.id IS NULL OR plays.status = 'playing')
-  `, [userId, machine.play_date, machine.slot]);
+  `, [userId, curve.play_date, curve.slot]);
   if (earlier.length > 0) return { error: 'Finish the earlier curves first.' };
 
-  await run('INSERT OR IGNORE INTO plays (user_id, machine_id) VALUES (?, ?)', [userId, machine.id]);
-  const play = await findPlay(userId, machine.id);
+  await run('INSERT OR IGNORE INTO plays (user_id, curve_id) VALUES (?, ?)', [userId, curve.id]);
+  const play = await findPlay(userId, curve.id);
   if (play.status !== 'playing') return { error: "You've already finished this curve." };
   return { play };
 }
 
-function reveal(machine, accuracy, solved, goes, hints) {
-  return { ...rules.revealed(machine, accuracy, solved, goes, hints), formulaMath: formulaMath(machine, true) };
+function reveal(curve, accuracy, cracked, attempts, hints) {
+  return { ...rules.revealed(curve, accuracy, cracked, attempts, hints), formulaMath: formulaMath(curve, true) };
 }
 
-async function savedState(userId, machine) {
-  const play = await findPlay(userId, machine.id);
+async function savedState(userId, curve) {
+  const play = await findPlay(userId, curve.id);
   if (!play) return null;
 
   const saved = {
-    goes: play.goes,
-    shape: play.hints > 0 ? rules.shapeOf(machine) : null,
-    dots: rules.hintDots(machine).slice(0, Math.max(0, play.hints - 1)),
+    attempts: play.attempts,
+    shape: play.hints > 0 ? rules.shapeOf(curve) : null,
+    dots: rules.hintDots(curve).slice(0, Math.max(0, play.hints - 1)),
     result: null,
     last: null
   };
   if (play.status !== 'playing') {
-    saved.result = reveal(machine, play.accuracy, play.status === 'solved', play.goes, play.hints);
+    saved.result = reveal(curve, play.accuracy, play.status === 'cracked', play.attempts, play.hints);
   }
-  const goes = await all('SELECT drawing FROM goes WHERE play_id = ? ORDER BY number DESC LIMIT 1', [play.id]);
-  if (goes.length > 0) {
-    const strokes = JSON.parse(goes[0].drawing);
-    const marked = rules.judge(strokes, machine);
+  const attempts = await all('SELECT drawing FROM attempts WHERE play_id = ? ORDER BY number DESC LIMIT 1', [play.id]);
+  if (attempts.length > 0) {
+    const strokes = JSON.parse(attempts[0].drawing);
+    const marked = rules.judge(strokes, curve);
     saved.last = { strokes, levels: marked.levels, nudges: marked.nudges, missed: marked.missed, missedRows: marked.missedRows };
   }
   return saved;
@@ -230,10 +230,10 @@ async function savedState(userId, machine) {
 function settings() {
   return {
     limit: rules.LIMIT,
-    maxGoes: rules.MAX_GOES,
+    maxAttempts: rules.MAX_ATTEMPTS,
     maxHints: rules.MAX_HINTS,
     topScore: rules.TOP_SCORE,
-    goPenalty: rules.GO_PENALTY,
+    attemptPenalty: rules.ATTEMPT_PENALTY,
     hintPenalty: rules.HINT_PENALTY,
     shortestStroke: rules.SHORTEST_STROKE,
     mostPoints: rules.MOST_POINTS
@@ -241,21 +241,21 @@ function settings() {
 }
 
 async function sendDay(request, response, date) {
-  const machines = await rules.machinesFor(date);
-  const curves = [];
-  for (const machine of machines) {
-    curves.push({
-      id: machine.id,
-      slot: machine.slot,
-      strokesPerGo: rules.pieces(machine),
-      ink: rules.inkFor(machine),
-      exits: rules.exits(machine),
-      start: rules.startDot(machine),
-      saved: request.user ? await savedState(request.user.id, machine) : null
+  const curves = await rules.curvesFor(date);
+  const shown = [];
+  for (const curve of curves) {
+    shown.push({
+      id: curve.id,
+      slot: curve.slot,
+      strokesPerAttempt: rules.pieces(curve),
+      ink: rules.inkFor(curve),
+      exits: rules.exits(curve),
+      start: rules.startDot(curve),
+      saved: request.user ? await savedState(request.user.id, curve) : null
     });
   }
 
-  response.json({ date, today: date === rules.todayDate(), ...settings(), curves });
+  response.json({ date, today: date === rules.todayDate(), ...settings(), curves: shown });
 }
 
 app.get('/api/today', route((request, response) => sendDay(request, response, rules.todayDate())));
@@ -271,11 +271,11 @@ app.get('/api/day/:date', route(async (request, response) => {
 app.get('/api/days', route(async (request, response) => {
   const dates = rules.pastDates();
   const played = request.user ? await all(`
-    SELECT machines.play_date AS date, COUNT(*) AS finished, SUM(plays.score) AS points
+    SELECT curves.play_date AS date, COUNT(*) AS finished, SUM(plays.score) AS points
     FROM plays
-    INNER JOIN machines ON machines.id = plays.machine_id
-    WHERE plays.user_id = ? AND plays.status != 'playing' AND machines.play_date >= ?
-    GROUP BY machines.play_date
+    INNER JOIN curves ON curves.id = plays.curve_id
+    WHERE plays.user_id = ? AND plays.status != 'playing' AND curves.play_date >= ?
+    GROUP BY curves.play_date
   `, [request.user.id, dates[dates.length - 1]]) : [];
   response.json({
     days: dates.map((date) => {
@@ -289,7 +289,7 @@ app.get('/api/endless', route(async (request, response) => {
   const asked = Number.parseInt(request.query.slot, 10);
   const slot = [1, 2, 3, 4].includes(asked) ? asked : crypto.randomInt(1, 4);
   const seed = crypto.randomInt(1, 2000000000);
-  const machine = rules.machineFromSeed(seed, slot);
+  const curve = rules.curveFromSeed(seed, slot);
 
   response.json({
     date: null,
@@ -297,42 +297,42 @@ app.get('/api/endless', route(async (request, response) => {
     curves: [{
       id: `r${seed}s${slot}`,
       slot,
-      strokesPerGo: rules.pieces(machine),
-      ink: rules.inkFor(machine),
-      exits: rules.exits(machine),
-      start: rules.startDot(machine),
+      strokesPerAttempt: rules.pieces(curve),
+      ink: rules.inkFor(curve),
+      exits: rules.exits(curve),
+      start: rules.startDot(curve),
       saved: null
     }]
   });
 }));
 
-app.post('/api/machines/:id/go', limitMarking, route(async (request, response) => {
-  let { go, hints } = request.body;
+app.post('/api/curves/:id/attempts', limitMarking, route(async (request, response) => {
+  let { attempt, hints } = request.body;
 
   if (!rules.validDrawing(request.body.drawing)) {
     return response.status(400).json({ error: "That drawing didn't come through properly. Try again." });
   }
   const drawing = rules.thinned(request.body.drawing);
-  const machine = await findMachine(request.params.id);
-  if (!machine) return response.status(404).json({ error: "We couldn't find that curve." });
-  if (drawing.length > rules.pieces(machine)) {
+  const curve = await findCurve(request.params.id);
+  if (!curve) return response.status(404).json({ error: "We couldn't find that curve." });
+  if (drawing.length > rules.pieces(curve)) {
     return response.status(400).json({ error: 'Too many strokes for this curve.' });
   }
 
   // The page stops the pen when the ink runs out. This catches a drawing sent some other way.
-  if (rules.inkUsed(drawing) > rules.inkFor(machine) * 1.05) {
+  if (rules.inkUsed(drawing) > rules.inkFor(curve) * 1.05) {
     return response.status(400).json({ error: 'That drawing used more ink than you have.' });
   }
 
   let play = null;
-  if (request.user && !machine.endless) {
-    const opened = await openPlay(request.user.id, machine);
+  if (request.user && !curve.endless) {
+    const opened = await openPlay(request.user.id, curve);
     if (opened.error) return response.status(409).json({ error: opened.error });
     play = opened.play;
-    go = play.goes + 1;
+    attempt = play.attempts + 1;
     hints = play.hints;
   } else {
-    if (!Number.isInteger(go) || go < 1 || go > rules.MAX_GOES) {
+    if (!Number.isInteger(attempt) || attempt < 1 || attempt > rules.MAX_ATTEMPTS) {
       return response.status(400).json({ error: 'Something went wrong with that attempt. Try reloading the page.' });
     }
     if (!Number.isInteger(hints) || hints < 0 || hints > rules.MAX_HINTS) {
@@ -340,45 +340,45 @@ app.post('/api/machines/:id/go', limitMarking, route(async (request, response) =
     }
   }
 
-  const reply = rules.markAttempt(drawing, machine, go, hints);
+  const reply = rules.markAttempt(drawing, curve, attempt, hints);
   // A guest picks their own attempt number, so they could skip straight to the last one.
   // Today's answer is kept back from guests who didn't crack it until the day is over.
-  const keepBack = !request.user && !machine.endless && machine.play_date === rules.todayDate() && !reply.solved;
+  const keepBack = !request.user && !curve.endless && curve.play_date === rules.todayDate() && !reply.cracked;
   if (reply.finished && keepBack) {
-    for (const key of ['curve', 'formula', 'familyName']) delete reply[key];
+    for (const key of ['curve', 'formula', 'typeName']) delete reply[key];
     reply.asymptotes = [];
     reply.keptBack = true;
   } else if (reply.finished) {
-    reply.formulaMath = formulaMath(machine, true);
+    reply.formulaMath = formulaMath(curve, true);
   }
 
   if (play) {
     await run(
-      'INSERT INTO goes (play_id, number, drawing, accuracy) VALUES (?, ?, ?, ?)',
-      [play.id, go, JSON.stringify(drawing), reply.accuracy]
+      'INSERT INTO attempts (play_id, number, drawing, accuracy) VALUES (?, ?, ?, ?)',
+      [play.id, attempt, JSON.stringify(drawing), reply.accuracy]
     );
     if (reply.finished) {
       await run(
         `UPDATE plays
-         SET goes = ?, status = ?, accuracy = ?, score = ?, finished_at = CURRENT_TIMESTAMP
+         SET attempts = ?, status = ?, accuracy = ?, score = ?, finished_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [go, reply.solved ? 'solved' : 'failed', reply.accuracy, reply.score, play.id]
+        [attempt, reply.cracked ? 'cracked' : 'failed', reply.accuracy, reply.score, play.id]
       );
     } else {
-      await run('UPDATE plays SET goes = ? WHERE id = ?', [go, play.id]);
+      await run('UPDATE plays SET attempts = ? WHERE id = ?', [attempt, play.id]);
     }
   }
   response.json(reply);
 }));
 
-app.post('/api/machines/:id/hint', limitMarking, route(async (request, response) => {
-  const machine = await findMachine(request.params.id);
-  if (!machine) return response.status(404).json({ error: "We couldn't find that curve." });
+app.post('/api/curves/:id/hint', limitMarking, route(async (request, response) => {
+  const curve = await findCurve(request.params.id);
+  if (!curve) return response.status(404).json({ error: "We couldn't find that curve." });
 
   let { number } = request.body;
   let play = null;
-  if (request.user && !machine.endless) {
-    const opened = await openPlay(request.user.id, machine);
+  if (request.user && !curve.endless) {
+    const opened = await openPlay(request.user.id, curve);
     if (opened.error) return response.status(409).json({ error: opened.error });
     play = opened.play;
     number = play.hints + 1;
@@ -388,52 +388,52 @@ app.post('/api/machines/:id/hint', limitMarking, route(async (request, response)
   }
 
   if (play) await run('UPDATE plays SET hints = ? WHERE id = ?', [number, play.id]);
-  response.json(rules.hintFor(machine, number));
+  response.json(rules.hintFor(curve, number));
 }));
 
-app.get('/api/families', route(async (_request, response) => {
-  response.json(await all('SELECT id, name, difficulty, description FROM families ORDER BY id'));
+app.get('/api/types', route(async (_request, response) => {
+  response.json(await all('SELECT id, name, difficulty, description FROM curve_types ORDER BY id'));
 }));
 
 app.get('/api/history', auth.requireUser, route(async (request, response) => {
   const slot = Number.parseInt(request.query.slot, 10);
-  const family = Number.parseInt(request.query.family, 10);
+  const type = Number.parseInt(request.query.type, 10);
   const status = request.query.status;
   // Only these exact orderings can be used, so nothing typed into the address ends up in the SQL.
   const sortOptions = {
-    newest: 'machines.play_date DESC, machines.slot ASC',
-    oldest: 'machines.play_date ASC, machines.slot ASC',
-    best: 'plays.score DESC, machines.play_date DESC',
-    worst: 'plays.score ASC, machines.play_date DESC',
-    goes: 'plays.goes ASC, plays.score DESC'
+    newest: 'curves.play_date DESC, curves.slot ASC',
+    oldest: 'curves.play_date ASC, curves.slot ASC',
+    best: 'plays.score DESC, curves.play_date DESC',
+    worst: 'plays.score ASC, curves.play_date DESC',
+    attempts: 'plays.attempts ASC, plays.score DESC'
   };
   const orderBy = sortOptions[request.query.sort] || sortOptions.newest;
 
   const conditions = ['plays.user_id = ?', "plays.status != 'playing'"];
   const values = [request.user.id];
   if ([1, 2, 3].includes(slot)) {
-    conditions.push('machines.slot = ?');
+    conditions.push('curves.slot = ?');
     values.push(slot);
   }
-  if (Number.isInteger(family)) {
-    conditions.push('(machines.family_id = ? OR machines.extra_family_id = ?)');
-    values.push(family, family);
+  if (Number.isInteger(type)) {
+    conditions.push('(curves.type_id = ? OR curves.extra_type_id = ?)');
+    values.push(type, type);
   }
-  if (['solved', 'failed'].includes(status)) {
+  if (['cracked', 'failed'].includes(status)) {
     conditions.push('plays.status = ?');
     values.push(status);
   }
 
   const rows = await all(`
-    SELECT machines.play_date, machines.slot,
-           machines.family_id, machines.a, machines.b, machines.c,
-           machines.extra_family_id, machines.extra_a, machines.extra_b, machines.extra_c, machines.d,
-           families.name AS family_name, extras.name AS extra_name,
-           plays.status, plays.goes, plays.hints, plays.accuracy, plays.score
+    SELECT curves.play_date, curves.slot,
+           curves.type_id, curves.a, curves.b, curves.c,
+           curves.extra_type_id, curves.extra_a, curves.extra_b, curves.extra_c, curves.d,
+           curve_types.name AS type_name, extras.name AS extra_name,
+           plays.status, plays.attempts, plays.hints, plays.accuracy, plays.score
     FROM plays
-    INNER JOIN machines ON machines.id = plays.machine_id
-    INNER JOIN families ON families.id = machines.family_id
-    LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
+    INNER JOIN curves ON curves.id = plays.curve_id
+    INNER JOIN curve_types ON curve_types.id = curves.type_id
+    LEFT JOIN curve_types AS extras ON extras.id = curves.extra_type_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY ${orderBy}
     LIMIT 200
@@ -442,11 +442,11 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
   response.json(rows.map((row) => ({
     date: row.play_date,
     slot: row.slot,
-    familyName: rules.kindName(row),
+    typeName: rules.typeName(row),
     formula: rules.describe(row),
     formulaMath: formulaMath(row, false),
     status: row.status,
-    goes: row.goes,
+    attempts: row.attempts,
     hints: row.hints,
     accuracy: row.accuracy,
     score: row.score
@@ -473,63 +473,63 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
 
   const totals = await all(`
     SELECT COUNT(*) AS played,
-           COALESCE(SUM(plays.status = 'solved'), 0) AS cracked,
+           COALESCE(SUM(plays.status = 'cracked'), 0) AS cracked,
            COALESCE(SUM(plays.score), 0) AS points,
            ROUND(AVG(plays.score)) AS average_score,
            MAX(plays.score) AS best_score,
-           ROUND(AVG(plays.goes), 1) AS average_goes,
+           ROUND(AVG(plays.attempts), 1) AS average_attempts,
            COALESCE(SUM(plays.hints), 0) AS hints,
-           COUNT(DISTINCT machines.play_date) AS days
+           COUNT(DISTINCT curves.play_date) AS days
     FROM plays
-    INNER JOIN machines ON machines.id = plays.machine_id
+    INNER JOIN curves ON curves.id = plays.curve_id
     WHERE plays.user_id = ? AND plays.status != 'playing'
   `, [userId]);
 
   const bestDay = await all(`
-    SELECT machines.play_date AS date, SUM(plays.score) AS points
+    SELECT curves.play_date AS date, SUM(plays.score) AS points
     FROM plays
-    INNER JOIN machines ON machines.id = plays.machine_id
+    INNER JOIN curves ON curves.id = plays.curve_id
     WHERE plays.user_id = ? AND plays.status != 'playing'
-    GROUP BY machines.play_date
-    ORDER BY points DESC, machines.play_date DESC
+    GROUP BY curves.play_date
+    ORDER BY points DESC, curves.play_date DESC
     LIMIT 1
   `, [userId]);
 
   const byDifficulty = await all(`
-    SELECT machines.slot,
+    SELECT curves.slot,
            COUNT(*) AS played,
-           SUM(plays.status = 'solved') AS cracked,
+           SUM(plays.status = 'cracked') AS cracked,
            ROUND(AVG(plays.score)) AS average_score,
-           ROUND(AVG(plays.goes), 1) AS average_goes
+           ROUND(AVG(plays.attempts), 1) AS average_attempts
     FROM plays
-    INNER JOIN machines ON machines.id = plays.machine_id
+    INNER JOIN curves ON curves.id = plays.curve_id
     WHERE plays.user_id = ? AND plays.status != 'playing'
-    GROUP BY machines.slot
-    ORDER BY machines.slot
+    GROUP BY curves.slot
+    ORDER BY curves.slot
   `, [userId]);
 
-  const byFamily = await all(`
-    SELECT families.name,
+  const byType = await all(`
+    SELECT curve_types.name,
            COUNT(plays.id) AS played,
-           SUM(plays.status = 'solved') AS cracked,
+           SUM(plays.status = 'cracked') AS cracked,
            ROUND(AVG(plays.score)) AS average_score,
            MAX(plays.score) AS best_score
-    FROM families
-    INNER JOIN machines ON machines.family_id = families.id
-    INNER JOIN plays ON plays.machine_id = machines.id
+    FROM curve_types
+    INNER JOIN curves ON curves.type_id = curve_types.id
+    INNER JOIN plays ON plays.curve_id = curves.id
     WHERE plays.user_id = ? AND plays.status != 'playing'
-    GROUP BY families.id
+    GROUP BY curve_types.id
     HAVING COUNT(plays.id) > 0
     ORDER BY average_score DESC
   `, [userId]);
 
   const days = await all(`
-    SELECT DISTINCT machines.play_date AS date
+    SELECT DISTINCT curves.play_date AS date
     FROM plays
-    INNER JOIN machines ON machines.id = plays.machine_id
+    INNER JOIN curves ON curves.id = plays.curve_id
     WHERE plays.user_id = ? AND plays.status != 'playing'
-      AND date(plays.finished_at, 'localtime') <= date(machines.play_date, '+1 day')
-    ORDER BY machines.play_date DESC
+      AND date(plays.finished_at, 'localtime') <= date(curves.play_date, '+1 day')
+    ORDER BY curves.play_date DESC
   `, [userId]);
 
   response.json({
@@ -537,7 +537,7 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
     bestDay: bestDay[0] || null,
     streak: countStreaks(days.map((row) => row.date), rules.todayDate()),
     byDifficulty,
-    byFamily
+    byType
   });
 }));
 

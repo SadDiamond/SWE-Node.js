@@ -105,12 +105,12 @@ async function todayPage() {
   }
 
   let drawQueued = false;
-  function showGraphSoon() {
+  function showStrokeSoon() {
     if (drawQueued) return;
     drawQueued = true;
     requestAnimationFrame(() => {
       drawQueued = false;
-      showGraph();
+      drawLiveStroke(graph, round.strokes[round.strokes.length - 1], game.limit);
     });
   }
 
@@ -222,9 +222,11 @@ async function todayPage() {
     find('#result').hidden = !round.result;
     if (round.result) {
       const result = round.result;
-      find('#result-heading').textContent = result.solved
-        ? `Cracked it in ${goesText(round.goes)}`
-        : 'Out of attempts';
+      let heading = 'Out of attempts';
+      if (result.solved) heading = `Cracked it in ${goesText(round.goes)}`;
+      if (result.closeEnough) heading = `Close enough in ${goesText(round.goes)}`;
+      find('#result-heading').textContent = heading;
+      find('#result-close').hidden = !result.closeEnough;
       find('#result-top').textContent = `/ ${game.topScore}`;
       countUp(find('#result-score'), 0, result.score);
 
@@ -350,7 +352,7 @@ async function todayPage() {
     strokeLength += moved;
     round.inkSpent += moved;
     showInk();
-    showGraphSoon();
+    showStrokeSoon();
   }
 
   async function endStroke() {
@@ -451,6 +453,12 @@ async function todayPage() {
   const date = new Date(`${game.date}T00:00`);
   find('#today-date').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   showRound();
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState !== 'visible') return;
+    const latest = await request('/api/today').catch(() => null);
+    if (latest && latest.date !== game.date) location.reload();
+  });
+
   if (rounds.every((item) => item.result)) showSummary();
 }
 

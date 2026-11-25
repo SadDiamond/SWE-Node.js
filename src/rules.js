@@ -10,6 +10,9 @@ const BANDS = [0.5, 1, 1.5, 2.5];
 const SHORTEST_STROKE = 1.5;
 const BIGGEST_STEP = 6;
 const REACH = 30;
+const SHAPE_SHIFTS = [-2, -1, 0, 1, 2];
+const SHAPE_SIZES = [0.85, 1, 1.15];
+const SHAPE_FLOOR = 30;
 const NUDGE_FROM_LEVEL = 3;
 const NUDGE_SPACING = 1.5;
 const INK_TO_SPARE = 1.5;
@@ -197,7 +200,54 @@ function judge(strokes, machine) {
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
-  return { levels, nudges, missed, accuracy, solved: accuracy >= SOLVED_AT };
+
+  const closeEnough = accuracy < SOLVED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible);
+  return { levels, nudges, missed, accuracy, closeEnough, solved: accuracy >= SOLVED_AT || closeEnough };
+}
+
+function accuracyOf(strokes, whole, visible) {
+  let inkLength = 0;
+  let inkOnCurve = 0;
+  for (const stroke of strokes) {
+    for (let index = 1; index < stroke.length; index += 1) {
+      const [x, y] = stroke[index];
+      const length = Math.hypot(x - stroke[index - 1][0], y - stroke[index - 1][1]);
+      inkLength += length;
+      inkOnCurve += length * (1 - levelFor(nearestOnCurve(x, y, whole).distance) / BANDS.length);
+    }
+  }
+
+  let curvePoints = 0;
+  let curveCovered = 0;
+  visible.forEach((output, column) => {
+    if (output === null) return;
+    curvePoints += 1;
+    curveCovered += 1 - levelFor(distanceToDrawing(inputFor(column), output, strokes)) / BANDS.length;
+  });
+
+  const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
+  const coverage = curvePoints === 0 ? 0 : curveCovered / curvePoints;
+  return ((precision + coverage) / 2) * 100;
+}
+
+function rightShape(strokes, whole, visible) {
+  const light = strokes.map((stroke) => stroke.filter((_point, index) => index % 4 === 0 || index === stroke.length - 1));
+  const points = light.flat();
+  const middleX = (Math.min(...points.map(([x]) => x)) + Math.max(...points.map(([x]) => x))) / 2;
+  const middleY = (Math.min(...points.map(([, y]) => y)) + Math.max(...points.map(([, y]) => y))) / 2;
+
+  for (const scale of SHAPE_SIZES) {
+    for (const across of SHAPE_SHIFTS) {
+      for (const up of SHAPE_SHIFTS) {
+        const moved = light.map((stroke) => stroke.map(([x, y]) => [
+          middleX + (x - middleX) * scale + across,
+          middleY + (y - middleY) * scale + up
+        ]));
+        if (accuracyOf(moved, whole, visible) >= SOLVED_AT) return true;
+      }
+    }
+  }
+  return false;
 }
 
 function validDrawing(strokes) {
@@ -362,7 +412,9 @@ function dayNumber(date) {
 }
 
 function todayDate() {
-  return new Date().toLocaleDateString('en-CA');
+  const now = new Date();
+  const two = (number) => String(number).padStart(2, '0');
+  return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
 }
 
 function randomMachine(next, familyId) {
@@ -398,10 +450,8 @@ function randomMachine(next, familyId) {
 
 const RECIPES_FOR_SLOT = {
   1: [[LINE], [PARABOLA], [V_SHAPE]],
-  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL],
-    [LINE, WAVE], [PARABOLA, WAVE], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
-  3: [[HYPERBOLA], [SLANTED],
-    [HYPERBOLA, PARABOLA], [HYPERBOLA, WAVE], [HYPERBOLA, V_SHAPE], [CUBIC, WAVE], [EXPONENTIAL, LINE]]
+  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
+  3: [[HYPERBOLA], [SLANTED], [HYPERBOLA, PARABOLA], [HYPERBOLA, V_SHAPE], [EXPONENTIAL, LINE]]
 };
 
 function randomExtra(next, familyId) {
@@ -411,8 +461,6 @@ function randomExtra(next, familyId) {
   switch (familyId) {
     case LINE:
       return { extra_a: pick([-3, -2, -1, 1, 2, 3]), extra_b: 0, extra_c: 0 };
-    case WAVE:
-      return { extra_a: between(1, 2), extra_b: between(2, 4), extra_c: 0 };
     case PARABOLA:
       return { extra_a: pick([-1, 1]), extra_b: between(-3, 3), extra_c: 0 };
     default:
@@ -421,7 +469,11 @@ function randomExtra(next, familyId) {
 }
 
 function makeMachine(date, slot) {
-  const next = numberMaker(dayNumber(date) * 7919 + slot * 104729);
+  return machineFromSeed(dayNumber(date) * 7919 + slot * 104729, slot);
+}
+
+function machineFromSeed(seed, slot) {
+  const next = numberMaker(seed);
   const recipes = RECIPES_FOR_SLOT[slot];
   const [familyId, extraFamilyId] = recipes[next(recipes.length)];
 
@@ -481,6 +533,6 @@ async function fillHistory() {
 module.exports = {
   COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
-  asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machinesFor, makeMachine,
+  asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machineFromSeed, machinesFor, makeMachine,
   hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
 };

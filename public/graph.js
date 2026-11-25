@@ -72,17 +72,25 @@ function strokePath(stroke, scale) {
 }
 
 function drawMarked(group, strokes, levels, scale) {
+  const at = ([x, y]) => `${scale.xFor(x).toFixed(1)} ${scale.yFor(y).toFixed(1)}`;
   strokes.forEach((stroke, strokeIndex) => {
+    let path = null;
     for (let index = 1; index < stroke.length; index += 1) {
-      group.append(svgElement('line', {
-        class: `mark l${levels[strokeIndex][index]}`,
-        x1: scale.xFor(stroke[index - 1][0]),
-        y1: scale.yFor(stroke[index - 1][1]),
-        x2: scale.xFor(stroke[index][0]),
-        y2: scale.yFor(stroke[index][1])
-      }));
+      const level = levels[strokeIndex][index];
+      if (path && path.level === level) {
+        path.d += ` L${at(stroke[index])}`;
+      } else {
+        if (path) group.append(svgElement('path', { class: `mark l${path.level}`, d: path.d }));
+        path = { level, d: `M${at(stroke[index - 1])} L${at(stroke[index])}` };
+      }
     }
+    if (path) group.append(svgElement('path', { class: `mark l${path.level}`, d: path.d }));
   });
+}
+
+function drawLiveStroke(svg, stroke, limit) {
+  const path = svg.querySelector('.stroke.live');
+  if (path) path.setAttribute('d', strokePath(stroke, scaleFor(svg, limit)));
 }
 
 function drawNudges(group, nudges, scale) {
@@ -152,8 +160,9 @@ function drawGraph(svg, picture, limit) {
     if (!picture.curve) drawNudges(group, picture.shown.nudges, scale);
     svg.append(group);
   }
-  picture.strokes.forEach((stroke) => {
-    svg.append(svgElement('path', { class: 'stroke', d: strokePath(stroke, scale) }));
+  picture.strokes.forEach((stroke, index) => {
+    const live = index === picture.strokes.length - 1;
+    svg.append(svgElement('path', { class: live ? 'stroke live' : 'stroke', d: strokePath(stroke, scale) }));
   });
 
   if (picture.curve) {

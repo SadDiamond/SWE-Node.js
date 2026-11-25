@@ -213,6 +213,7 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   const reply = finished
     ? reveal(machine, result.accuracy, result.solved, go, hints)
     : { accuracy: result.accuracy, solved: false, finished: false };
+  reply.closeEnough = result.closeEnough;
   reply.levels = result.levels;
   reply.nudges = result.nudges;
   reply.missed = result.missed;

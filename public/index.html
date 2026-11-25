@@ -15,6 +15,8 @@
       <nav aria-label="Main navigation">
         <ul>
           <li><a href="/" aria-current="page">Today</a></li>
+          <li><a href="/history.html">History</a></li>
+          <li><a href="/stats.html">Stats</a></li>
           <li><a href="/account.html" id="account-link">Log in</a></li>
         </ul>
       </nav>
@@ -29,19 +31,19 @@
           leaves the graph.
         </p>
 
-        <ol id="tabs" class="tabs" aria-label="Today's three curves, played in order"></ol>
+        <ol id="tabs" class="tabs" aria-label="Today's three curves"></ol>
         <p id="stroke-info" class="stroke-info"></p>
       </div>
 
       <section class="board" aria-labelledby="graph-heading">
         <h2 id="graph-heading" class="visually-hidden">Graph</h2>
         <svg id="graph" class="graph" role="img" tabindex="0"
-             aria-label="Graph from −10 to 10. Nothing checked yet." aria-describedby="keyboard-help"></svg>
+              aria-label="Graph from −10 to 10." aria-describedby="keyboard-help"></svg>
 
         <div id="ink" class="ink">
           <span id="ink-label" class="ink-label">Ink</span>
           <div class="ink-bar" role="progressbar" aria-labelledby="ink-label"
-               aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
             <div id="ink-level" class="ink-level"></div>
           </div>
         </div>

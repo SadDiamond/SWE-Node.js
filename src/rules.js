@@ -14,6 +14,7 @@ const NUDGE_FROM_LEVEL = 3;
 const NUDGE_SPACING = 1.5;
 const INK_TO_SPARE = 1.5;
 const SMALLEST_INK = 30;
+const SHARE_ON_SCREEN = 0.5;
 const MOST_POINTS = 3000;
 const DAYS_OF_HISTORY = 30;
 
@@ -22,7 +23,7 @@ const PARABOLA = 2;
 const V_SHAPE = 3;
 const CUBIC = 4;
 const WAVE = 5;
-const ROOT = 6;
+const CUBE_ROOT = 6;
 const EXPONENTIAL = 7;
 const HYPERBOLA = 8;
 const SLANTED = 9;
@@ -31,10 +32,8 @@ function inputFor(column) {
   return column / STEPS_PER_UNIT - LIMIT;
 }
 
-function evaluate(machine, x) {
-  const { a, b, c } = machine;
-
-  switch (machine.family_id) {
+function partValue(familyId, a, b, c, x) {
+  switch (familyId) {
     case LINE:
       return (a / 2) * x + b;
     case PARABOLA:
@@ -45,8 +44,8 @@ function evaluate(machine, x) {
       return (a / 16) * (x - b + c) * (x - b) * (x - b - c);
     case WAVE:
       return a * Math.sin((Math.PI * x) / b) + c;
-    case ROOT:
-      return x < b ? null : a * Math.sqrt(x - b) + c;
+    case CUBE_ROOT:
+      return a * Math.cbrt(x - b) + c;
     case EXPONENTIAL:
       return a * 2 ** (x / b) + c;
     case HYPERBOLA:
@@ -54,6 +53,14 @@ function evaluate(machine, x) {
     default:
       return x === b ? null : (c / 2) * x + a / (x - b);
   }
+}
+
+function evaluate(machine, x) {
+  const main = partValue(machine.family_id, machine.a, machine.b, machine.c, x);
+  if (main === null || !machine.extra_family_id) return main;
+
+  const extra = partValue(machine.extra_family_id, machine.extra_a, machine.extra_b, machine.extra_c, x);
+  return extra === null ? null : main + extra;
 }
 
 function visibleCurve(machine) {
@@ -260,72 +267,86 @@ function scoreFor(accuracy, goes, hints) {
   return Math.max(0, Math.round(score));
 }
 
-function text(number) {
-  return String(Math.round(number * 10000) / 10000).replace('-', '−');
+function commonFactor(a, b) {
+  return b === 0 ? Math.abs(a) : commonFactor(b, a % b);
 }
 
-function times(number) {
-  if (number === 1) return '';
-  if (number === -1) return '−';
-  return text(number);
+function multiplier(top, bottom) {
+  const factor = commonFactor(top, bottom);
+  const sign = top < 0 ? '-' : '';
+  const above = Math.abs(top) / factor;
+  const below = bottom / factor;
+
+  if (below === 1) return above === 1 ? sign : `${sign}${above}`;
+  return `${sign}\\frac{${above}}{${below}}`;
 }
 
 function shifted(amount) {
   if (amount === 0) return 'x';
-  return amount > 0 ? `x − ${amount}` : `x + ${-amount}`;
+  return amount > 0 ? `x - ${amount}` : `x + ${-amount}`;
 }
 
 function plus(number) {
   if (number === 0) return '';
-  return number > 0 ? ` + ${text(number)}` : ` − ${text(-number)}`;
+  return number > 0 ? ` + ${number}` : ` - ${-number}`;
 }
 
 function bracket(amount) {
   return amount === 0 ? 'x' : `(${shifted(amount)})`;
 }
 
-function describe(machine) {
-  const { a, b, c } = machine;
-
-  switch (machine.family_id) {
+function expression(familyId, a, b, c) {
+  switch (familyId) {
     case LINE:
-      return `y = ${times(a / 2)}x${plus(b)}`;
+      return `${multiplier(a, 2)}x${plus(b)}`;
     case PARABOLA:
-      return `y = ${times(a / 4)}${bracket(b)}²${plus(c)}`;
+      return `${multiplier(a, 4)}${bracket(b)}^2${plus(c)}`;
     case V_SHAPE:
-      return `y = ${times(a / 2)}|${shifted(b)}|${plus(c)}`;
+      return `${multiplier(a, 2)}\\left|${shifted(b)}\\right|${plus(c)}`;
     case CUBIC:
-      return `y = ${times(a / 16)}${bracket(b - c)}${bracket(b)}${bracket(b + c)}`;
+      return `${multiplier(a, 16)}${bracket(b - c)}${bracket(b)}${bracket(b + c)}`;
     case WAVE:
-      return `y = ${a === 1 ? '' : `${a} `}sin(πx ÷ ${b})${plus(c)}`;
-    case ROOT:
-      return `y = ${times(a)}√(${shifted(b)})${plus(c)}`;
+      return `${multiplier(a, 1)}\\sin\\left(\\frac{\\pi x}{${b}}\\right)${plus(c)}`;
+    case CUBE_ROOT:
+      return `${multiplier(a, 1)}\\sqrt[3]{${shifted(b)}}${plus(c)}`;
     case EXPONENTIAL: {
-      let power = `2^(x ÷ ${text(b)})`;
-      if (b === 1) power = '2^x';
-      if (b === -1) power = '2^(−x)';
-      const front = Math.abs(a) === 1 ? times(a) : `${text(a)} × `;
-      return `y = ${front}${power}${plus(c)}`;
+      const size = Math.abs(b) === 1 ? 'x' : `\\frac{x}{${Math.abs(b)}}`;
+      const power = `2^{${b < 0 ? '-' : ''}${size}}`;
+      const front = Math.abs(a) === 1 ? multiplier(a, 1) : `${a} \\times `;
+      return `${front}${power}${plus(c)}`;
     }
     case HYPERBOLA:
-      return `y = ${text(a)} ÷ ${bracket(b)}${plus(c)}`;
+      return `${a < 0 ? '-' : ''}\\frac{${Math.abs(a)}}{${shifted(b)}}${plus(c)}`;
     default:
-      return `y = ${times(c / 2)}x ${a > 0 ? '+' : '−'} ${Math.abs(a)} ÷ ${bracket(b)}`;
+      return `${multiplier(c, 2)}x ${a > 0 ? '+' : '-'} \\frac{${Math.abs(a)}}{${shifted(b)}}`;
   }
+}
+
+function describe(machine) {
+  const main = expression(machine.family_id, machine.a, machine.b, machine.c);
+  if (!machine.extra_family_id) return `y = ${main}`;
+
+  const extra = expression(machine.extra_family_id, machine.extra_a, machine.extra_b, machine.extra_c);
+  return extra.startsWith('-') ? `y = ${main} - ${extra.slice(1)}` : `y = ${main} + ${extra}`;
 }
 
 function asymptotes(machine) {
   const { b, c } = machine;
-  if (machine.family_id === HYPERBOLA) {
-    return [{ kind: 'vertical', input: b }, { kind: 'sloped', slope: 0, start: c }];
+  const lines = [];
+  const hugsVertical = machine.family_id === HYPERBOLA || machine.family_id === SLANTED;
+  if (hugsVertical) lines.push({ kind: 'vertical', input: b });
+
+  let tilt = 0;
+  if (machine.extra_family_id === LINE) tilt = machine.extra_a / 2;
+  else if (machine.extra_family_id) return lines;
+
+  if (machine.family_id === HYPERBOLA || machine.family_id === EXPONENTIAL) {
+    lines.push({ kind: 'sloped', slope: tilt, start: c });
   }
   if (machine.family_id === SLANTED) {
-    return [{ kind: 'vertical', input: b }, { kind: 'sloped', slope: c / 2, start: 0 }];
+    lines.push({ kind: 'sloped', slope: c / 2 + tilt, start: 0 });
   }
-  if (machine.family_id === EXPONENTIAL) {
-    return [{ kind: 'sloped', slope: 0, start: c }];
-  }
-  return [];
+  return lines;
 }
 
 function numberMaker(seed) {
@@ -364,8 +385,8 @@ function randomMachine(next, familyId) {
       return { a: nonZero(-3, 3), b: between(-3, 3), c: pick([4, 5]) };
     case WAVE:
       return { a: between(1, 5), b: between(2, 5), c: between(-4, 4) };
-    case ROOT:
-      return { a: nonZero(-3, 3), b: between(-9, 0), c: between(-6, 6) };
+    case CUBE_ROOT:
+      return { a: nonZero(-3, 3), b: between(-5, 5), c: between(-5, 5) };
     case EXPONENTIAL:
       return { a: nonZero(-3, 3), b: nonZero(-3, 3), c: between(-6, 6) };
     case HYPERBOLA:
@@ -375,41 +396,79 @@ function randomMachine(next, familyId) {
   }
 }
 
-const FAMILIES_FOR_SLOT = {
-  1: [LINE, PARABOLA, V_SHAPE],
-  2: [CUBIC, WAVE, ROOT, EXPONENTIAL],
-  3: [HYPERBOLA, SLANTED]
+const RECIPES_FOR_SLOT = {
+  1: [[LINE], [PARABOLA], [V_SHAPE]],
+  2: [[CUBIC], [WAVE], [CUBE_ROOT], [EXPONENTIAL],
+    [LINE, WAVE], [PARABOLA, WAVE], [V_SHAPE, LINE], [CUBE_ROOT, LINE]],
+  3: [[HYPERBOLA], [SLANTED],
+    [HYPERBOLA, PARABOLA], [HYPERBOLA, WAVE], [HYPERBOLA, V_SHAPE], [CUBIC, WAVE], [EXPONENTIAL, LINE]]
 };
+
+function randomExtra(next, familyId) {
+  const between = (low, high) => low + next(high - low + 1);
+  const pick = (choices) => choices[next(choices.length)];
+
+  switch (familyId) {
+    case LINE:
+      return { extra_a: pick([-3, -2, -1, 1, 2, 3]), extra_b: 0, extra_c: 0 };
+    case WAVE:
+      return { extra_a: between(1, 2), extra_b: between(2, 4), extra_c: 0 };
+    case PARABOLA:
+      return { extra_a: pick([-1, 1]), extra_b: between(-3, 3), extra_c: 0 };
+    default:
+      return { extra_a: pick([-2, -1, 1, 2]), extra_b: between(-3, 3), extra_c: 0 };
+  }
+}
 
 function makeMachine(date, slot) {
   const next = numberMaker(dayNumber(date) * 7919 + slot * 104729);
-  const choices = FAMILIES_FOR_SLOT[slot];
-  const familyId = choices[next(choices.length)];
+  const recipes = RECIPES_FOR_SLOT[slot];
+  const [familyId, extraFamilyId] = recipes[next(recipes.length)];
 
   let machine;
   let onScreen = 0;
-  while (onScreen < COLUMNS * 0.3) {
-    machine = { family_id: familyId, ...randomMachine(next, familyId) };
+  while (onScreen < COLUMNS * SHARE_ON_SCREEN) {
+    machine = {
+      family_id: familyId,
+      ...randomMachine(next, familyId),
+      extra_family_id: null,
+      extra_a: null,
+      extra_b: null,
+      extra_c: null
+    };
+    if (extraFamilyId) {
+      machine = { ...machine, extra_family_id: extraFamilyId, ...randomExtra(next, extraFamilyId) };
+    }
     onScreen = visibleCurve(machine).filter((output) => output !== null).length;
   }
   return machine;
+}
+
+const MACHINE_SELECT = `
+  SELECT machines.*, families.name AS family_name, families.difficulty, extras.name AS extra_name
+  FROM machines
+  INNER JOIN families ON families.id = machines.family_id
+  LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
+`;
+
+function kindName(machine) {
+  return machine.extra_name
+    ? `${machine.family_name} + ${machine.extra_name.toLowerCase()}`
+    : machine.family_name;
 }
 
 async function machinesFor(date) {
   for (const slot of [1, 2, 3]) {
     const made = makeMachine(date, slot);
     await run(
-      'INSERT OR IGNORE INTO machines (play_date, slot, family_id, a, b, c) VALUES (?, ?, ?, ?, ?, ?)',
-      [date, slot, made.family_id, made.a, made.b, made.c]
+      `INSERT OR IGNORE INTO machines
+         (play_date, slot, family_id, a, b, c, extra_family_id, extra_a, extra_b, extra_c)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [date, slot, made.family_id, made.a, made.b, made.c,
+        made.extra_family_id, made.extra_a, made.extra_b, made.extra_c]
     );
   }
-  return all(`
-    SELECT machines.*, families.name AS family_name, families.difficulty
-    FROM machines
-    INNER JOIN families ON families.id = machines.family_id
-    WHERE machines.play_date = ?
-    ORDER BY machines.slot
-  `, [date]);
+  return all(`${MACHINE_SELECT} WHERE machines.play_date = ? ORDER BY machines.slot`, [date]);
 }
 
 async function fillHistory() {
@@ -420,8 +479,8 @@ async function fillHistory() {
 }
 
 module.exports = {
-  COLUMNS, GO_PENALTY, HINT_PENALTY, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
-  LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
+  COLUMNS, GO_PENALTY, HINT_PENALTY, MACHINE_SELECT, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
+  LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, CUBE_ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
   asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machinesFor, makeMachine,
-  hintDots, inkFor, inkUsed, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
+  hintDots, inkFor, inkUsed, kindName, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
 };

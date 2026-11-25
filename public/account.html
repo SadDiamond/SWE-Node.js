@@ -15,6 +15,8 @@
       <nav aria-label="Main navigation">
         <ul>
           <li><a href="/">Today</a></li>
+          <li><a href="/history.html">History</a></li>
+          <li><a href="/stats.html">Stats</a></li>
           <li><a href="/account.html" id="account-link" aria-current="page">Log in</a></li>
         </ul>
       </nav>
@@ -42,8 +44,8 @@
           <h2>Sign up</h2>
           <label for="signup-username">Username</label>
           <input id="signup-username" name="username" autocomplete="username"
-                 minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" required
-                 aria-describedby="signup-username-help">
+                  minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" required
+                  aria-describedby="signup-username-help">
           <p id="signup-username-help" class="help">3 to 20 letters, numbers or underscores.</p>
 
           <label for="signup-name">Display name (optional)</label>
@@ -51,7 +53,7 @@
 
           <label for="signup-password">Password</label>
           <input id="signup-password" name="password" type="password" autocomplete="new-password"
-                 minlength="8" maxlength="100" required aria-describedby="signup-password-help">
+                  minlength="8" maxlength="100" required aria-describedby="signup-password-help">
           <p id="signup-password-help" class="help">At least 8 characters.</p>
 
           <button type="submit" class="primary">Create account</button>

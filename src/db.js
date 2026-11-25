@@ -32,7 +32,7 @@ function all(sql, parameters = []) {
   });
 }
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 7;
 
 function exec(sql) {
   return new Promise((resolve, reject) => {

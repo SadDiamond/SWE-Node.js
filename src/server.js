@@ -1,5 +1,6 @@
 const path = require('node:path');
 const express = require('express');
+const katex = require('katex');
 const { all, initialiseDatabase, run } = require('./db');
 const auth = require('./auth');
 const rules = require('./rules');
@@ -22,6 +23,12 @@ app.use((_request, response, next) => {
 });
 app.use(express.static(publicDirectory, { extensions: ['html'] }));
 app.use(auth.loadUser);
+
+function formulaMath(machine, large) {
+  return katex.renderToString(rules.describe(machine), {
+    output: 'mathml', displayMode: large, throwOnError: false
+  });
+}
 
 function route(handler) {
   return (request, response, next) => handler(request, response).catch(next);
@@ -79,12 +86,10 @@ app.post('/api/logout', route(async (request, response) => {
 }));
 
 async function findMachine(id) {
-  const machines = await all(`
-    SELECT machines.*, families.name AS family_name
-    FROM machines
-    INNER JOIN families ON families.id = machines.family_id
-    WHERE machines.id = ? AND machines.play_date <= ?
-  `, [id, rules.todayDate()]);
+  const machines = await all(
+    `${rules.MACHINE_SELECT} WHERE machines.id = ? AND machines.play_date <= ?`,
+    [id, rules.todayDate()]
+  );
   return machines[0];
 }
 
@@ -116,8 +121,9 @@ function reveal(machine, accuracy, solved, goes, hints) {
     finished: true,
     score: rules.scoreFor(accuracy, goes, hints),
     curve: rules.visibleCurve(machine),
-    familyName: machine.family_name,
+    familyName: rules.kindName(machine),
     formula: rules.describe(machine),
+    formulaMath: formulaMath(machine, true),
     asymptotes: rules.asymptotes(machine)
   };
 }
@@ -274,8 +280,8 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
     values.push(slot);
   }
   if (Number.isInteger(family)) {
-    conditions.push('machines.family_id = ?');
-    values.push(family);
+    conditions.push('(machines.family_id = ? OR machines.extra_family_id = ?)');
+    values.push(family, family);
   }
   if (['solved', 'failed'].includes(status)) {
     conditions.push('plays.status = ?');
@@ -283,12 +289,15 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
   }
 
   const rows = await all(`
-    SELECT machines.play_date, machines.slot, machines.family_id, machines.a, machines.b, machines.c,
-           families.name AS family_name,
+    SELECT machines.play_date, machines.slot,
+           machines.family_id, machines.a, machines.b, machines.c,
+           machines.extra_family_id, machines.extra_a, machines.extra_b, machines.extra_c,
+           families.name AS family_name, extras.name AS extra_name,
            plays.status, plays.goes, plays.hints, plays.accuracy, plays.score
     FROM plays
     INNER JOIN machines ON machines.id = plays.machine_id
     INNER JOIN families ON families.id = machines.family_id
+    LEFT JOIN families AS extras ON extras.id = machines.extra_family_id
     WHERE ${conditions.join(' AND ')}
     ORDER BY ${orderBy}
     LIMIT 200
@@ -297,8 +306,9 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
   response.json(rows.map((row) => ({
     date: row.play_date,
     slot: row.slot,
-    familyName: row.family_name,
+    familyName: rules.kindName(row),
     formula: rules.describe(row),
+    formulaMath: formulaMath(row, false),
     status: row.status,
     goes: row.goes,
     hints: row.hints,

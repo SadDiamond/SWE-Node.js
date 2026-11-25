@@ -31,8 +31,13 @@ CREATE TABLE IF NOT EXISTS machines (
   a INTEGER NOT NULL CHECK (a BETWEEN -9 AND 9 AND a != 0),
   b INTEGER NOT NULL CHECK (b BETWEEN -9 AND 9),
   c INTEGER NOT NULL CHECK (c BETWEEN -9 AND 9),
+  extra_family_id INTEGER,
+  extra_a INTEGER CHECK (extra_a BETWEEN -9 AND 9 AND extra_a != 0),
+  extra_b INTEGER CHECK (extra_b BETWEEN -9 AND 9),
+  extra_c INTEGER CHECK (extra_c BETWEEN -9 AND 9),
   UNIQUE (play_date, slot),
-  FOREIGN KEY (family_id) REFERENCES families(id)
+  FOREIGN KEY (family_id) REFERENCES families(id),
+  FOREIGN KEY (extra_family_id) REFERENCES families(id)
 );
 
 CREATE TABLE IF NOT EXISTS plays (
@@ -73,7 +78,7 @@ INSERT OR IGNORE INTO families (id, name, difficulty, description) VALUES
   (3, 'V shape', 1, 'Two straight lines meeting at a sharp corner.'),
   (4, 'Cubic', 2, 'A curve with one hill and one dip, heading off in opposite directions at each end.'),
   (5, 'Wave', 2, 'Rises and falls in a repeating pattern, like ripples.'),
-  (6, 'Square root', 2, 'Starts at a point, rises quickly, then levels off. Nothing exists before the start.'),
+  (6, 'Cube root', 2, 'A sideways S: steep in the middle and flattening out towards both sides.'),
   (7, 'Exponential', 2, 'Almost flat on one side, then shoots away faster and faster on the other.'),
   (8, 'Hyperbola', 3, 'Two separate pieces that hug a vertical line and a flat line without touching them.'),
   (9, 'Slanted hyperbola', 3, 'Two pieces that hug a vertical line and a sloping line.');

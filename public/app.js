@@ -13,6 +13,13 @@ function element(tag, text, className) {
   return item;
 }
 
+function mathNode(markup) {
+  const holder = document.createElement('span');
+  holder.className = 'math';
+  holder.innerHTML = markup;
+  return holder;
+}
+
 function goesText(count) {
   return count === 1 ? '1 attempt' : `${count} attempts`;
 }
@@ -144,9 +151,14 @@ async function todayPage() {
     totalOnScreen = totalScore();
   }
 
+  let summaryOpen = false;
+  let summarySeen = false;
+
   function showProgress() {
     const list = find('#tabs');
+    const allDone = rounds.every((item) => item.result);
     list.replaceChildren();
+
     rounds.forEach((item) => {
       let state = 'locked';
       let note = 'Locked';
@@ -157,11 +169,32 @@ async function todayPage() {
         state = 'current';
         note = 'Now';
       }
+      const label = [element('span', `${item.slot}. ${SLOT_NAMES[item.slot]}`), element('span', note, 'tab-score')];
       const step = element('li', undefined, `tab ${state}`);
-      step.append(element('span', `${item.slot}. ${SLOT_NAMES[item.slot]}`), element('span', note, 'tab-score'));
-      if (state === 'current') step.setAttribute('aria-current', 'step');
+
+      if (allDone) {
+        const button = element('button', undefined, 'tab-button');
+        button.type = 'button';
+        button.append(...label);
+        button.setAttribute('aria-label', `Look back at the ${SLOT_NAMES[item.slot].toLowerCase()} curve`);
+        button.addEventListener('click', () => lookBack(item));
+        if (!summaryOpen && item === round) step.classList.add('viewing');
+        step.append(button);
+      } else {
+        step.append(...label);
+        if (state === 'current') step.setAttribute('aria-current', 'step');
+      }
       list.append(step);
     });
+  }
+
+  function lookBack(item) {
+    round = item;
+    summaryOpen = false;
+    find('.layout').classList.remove('ended');
+    find('#summary').hidden = true;
+    message('');
+    showRound();
   }
 
   function showRound() {
@@ -203,10 +236,12 @@ async function todayPage() {
       }
       find('#result-working').replaceChildren(...lines.map((line) => element('li', line)));
       find('#result-family').textContent = result.familyName;
-      find('#result-formula').textContent = result.formula;
+      find('#result-formula').replaceChildren(mathNode(result.formulaMath));
 
       const more = rounds.some((item) => !item.result);
-      find('#next-curve').textContent = more ? 'Next curve' : 'See your result';
+      let nextLabel = 'Next curve';
+      if (!more) nextLabel = summarySeen ? 'Back to your result' : 'See your result';
+      find('#next-curve').textContent = nextLabel;
     }
     showProgress();
     showTotal();
@@ -238,6 +273,9 @@ async function todayPage() {
       }));
     }
 
+    summaryOpen = true;
+    summarySeen = true;
+    showProgress();
     find('.layout').classList.add('ended');
     find('#summary').hidden = false;
     countUp(find('#summary-total'), 0, totalScore());
@@ -416,17 +454,6 @@ async function todayPage() {
   if (rounds.every((item) => item.result)) showSummary();
 }
 
-function onSubmit(form, action) {
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    try {
-      await action(Object.fromEntries(new FormData(form)));
-    } catch (error) {
-      message(error.message);
-    }
-  });
-}
-
 const STATUS_NAMES = { solved: 'Cracked', failed: 'Out of attempts' };
 
 function shortDate(date) {
@@ -439,7 +466,7 @@ function addRow(body, values) {
     const cell = document.createElement(index === 0 ? 'th' : 'td');
     if (index === 0) cell.scope = 'row';
     if (typeof value === 'number') cell.className = 'number';
-    cell.textContent = value;
+    cell.append(value);
     row.append(cell);
   });
   body.append(row);
@@ -449,6 +476,12 @@ function membersOnly() {
   find('#guest').hidden = Boolean(currentUser);
   find('#content').hidden = !currentUser;
   return Boolean(currentUser);
+}
+
+function curveCell(row) {
+  const cell = document.createElement('span');
+  cell.append(`${row.familyName}: `, mathNode(row.formulaMath));
+  return cell;
 }
 
 async function historyPage() {
@@ -468,7 +501,7 @@ async function historyPage() {
       addRow(body, [
         shortDate(row.date),
         SLOT_NAMES[row.slot],
-        `${row.familyName}: ${row.formula}`,
+        curveCell(row),
         STATUS_NAMES[row.status],
         row.goes,
         row.hints,

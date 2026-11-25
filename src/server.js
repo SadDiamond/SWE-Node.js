@@ -5,7 +5,7 @@ const auth = require('./auth');
 const rules = require('./rules');
 
 const app = express();
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 6767;
 const publicDirectory = path.join(__dirname, '..', 'public');
 
 app.disable('x-powered-by');

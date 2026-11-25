@@ -22,13 +22,13 @@
     <main id="main" class="layout">
       <div class="lead">
         <h1>Today's curves</h1>
-        <p id="machine-details" class="details">Loading…</p>
+        <p class="details"><span id="today-date">Loading…</span> · <span id="total" class="total">0</span> points</p>
         <p class="intro">
           Three curves are hidden today, from easy to hard. The arrows on the edges show where each one
           leaves the graph.
         </p>
 
-        <div id="tabs" class="tabs" role="group" aria-label="Choose a curve"></div>
+        <ol id="tabs" class="tabs" aria-label="Today's three curves, played in order"></ol>
         <p id="stroke-info" class="stroke-info"></p>
       </div>
 
@@ -50,7 +50,8 @@
 
         <section id="result" class="result" aria-labelledby="result-heading" hidden>
           <h2 id="result-heading"></h2>
-          <p id="result-stars" class="stars"></p>
+          <p class="score"><span id="result-score"></span> <span id="result-top" class="score-top"></span></p>
+          <ul id="result-working" class="working"></ul>
           <p>Type of curve: <strong id="result-family"></strong></p>
           <p class="circled">
             <span id="result-formula" class="formula"></span>
@@ -71,7 +72,6 @@
             lines are asymptotes.
           </p>
           <button type="button" id="next-curve" class="primary">Next curve</button>
-          <p id="day-done" hidden>That's all three for today, so come back tomorrow for some new ones.</p>
         </section>
 
         <section class="key" aria-labelledby="key-heading">
@@ -84,6 +84,7 @@
             <li>Your line is thick and green where you're on the curve, and gets thinner and redder the further off you are.</li>
             <li>Red can also mean there's no curve in that spot at all.</li>
             <li><strong>● Dot</strong>: a spot on the curve. You get these from hints.</li>
+            <li><strong>Scoring</strong>: each curve is out of 1000 depending on how close you get. You lose 100 for each extra attempt and 150 for each hint, and scores never go below 0.</li>
             <li><strong>▲ Arrow on an edge</strong>: where the curve leaves the graph.</li>
             <li><strong>→ Arrow on your line</strong>: you're way off here, and the curve is that way.</li>
             <li><strong>Grey bar along the bottom</strong>: part of the curve you haven't drawn yet. Look above the bar.</li>
@@ -100,6 +101,15 @@
           </details>
         </section>
       </div>
+
+      <section id="summary" class="summary" aria-labelledby="summary-heading" hidden>
+        <h2 id="summary-heading" tabindex="-1">Today's result</h2>
+        <p class="summary-total"><span id="summary-total">0</span> <span class="score-top">points</span></p>
+        <ol id="summary-rows" class="summary-rows"></ol>
+        <button type="button" id="copy-result">Copy result</button>
+        <p id="copy-status" class="help" role="status" aria-live="polite"></p>
+        <p>That's all three. New curves come out tomorrow.</p>
+      </section>
     </main>
 
     <footer>

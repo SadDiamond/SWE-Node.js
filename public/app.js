@@ -46,22 +46,28 @@ function rounded(position) {
   return [Math.round(position.x * 100) / 100, Math.round(position.y * 100) / 100];
 }
 
-async function start() {
+let currentUser = null;
+
+async function todayPage() {
   const game = await request('/api/today');
   const graph = find('#graph');
 
-  const rounds = game.curves.map((curve) => ({
-    ...curve,
-    strokes: [],
-    shown: null,
-    ghost: null,
-    missed: [],
-    dots: [],
-    inkSpent: 0,
-    goes: 0,
-    result: null
-  }));
-  let round = rounds[0];
+  const rounds = game.curves.map((curve) => {
+    const saved = curve.saved;
+    return {
+      ...curve,
+      strokes: [],
+      inkSpent: 0,
+      shown: saved && saved.last ? saved.last : null,
+      ghost: null,
+      missed: saved && saved.last ? saved.last.missed : [],
+      dots: saved ? saved.dots : [],
+      goes: saved ? saved.goes : 0,
+      history: [],
+      result: saved ? saved.result : null
+    };
+  });
+  let round = rounds.find((item) => !item.result) || rounds[rounds.length - 1];
 
   let strokeLength = 0;
   let beforeMarks = null;
@@ -188,7 +194,6 @@ async function start() {
         : 'Out of attempts';
       find('#result-top').textContent = `/ ${game.topScore}`;
       countUp(find('#result-score'), 0, result.score);
-      showTotal();
 
       const extraGoes = round.goes - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
@@ -204,6 +209,7 @@ async function start() {
       find('#next-curve').textContent = more ? 'Next curve' : 'See your result';
     }
     showProgress();
+    showTotal();
     showInk();
     showGraph();
   }
@@ -223,6 +229,14 @@ async function start() {
       );
       rows.append(row);
     });
+
+    find('#save-prompt').hidden = Boolean(currentUser);
+    if (!currentUser) {
+      localStorage.setItem(PENDING_RUN, JSON.stringify({
+        date: game.date,
+        curves: rounds.map((item) => ({ id: item.id, hints: item.dots.length, goes: item.history }))
+      }));
+    }
 
     find('.layout').classList.add('ended');
     find('#summary').hidden = false;
@@ -324,6 +338,7 @@ async function start() {
         drawing: marking.strokes, go: marking.goes + 1, hints: marking.dots.length
       });
       marking.goes += 1;
+      marking.history.push(marking.strokes);
       marking.shown = { strokes: marking.strokes, levels: result.levels, nudges: result.nudges };
       marking.missed = result.missed;
       if (result.finished) {
@@ -398,6 +413,169 @@ async function start() {
   const date = new Date(`${game.date}T00:00`);
   find('#today-date').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   showRound();
+  if (rounds.every((item) => item.result)) showSummary();
+}
+
+function onSubmit(form, action) {
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await action(Object.fromEntries(new FormData(form)));
+    } catch (error) {
+      message(error.message);
+    }
+  });
+}
+
+const STATUS_NAMES = { solved: 'Cracked', failed: 'Out of attempts' };
+
+function shortDate(date) {
+  return new Date(`${date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function addRow(body, values) {
+  const row = document.createElement('tr');
+  values.forEach((value, index) => {
+    const cell = document.createElement(index === 0 ? 'th' : 'td');
+    if (index === 0) cell.scope = 'row';
+    if (typeof value === 'number') cell.className = 'number';
+    cell.textContent = value;
+    row.append(cell);
+  });
+  body.append(row);
+}
+
+function membersOnly() {
+  find('#guest').hidden = Boolean(currentUser);
+  find('#content').hidden = !currentUser;
+  return Boolean(currentUser);
+}
+
+async function historyPage() {
+  if (!membersOnly()) return;
+  const form = find('#filters');
+
+  const families = await request('/api/families');
+  families.forEach((family) => find('#family').add(new Option(family.name, family.id)));
+
+  async function load() {
+    const choices = new URLSearchParams(new FormData(form));
+    const rows = await request(`/api/history?${choices}`);
+
+    const body = find('#history-rows');
+    body.replaceChildren();
+    rows.forEach((row) => {
+      addRow(body, [
+        shortDate(row.date),
+        SLOT_NAMES[row.slot],
+        `${row.familyName}: ${row.formula}`,
+        STATUS_NAMES[row.status],
+        row.goes,
+        row.hints,
+        row.score
+      ]);
+    });
+    const filtered = ['slot', 'family', 'status'].some((name) => choices.get(name));
+    let count = `${rows.length} ${rows.length === 1 ? 'curve' : 'curves'}`;
+    if (rows.length === 0) count = filtered ? 'No curves match these filters.' : "No curves yet. Finish one and it'll show up here.";
+    find('#count').textContent = count;
+  }
+
+  form.addEventListener('change', () => load().catch((error) => message(error.message)));
+  await load();
+}
+
+async function statsPage() {
+  if (!membersOnly()) return;
+  const stats = await request('/api/stats');
+  const totals = stats.totals;
+  const days = (count) => (count === 1 ? '1 day' : `${count} days`);
+
+  find('#stat-points').textContent = totals.points;
+  find('#stat-days').textContent = totals.days;
+  find('#stat-streak').textContent = days(stats.streak.current);
+  find('#stat-best-streak').textContent = days(stats.streak.best);
+  find('#stat-cracked').textContent = `${totals.cracked} of ${totals.played}`;
+  find('#stat-average').textContent = totals.average_score ?? '–';
+  find('#stat-goes').textContent = totals.average_goes ?? '–';
+  find('#stat-best-day').textContent = stats.bestDay
+    ? `${stats.bestDay.points} on ${shortDate(stats.bestDay.date)}`
+    : '–';
+
+  stats.byDifficulty.forEach((row) => {
+    addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.cracked, row.average_score, row.average_goes]);
+  });
+  stats.byFamily.forEach((row) => {
+    addRow(find('#family-rows'), [row.name, row.played, row.cracked, row.average_score, row.best_score]);
+  });
+}
+
+function onSubmit(form, action) {
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await action(Object.fromEntries(new FormData(form)));
+    } catch (error) {
+      message(error.message);
+    }
+  });
+}
+
+async function accountPage() {
+  find('#logged-out').hidden = Boolean(currentUser);
+  find('#logged-in').hidden = !currentUser;
+
+  onSubmit(find('#login-form'), async (fields) => {
+    await send('/api/login', fields);
+    location.href = '/';
+  });
+  onSubmit(find('#signup-form'), async (fields) => {
+    await send('/api/signup', fields);
+    location.href = '/';
+  });
+  if (!currentUser) return;
+
+  find('#account-name').textContent = currentUser.display_name;
+  find('#account-username').textContent = currentUser.username;
+  find('#account-created').textContent = new Date(`${currentUser.created_at.replace(' ', 'T')}Z`)
+    .toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  find('#logout-button').addEventListener('click', async () => {
+    await request('/api/logout', { method: 'POST' });
+    location.href = '/';
+  });
+}
+
+const PENDING_RUN = 'pendingRun';
+
+async function savePendingRun() {
+  const stored = localStorage.getItem(PENDING_RUN);
+  if (!stored) return;
+  localStorage.removeItem(PENDING_RUN);
+
+  const run = JSON.parse(stored);
+  const today = await request('/api/today');
+  if (run.date !== today.date || today.curves.some((curve) => curve.saved)) return;
+
+  for (const curve of run.curves) {
+    for (let hint = 0; hint < curve.hints; hint += 1) {
+      await send(`/api/machines/${curve.id}/hint`, {});
+    }
+    for (const drawing of curve.goes) {
+      await send(`/api/machines/${curve.id}/go`, { drawing });
+    }
+  }
+}
+
+const pages = { today: todayPage, account: accountPage, history: historyPage, stats: statsPage };
+
+async function start() {
+  const me = await request('/api/me');
+  currentUser = me.user;
+  if (currentUser) {
+    find('#account-link').textContent = currentUser.display_name;
+    await savePendingRun();
+  }
+  await pages[document.body.dataset.page]();
 }
 
 start().catch((error) => message(error.message));

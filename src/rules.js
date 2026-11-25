@@ -12,6 +12,8 @@ const BIGGEST_STEP = 6;
 const REACH = 30;
 const NUDGE_FROM_LEVEL = 3;
 const NUDGE_SPACING = 1.5;
+const INK_TO_SPARE = 1.5;
+const SMALLEST_INK = 30;
 const MOST_POINTS = 3000;
 const DAYS_OF_HISTORY = 30;
 
@@ -222,6 +224,29 @@ function hintDots(machine) {
   return [dots[1], dots[0], dots[2]];
 }
 
+function inkFor(machine) {
+  const visible = visibleCurve(machine);
+  let length = 0;
+  for (let column = 1; column < COLUMNS; column += 1) {
+    const here = visible[column];
+    const before = visible[column - 1];
+    if (here !== null && before !== null && Math.abs(here - before) <= BIGGEST_STEP) {
+      length += Math.hypot(1 / STEPS_PER_UNIT, here - before);
+    }
+  }
+  return Math.round(Math.max(SMALLEST_INK, length * INK_TO_SPARE));
+}
+
+function inkUsed(strokes) {
+  let length = 0;
+  for (const stroke of strokes) {
+    for (let index = 1; index < stroke.length; index += 1) {
+      length += Math.hypot(stroke[index][0] - stroke[index - 1][0], stroke[index][1] - stroke[index - 1][1]);
+    }
+  }
+  return length;
+}
+
 function pieces(machine) {
   return 1 + asymptotes(machine).filter((line) => line.kind === 'vertical').length;
 }
@@ -398,5 +423,5 @@ module.exports = {
   COLUMNS, GO_PENALTY, HINT_PENALTY, LIMIT, MAX_GOES, MAX_HINTS, MOST_POINTS, TOP_SCORE, SHORTEST_STROKE, STEPS_PER_UNIT,
   LINE, PARABOLA, V_SHAPE, CUBIC, WAVE, ROOT, EXPONENTIAL, HYPERBOLA, SLANTED,
   asymptotes, describe, evaluate, exits, fillHistory, inputFor, judge, machinesFor, makeMachine,
-  hintDots, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
+  hintDots, inkFor, inkUsed, pieces, scoreFor, todayDate, validDrawing, visibleCurve, wholeCurve
 };

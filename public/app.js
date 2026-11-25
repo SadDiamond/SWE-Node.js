@@ -57,6 +57,7 @@ async function start() {
     ghost: null,
     missed: [],
     dots: [],
+    inkSpent: 0,
     goes: 0,
     result: null
   }));
@@ -81,6 +82,13 @@ async function start() {
       asymptotes: round.result ? round.result.asymptotes : [],
       pen: pen.visible && !round.result ? pen : null
     }, game.limit);
+  }
+
+  function showInk() {
+    const left = Math.max(0, Math.round((1 - round.inkSpent / round.ink) * 100));
+    find('#ink-level').style.width = `${left}%`;
+    find('.ink-bar').setAttribute('aria-valuenow', left);
+    find('#ink').hidden = Boolean(round.result);
   }
 
   let drawQueued = false;
@@ -196,6 +204,7 @@ async function start() {
       find('#next-curve').textContent = more ? 'Next curve' : 'See your result';
     }
     showProgress();
+    showInk();
     showGraph();
   }
 
@@ -281,15 +290,22 @@ async function start() {
     if (moved < PEN_SPACING) return;
     const points = round.strokes.reduce((total, item) => total + item.length, 0);
     if (points >= game.mostPoints) return;
+    if (round.inkSpent + moved > round.ink) {
+      return message("You're out of ink. Lift your pen and it'll get marked.");
+    }
 
     stroke.push(rounded(position));
     strokeLength += moved;
+    round.inkSpent += moved;
+    showInk();
     showGraphSoon();
   }
 
   async function endStroke() {
     if (strokeLength < game.shortestStroke) {
       round.strokes.pop();
+      round.inkSpent -= strokeLength;
+      showInk();
       round.shown = beforeMarks.shown;
       round.ghost = beforeMarks.ghost;
       round.missed = beforeMarks.missed;
@@ -321,18 +337,22 @@ async function start() {
       message(error.message);
     }
     marking.strokes = [];
+    marking.inkSpent = 0;
     waiting = false;
     showRound();
   }
 
   let drawing = false;
   graph.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0 || drawing) return;
     pen.visible = false;
     drawing = startStroke(graphPosition(graph, event, game.limit));
     if (drawing) graph.setPointerCapture(event.pointerId);
   });
   graph.addEventListener('pointermove', (event) => {
-    if (drawing) extendStroke(graphPosition(graph, event, game.limit));
+    if (!drawing) return;
+    if (event.buttons === 0) return liftPointer();
+    extendStroke(graphPosition(graph, event, game.limit));
   });
   function liftPointer() {
     if (!drawing) return;
@@ -341,6 +361,10 @@ async function start() {
   }
   graph.addEventListener('pointerup', liftPointer);
   graph.addEventListener('pointercancel', liftPointer);
+  graph.addEventListener('lostpointercapture', liftPointer);
+  window.addEventListener('pointerup', liftPointer);
+  window.addEventListener('blur', liftPointer);
+  graph.addEventListener('contextmenu', (event) => event.preventDefault());
 
   graph.addEventListener('keydown', (event) => {
     const moves = { ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0], ArrowUp: [0, 0.2], ArrowDown: [0, -0.2] };

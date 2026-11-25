@@ -45,7 +45,7 @@ async function initialiseDatabase() {
 
   const version = await all('PRAGMA user_version');
   if (version[0].user_version < SCHEMA_VERSION) {
-    await exec('DROP TABLE IF EXISTS machines; DROP TABLE IF EXISTS families;');
+    await exec('DROP TABLE IF EXISTS goes; DROP TABLE IF EXISTS plays; DROP TABLE IF EXISTS machines; DROP TABLE IF EXISTS families;');
   }
 
   await exec(await fs.readFile(schemaPath, 'utf8'));

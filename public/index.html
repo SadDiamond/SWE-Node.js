@@ -24,8 +24,8 @@
         <h1>Today's curves</h1>
         <p id="machine-details" class="details">Loading…</p>
         <p class="intro">
-          Three curves are hidden today, from easy to hard. The dots are on the curve, and the arrows on the
-          edges show where each one leaves the graph.
+          Three curves are hidden today, from easy to hard. The arrows on the edges show where each one
+          leaves the graph.
         </p>
 
         <div id="tabs" class="tabs" role="group" aria-label="Choose a curve"></div>
@@ -42,7 +42,9 @@
         <div class="under-graph">
           <div id="goes" class="goes" aria-hidden="true"></div>
           <p id="goes-text" class="goes-text"></p>
+          <button type="button" id="hint">Hint</button>
         </div>
+        <p id="hint-text" class="help"></p>
 
         <p id="form-status" class="status" role="status" aria-live="polite"></p>
 
@@ -81,7 +83,7 @@
           <ul>
             <li>Your line is thick and green where you're on the curve, and gets thinner and redder the further off you are.</li>
             <li>Red can also mean there's no curve in that spot at all.</li>
-            <li><strong>● Dot</strong>: a spot on the curve. Easy curves start with three, medium ones with two and hard ones with one.</li>
+            <li><strong>● Dot</strong>: a spot on the curve. You get these from hints.</li>
             <li><strong>▲ Arrow on an edge</strong>: where the curve leaves the graph.</li>
             <li><strong>→ Arrow on your line</strong>: you're way off here, and the curve is that way.</li>
             <li><strong>Grey bar along the bottom</strong>: part of the curve you haven't drawn yet. Look above the bar.</li>

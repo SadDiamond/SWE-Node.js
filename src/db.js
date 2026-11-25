@@ -44,8 +44,12 @@ async function initialiseDatabase() {
   await fs.mkdir(path.dirname(databasePath), { recursive: true });
 
   const version = await all('PRAGMA user_version');
-  if (version[0].user_version < SCHEMA_VERSION) {
-    await exec('DROP TABLE IF EXISTS goes; DROP TABLE IF EXISTS plays; DROP TABLE IF EXISTS machines; DROP TABLE IF EXISTS families;');
+  if (version[0].user_version !== SCHEMA_VERSION) {
+    await exec(`
+      DROP TABLE IF EXISTS attempts; DROP TABLE IF EXISTS goes; DROP TABLE IF EXISTS plays;
+      DROP TABLE IF EXISTS curves; DROP TABLE IF EXISTS machines;
+      DROP TABLE IF EXISTS curve_types; DROP TABLE IF EXISTS families;
+    `);
   }
 
   await exec(await fs.readFile(schemaPath, 'utf8'));

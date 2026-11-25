@@ -333,7 +333,7 @@ app.post('/api/curves/:id/attempts', limitMarking, route(async (request, respons
     hints = play.hints;
   } else {
     if (!Number.isInteger(attempt) || attempt < 1 || attempt > rules.MAX_ATTEMPTS) {
-      return response.status(400).json({ error: 'Something went wrong with that attempt. Try reloading the page.' });
+      return response.status(400).json({ error: "That attempt didn't work. Try reloading the page." });
     }
     if (!Number.isInteger(hints) || hints < 0 || hints > rules.MAX_HINTS) {
       return response.status(400).json({ error: 'Something went wrong with that hint. Try reloading the page.' });

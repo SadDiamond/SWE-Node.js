@@ -320,7 +320,7 @@ async function playPage(endless) {
 
     const hintsLeft = game.maxHints - hintsUsed(round);
     find('#hint').disabled = hintsLeft === 0;
-    let hintText = `The first hint tells you the type of curve and the next ones show spots on it. Each one costs ${game.hintPenalty} points (${hintsLeft} left).`;
+    let hintText = `Hints show the type of curve first, then spots on it. Each one costs ${game.hintPenalty} points (${hintsLeft} left).`;
     if (round.shape) hintText = `Another hint shows a spot on the curve for ${game.hintPenalty} points (${hintsLeft} left).`;
     if (hintsLeft === 0) hintText = "You've used all your hints for this curve.";
     find('#hint-text').textContent = hintText;
@@ -525,7 +525,7 @@ async function playPage(endless) {
         flashPercent(result.accuracy);
         const joined = result.levels.some((stroke) => stroke.includes(5));
         let advice = 'Trace over the green bits and fix the rest.';
-        if (result.closeEnough) advice = "That's the right shape, just a bit out of place. Try drawing it closer.";
+        if (result.closeEnough) advice = "You've got the right shape, but it's a bit out of place. Try drawing it closer.";
         find('#form-status').replaceChildren(element('strong', `${result.accuracy}%`, 'percent'), ` ${advice}`
           + (joined ? " The grey bit is where your line joins two pieces of the curve that aren't connected." : ''));
       }
@@ -752,7 +752,7 @@ function showPastDay(date) {
   document.title = `${day} · Close Enough`;
   find('h1').textContent = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   find('#today-date').textContent = 'Past day';
-  find('.intro').textContent = "These are the three curves from that day. They count towards your points and history, but not your day streak.";
+  find('.intro').textContent = "These are the three curves from that day.";
   find('#summary-heading').textContent = `Your result for ${day}`;
   find('#summary-end').textContent = "That's all three done for this day.";
   find('nav a[href="/"]').removeAttribute('aria-current');

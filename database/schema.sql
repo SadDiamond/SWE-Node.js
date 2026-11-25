@@ -110,17 +110,17 @@ CREATE INDEX IF NOT EXISTS idx_plays_user ON plays(user_id);
 CREATE INDEX IF NOT EXISTS idx_attempts_play ON attempts(play_id);
 
 INSERT OR IGNORE INTO curve_types (id, name, difficulty, description) VALUES
-  (1, 'Straight line', 1, 'Goes up or down by the same amount with every step across.'),
+  (1, 'Straight line', 1, 'It goes up or down by the same amount for every step across.'),
   (2, 'Parabola', 1, 'A smooth U shape, or an upside-down U, with one turning point.'),
   (3, 'V shape', 1, 'Two straight lines meeting at a sharp corner, pointing up or down.'),
   (4, 'Cubic', 2, 'A curve with one hill and one dip, heading off in opposite directions at each end.'),
-  (5, 'Wave', 2, 'Rises and falls in a repeating pattern, like ripples.'),
-  (6, 'Cube root', 2, 'A sideways S: steep in the middle and flattening out towards both sides.'),
-  (7, 'Exponential', 2, 'Almost flat on one side, then shoots away faster and faster on the other.'),
+  (5, 'Wave', 2, 'It rises and falls over and over in a regular pattern.'),
+  (6, 'Cube root', 2, 'It looks like a sideways S that''s steep in the middle and flattens out on both sides.'),
+  (7, 'Exponential', 2, 'It''s almost flat on one side and then shoots away faster and faster on the other.'),
   (8, 'Hyperbola', 3, 'Two separate pieces that get closer and closer to a vertical line and a flat line without touching them.'),
   (9, 'Slanted hyperbola', 3, 'Two pieces that get closer and closer to a vertical line and a sloping line.'),
   (10, 'Bell curve', 2, 'A single smooth hump, or dip, that flattens out to nothing on both sides.'),
-  (11, 'S-curve', 2, 'Flat on one side, a smooth climb or drop in the middle, then flat again at a new level.'),
+  (11, 'S-curve', 2, 'It''s flat on one side, climbs or drops smoothly in the middle, and then goes flat again at a new level.'),
   (12, 'Quartic', 2, 'A W shape, or an upside-down W, with two dips and a bump in between.'),
   (13, 'Inverse square', 3, 'Two pieces that both shoot up, or both shoot down, beside a vertical line.'),
   (14, 'Tangent', 3, 'Repeating S shapes, each squeezed between two vertical lines it never touches.'),

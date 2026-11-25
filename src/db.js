@@ -82,7 +82,13 @@ const UPGRADES = [
             goes, hints, accuracy, score, started_at, finished_at
      FROM plays;
    DROP TABLE plays;
-   ALTER TABLE plays_new RENAME TO plays;`
+   ALTER TABLE plays_new RENAME TO plays;`,
+  // 13: the type descriptions read as full sentences.
+  `UPDATE curve_types SET description = 'It goes up or down by the same amount for every step across.' WHERE id = 1;
+   UPDATE curve_types SET description = 'It rises and falls over and over in a regular pattern.' WHERE id = 5;
+   UPDATE curve_types SET description = 'It looks like a sideways S that''s steep in the middle and flattens out on both sides.' WHERE id = 6;
+   UPDATE curve_types SET description = 'It''s almost flat on one side and then shoots away faster and faster on the other.' WHERE id = 7;
+   UPDATE curve_types SET description = 'It''s flat on one side, climbs or drops smoothly in the middle, and then goes flat again at a new level.' WHERE id = 11;`
 ];
 const SCHEMA_VERSION = OLDEST_KEPT + UPGRADES.length;
 

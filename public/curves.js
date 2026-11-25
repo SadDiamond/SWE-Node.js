@@ -1053,17 +1053,17 @@ function hintFor(curve, number) {
 }
 
 const TYPES = {
-  1: { name: 'Straight line', difficulty: 1, description: 'Goes up or down by the same amount with every step across.' },
+  1: { name: 'Straight line', difficulty: 1, description: "It goes up or down by the same amount for every step across." },
   2: { name: 'Parabola', difficulty: 1, description: 'A smooth U shape, or an upside-down U, with one turning point.' },
   3: { name: 'V shape', difficulty: 1, description: 'Two straight lines meeting at a sharp corner, pointing up or down.' },
   4: { name: 'Cubic', difficulty: 2, description: 'A curve with one hill and one dip, heading off in opposite directions at each end.' },
-  5: { name: 'Wave', difficulty: 2, description: 'Rises and falls in a repeating pattern, like ripples.' },
-  6: { name: 'Cube root', difficulty: 2, description: 'A sideways S: steep in the middle and flattening out towards both sides.' },
-  7: { name: 'Exponential', difficulty: 2, description: 'Almost flat on one side, then shoots away faster and faster on the other.' },
+  5: { name: 'Wave', difficulty: 2, description: "It rises and falls over and over in a regular pattern." },
+  6: { name: 'Cube root', difficulty: 2, description: "It looks like a sideways S that's steep in the middle and flattens out on both sides." },
+  7: { name: 'Exponential', difficulty: 2, description: "It's almost flat on one side and then shoots away faster and faster on the other." },
   8: { name: 'Hyperbola', difficulty: 3, description: 'Two separate pieces that get closer and closer to a vertical line and a flat line without touching them.' },
   9: { name: 'Slanted hyperbola', difficulty: 3, description: 'Two pieces that get closer and closer to a vertical line and a sloping line.' },
   10: { name: 'Bell curve', difficulty: 2, description: 'A single smooth hump, or dip, that flattens out to nothing on both sides.' },
-  11: { name: 'S-curve', difficulty: 2, description: 'Flat on one side, a smooth climb or drop in the middle, then flat again at a new level.' },
+  11: { name: 'S-curve', difficulty: 2, description: "It's flat on one side, climbs or drops smoothly in the middle, and then goes flat again at a new level." },
   12: { name: 'Quartic', difficulty: 2, description: 'A W shape, or an upside-down W, with two dips and a bump in between.' },
   13: { name: 'Inverse square', difficulty: 3, description: 'Two pieces that both shoot up, or both shoot down, beside a vertical line.' },
   14: { name: 'Tangent', difficulty: 3, description: 'Repeating S shapes, each squeezed between two vertical lines it never touches.' },

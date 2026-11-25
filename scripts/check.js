@@ -293,8 +293,8 @@ assert.strictEqual(rules.judge([shakyWave.filter(([x]) => Math.abs(x) <= 10)], f
   'but a shaky tracing that follows the wave still scores full marks');
 
 const schemaRows = [...require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'database', 'schema.sql'), 'utf8')
-  .matchAll(/\((\d+), '([^']*)', (\d), '([^']*)'\)/g)]
-  .map(([, id, name, difficulty, description]) => [Number(id), { name, difficulty: Number(difficulty), description }]);
+  .matchAll(/\((\d+), '([^']*)', (\d), '((?:[^']|'')*)'\)/g)]
+  .map(([, id, name, difficulty, description]) => [Number(id), { name, difficulty: Number(difficulty), description: description.replaceAll("''", "'") }]);
 assert.deepStrictEqual(Object.fromEntries(schemaRows), Object.fromEntries(Object.entries(rules.TYPES).map(([id, type]) => [Number(id), type])),
   'the list of curve_types in the browser code matches the one in the database');
 

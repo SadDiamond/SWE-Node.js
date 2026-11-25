@@ -232,9 +232,9 @@ async function todayPage() {
 
       const extraGoes = round.goes - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
-      if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: −${extraGoes * game.goPenalty}`);
+      if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: -${extraGoes * game.goPenalty}`);
       if (round.dots.length > 0) {
-        lines.push(`${round.dots.length === 1 ? '1 hint' : `${round.dots.length} hints`}: −${round.dots.length * game.hintPenalty}`);
+        lines.push(`${round.dots.length === 1 ? '1 hint' : `${round.dots.length} hints`}: -${round.dots.length * game.hintPenalty}`);
       }
       find('#result-working').replaceChildren(...lines.map((line) => element('li', line)));
       find('#result-family').textContent = result.familyName;
@@ -257,8 +257,8 @@ async function todayPage() {
     rounds.forEach((item, index) => {
       const row = document.createElement('li');
       row.style.setProperty('--order', index);
-      const detail = `${item.result.familyName} · ${goesText(item.goes)}`
-        + (item.dots.length > 0 ? ` · ${item.dots.length === 1 ? '1 hint' : `${item.dots.length} hints`}` : '');
+      const detail = `${item.result.familyName} - ${goesText(item.goes)}`
+        + (item.dots.length > 0 ? ` - ${item.dots.length === 1 ? '1 hint' : `${item.dots.length} hints`}` : '');
       row.append(
         element('span', SLOT_NAMES[item.slot], 'summary-name'),
         element('span', detail, 'summary-detail'),
@@ -298,7 +298,7 @@ async function todayPage() {
 
   find('#copy-result').addEventListener('click', async () => {
     const date = new Date(`${game.date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
-    const scores = rounds.map((item) => `${SLOT_NAMES[item.slot]} ${item.result.score}`).join(' · ');
+    const scores = rounds.map((item) => `${SLOT_NAMES[item.slot]} ${item.result.score}`).join(' - ');
     const text = `Placeholder, ${date}\n${scores}\nTotal ${totalScore()}`;
     try {
       await navigator.clipboard.writeText(text);
@@ -537,11 +537,11 @@ async function statsPage() {
   find('#stat-streak').textContent = days(stats.streak.current);
   find('#stat-best-streak').textContent = days(stats.streak.best);
   find('#stat-cracked').textContent = `${totals.cracked} of ${totals.played}`;
-  find('#stat-average').textContent = totals.average_score ?? '–';
-  find('#stat-goes').textContent = totals.average_goes ?? '–';
+  find('#stat-average').textContent = totals.average_score ?? '-';
+  find('#stat-goes').textContent = totals.average_goes ?? '-';
   find('#stat-best-day').textContent = stats.bestDay
     ? `${stats.bestDay.points} on ${shortDate(stats.bestDay.date)}`
-    : '–';
+    : '-';
 
   stats.byDifficulty.forEach((row) => {
     addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.cracked, row.average_score, row.average_goes]);

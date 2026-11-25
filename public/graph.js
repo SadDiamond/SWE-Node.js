@@ -48,7 +48,7 @@ function drawGrid(svg, scale, limit) {
 
   for (const value of [-limit, -limit / 2, limit / 2, limit]) {
     const nearEdge = Math.abs(value) === limit;
-    const label = String(value).replace('-', '−');
+    const label = String(value);
     svg.append(
       svgElement('text', {
         class: 'tick',
@@ -221,7 +221,7 @@ function drawGraph(svg, picture, limit) {
     }, `${picture.percent}%`));
   }
 
-  svg.setAttribute('aria-label', `Graph from −${limit} to ${limit}.`
+  svg.setAttribute('aria-label', `Graph from -${limit} to ${limit}.`
     + (picture.percent !== null ? ` Your last attempt scored ${picture.percent}%.` : '')
     + (picture.curve ? ' The real curve is shown.' : ''));
 }

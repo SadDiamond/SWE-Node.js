@@ -39,22 +39,20 @@ function exec(sql) {
   });
 }
 
-// Databases from before version 9 were made while the game itself was still changing shape,
-// so they are cleared once and rebuilt. From version 9 on, changes are made in place below.
+// Databases older than version 9 are cleared and rebuilt.
 const OLDEST_KEPT = 9;
 
-// Each change to an existing database, in order. A database at version 9 runs all of them,
-// one at version 10 skips the first, and so on, so nobody's accounts or scores are lost.
-// schema.sql always describes the latest tables, so a brand new database skips these.
+// A database from version 9 on runs each upgrade it hasn't had yet, in order, so accounts and
+// scores are kept. A brand new database is made straight from schema.sql instead.
 const UPGRADES = [
-  // 10: the V shape hint says which way it can point.
+  // 10: V shape description
   `UPDATE families SET description = 'Two straight lines meeting at a sharp corner, pointing up or down.' WHERE id = 3;`,
-  // 11: plainer descriptions for the hyperbolas and the circle.
+  // 11: hyperbola, slanted hyperbola and circle descriptions
   `UPDATE families SET description = 'Two separate pieces that get closer and closer to a vertical line and a flat line without touching them.' WHERE id = 8;
    UPDATE families SET description = 'Two pieces that get closer and closer to a vertical line and a sloping line.' WHERE id = 9;
    UPDATE families SET description = 'A perfectly round loop.' WHERE id = 15;`,
-  // 12: tables and columns renamed to the words the site uses (curves, types of curve, attempts, cracked).
-  // SQLite can't change a CHECK rule in place, so plays is copied into a new table and swapped over.
+  // 12: machines -> curves, families -> curve_types, goes -> attempts, 'solved' -> 'cracked'.
+  // plays is rebuilt because SQLite can't change a CHECK rule in place.
   `ALTER TABLE machines RENAME TO curves;
    ALTER TABLE curves RENAME COLUMN family_id TO type_id;
    ALTER TABLE curves RENAME COLUMN extra_family_id TO extra_type_id;
@@ -83,7 +81,7 @@ const UPGRADES = [
      FROM plays;
    DROP TABLE plays;
    ALTER TABLE plays_new RENAME TO plays;`,
-  // 13: the type descriptions read as full sentences.
+  // 13: straight line, wave, cube root, exponential and S-curve descriptions
   `UPDATE curve_types SET description = 'It goes up or down by the same amount for every step across.' WHERE id = 1;
    UPDATE curve_types SET description = 'It rises and falls over and over in a regular pattern.' WHERE id = 5;
    UPDATE curve_types SET description = 'It looks like a sideways S that''s steep in the middle and flattens out on both sides.' WHERE id = 6;
@@ -102,9 +100,8 @@ async function initialiseDatabase() {
     await exec('DROP TABLE IF EXISTS goes; DROP TABLE IF EXISTS plays; DROP TABLE IF EXISTS machines; DROP TABLE IF EXISTS families;');
   }
 
-  // Upgrades run before schema.sql, which would otherwise make new empty tables beside the old ones.
-  // Foreign keys are switched off while tables are swapped, so dropping the old plays table
-  // doesn't also delete every attempt that points at it.
+  // Upgrades run before schema.sql, otherwise it would create empty tables beside the ones being upgraded.
+  // Foreign keys are off while plays is rebuilt, so dropping it doesn't delete its attempts.
   if (!fresh && version < SCHEMA_VERSION) {
     await exec('PRAGMA foreign_keys = OFF');
     for (let next = version + 1; next <= SCHEMA_VERSION; next += 1) {

@@ -296,7 +296,7 @@ const schemaRows = [...require('node:fs').readFileSync(require('node:path').join
   .matchAll(/\((\d+), '([^']*)', (\d), '((?:[^']|'')*)'\)/g)]
   .map(([, id, name, difficulty, description]) => [Number(id), { name, difficulty: Number(difficulty), description: description.replaceAll("''", "'") }]);
 assert.deepStrictEqual(Object.fromEntries(schemaRows), Object.fromEntries(Object.entries(rules.TYPES).map(([id, type]) => [Number(id), type])),
-  'the list of curve_types in the browser code matches the one in the database');
+  'the list of curve types in the browser code matches the one in the database');
 
 const flatHyperbola = { type_id: HYPERBOLA, a: 4, b: 0, c: 0 };
 const hyperbolaPart = (keep) => rules.visibleBranches(flatHyperbola)[0]
@@ -440,7 +440,7 @@ const upgraded = execFileSync(process.execPath, ['-e', `
 `], { cwd: path.join(__dirname, '..'), env: { ...process.env, DATABASE_PATH: path.join(upgradeFolder, 'old.db') } });
 const afterUpgrade = JSON.parse(upgraded);
 assert.deepStrictEqual(afterUpgrade.play, { score: 900, status: 'cracked', attempts: 1, curve_id: 1 },
-  "upgrading the database keeps everyone's scores, under the new names");
+  "upgrading the database keeps everyone's scores");
 assert.deepStrictEqual(afterUpgrade.attempt, { accuracy: 90 }, 'and their drawings');
 assert.ok(afterUpgrade.description.includes('pointing up or down'), 'and makes the changes in place');
 assert.strictEqual(afterUpgrade.version, require('../src/db').SCHEMA_VERSION);

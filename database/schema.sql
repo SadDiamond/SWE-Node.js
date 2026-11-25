@@ -2,7 +2,6 @@ PRAGMA foreign_keys = ON;
 
 -- First version of these tables: three families, and machines tested by typing in whole numbers.
 -- Replaced when the game changed to drawing the curve. src/db.js removes the old tables once.
--- (Back then curves were called machines, and types of curve were called families.)
 -- CREATE TABLE IF NOT EXISTS machines (
 --   id INTEGER PRIMARY KEY,
 --   play_date TEXT NOT NULL UNIQUE CHECK (length(play_date) = 10),

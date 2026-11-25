@@ -33,7 +33,7 @@
 
 -- 2. Curves
 
--- Every type of curve, for the History filter (src/server.js, /api/curve_types)
+-- Every type of curve, for the History filter (src/server.js, /api/types)
 -- SELECT id, name, difficulty, description FROM curve_types ORDER BY id;
 
 -- Save a day's three curves; already-saved days are left alone (src/rules.js)
@@ -178,16 +178,16 @@
 --   AND date(plays.finished_at, 'localtime') <= date(curves.play_date, '+1 day')
 -- ORDER BY curves.play_date DESC;
 
--- 7. Upgrading an older database (src/db.js)
+-- 7. Upgrading an older database (src/db.js, upgrade 12)
 
--- Renaming everything to the words the site uses: curves, types of curve, attempts and cracked
+-- Table and column names
 -- ALTER TABLE machines RENAME TO curves;
 -- ALTER TABLE curves RENAME COLUMN family_id TO type_id;
 -- ALTER TABLE curves RENAME COLUMN extra_family_id TO extra_type_id;
 -- ALTER TABLE families RENAME TO curve_types;
 -- ALTER TABLE goes RENAME TO attempts;
 
--- plays needs a new CHECK rule, so it's copied into a new table, changing 'solved' to 'cracked' on the way
+-- plays is rebuilt because SQLite can't change a CHECK rule in place, and 'solved' becomes 'cracked'
 -- INSERT INTO plays_new (id, user_id, curve_id, status, attempts, hints, accuracy, score, started_at, finished_at)
 --   SELECT id, user_id, machine_id, CASE status WHEN 'solved' THEN 'cracked' ELSE status END,
 --          goes, hints, accuracy, score, started_at, finished_at

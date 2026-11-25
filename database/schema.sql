@@ -1,19 +1,5 @@
 PRAGMA foreign_keys = ON;
 
--- First version of these tables: three families, and machines tested by typing in whole numbers.
--- Replaced when the game changed to drawing the curve. src/db.js removes the old tables once.
--- CREATE TABLE IF NOT EXISTS machines (
---   id INTEGER PRIMARY KEY,
---   play_date TEXT NOT NULL UNIQUE CHECK (length(play_date) = 10),
---   family_id INTEGER NOT NULL,
---   a INTEGER NOT NULL CHECK (a BETWEEN -9 AND 9 AND a != 0),
---   b INTEGER NOT NULL CHECK (b BETWEEN -20 AND 20),
---   c INTEGER NOT NULL DEFAULT 0 CHECK (c BETWEEN -20 AND 20),
---   difficulty INTEGER NOT NULL CHECK (difficulty BETWEEN 1 AND 3),
---   FOREIGN KEY (family_id) REFERENCES families(id)
--- );
-
--- The kinds of function a daily curve can be.
 CREATE TABLE IF NOT EXISTS families (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL UNIQUE CHECK (length(name) BETWEEN 3 AND 30),
@@ -21,19 +7,6 @@ CREATE TABLE IF NOT EXISTS families (
   description TEXT NOT NULL CHECK (length(description) BETWEEN 10 AND 200)
 );
 
--- Second version: one curve a day. Replaced by three curves a day (see slot below).
--- CREATE TABLE IF NOT EXISTS machines (
---   id INTEGER PRIMARY KEY,
---   play_date TEXT NOT NULL UNIQUE CHECK (length(play_date) = 10),
---   family_id INTEGER NOT NULL,
---   a INTEGER NOT NULL CHECK (a BETWEEN -9 AND 9 AND a != 0),
---   b INTEGER NOT NULL CHECK (b BETWEEN -9 AND 9),
---   c INTEGER NOT NULL CHECK (c BETWEEN -9 AND 9),
---   FOREIGN KEY (family_id) REFERENCES families(id)
--- );
-
--- Three curves for each day: slot 1 is easy, 2 is medium, 3 is hard.
--- a, b and c are whole numbers that src/rules.js turns into the formula.
 CREATE TABLE IF NOT EXISTS machines (
   id INTEGER PRIMARY KEY,
   play_date TEXT NOT NULL CHECK (length(play_date) = 10),

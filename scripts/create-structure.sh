@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Creates every folder in docs/folders.txt and every file in docs/files.txt.
-# Safe to run again: existing folders and files are left untouched.
 cd "$(dirname "$0")/.."
 
 while read -r folder; do

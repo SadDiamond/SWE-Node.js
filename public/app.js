@@ -13,12 +13,10 @@ function element(tag, text, className) {
   return item;
 }
 
-// "1 go" or "3 goes".
 function goesText(count) {
   return count === 1 ? '1 attempt' : `${count} attempts`;
 }
 
-// Fetches JSON from the server and turns a failed request into a readable error.
 async function request(url, options = {}) {
   let response;
   try {
@@ -42,12 +40,8 @@ function send(url, body) {
 }
 
 const SLOT_NAMES = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
-// A new pen position is only kept once the pen has moved this far (in graph units),
-// which keeps a drawing to a sensible size however slowly it is drawn.
 const PEN_SPACING = 0.05;
 
-// A pen position as [x, y], rounded to two decimal places.
-// More decimals than that cannot be seen and only make the drawing bigger to send.
 function rounded(position) {
   return [Math.round(position.x * 100) / 100, Math.round(position.y * 100) / 100];
 }
@@ -56,35 +50,28 @@ async function start() {
   const game = await request('/api/today');
   const graph = find('#graph');
 
-  // Everything about one of the day's curves, so switching tabs loses nothing.
-  // A stroke is a list of [x, y] pen positions, and a go is made of one or more strokes.
   const rounds = game.curves.map((curve) => ({
     ...curve,
-    strokes: [],        // the strokes of the go in progress
-    shown: null,        // the last go once marked: { strokes, levels }
-    ghost: null,        // the go before that
+    strokes: [],
+    shown: null,
+    ghost: null,
     missed: [],
-    dots: [],           // hint dots the player has asked for
+    dots: [],
     goes: 0,
-    result: null        // the server's final reply once the round is over
+    result: null
   }));
   let round = rounds[0];
 
-  // How far the pen has travelled in the stroke being drawn, in graph units.
   let strokeLength = 0;
-  // The marked goes on screen before the stroke began, in case it has to be undone.
   let beforeMarks = null;
   let percent = null;
-  // True while waiting for the server to mark a go.
   let waiting = false;
-  // The keyboard pen. Only shown while the graph is selected with the keyboard.
   const pen = { x: 0, y: 0, down: false, visible: false };
 
   function showGraph() {
     drawGraph(graph, {
       strokes: round.strokes,
       shown: round.shown,
-      // At the end only the last go is kept on screen, behind the real curve.
       ghost: round.result ? null : round.ghost,
       percent,
       missed: round.missed,
@@ -96,8 +83,6 @@ async function start() {
     }, game.limit);
   }
 
-  // Redraws on the next screen refresh. Pointer events arrive faster than the screen updates,
-  // so this stops the graph being rebuilt more often than anyone could see.
   let drawQueued = false;
   function showGraphSoon() {
     if (drawQueued) return;
@@ -108,7 +93,6 @@ async function start() {
     });
   }
 
-  // Shows the score over the graph, then takes it away again after a moment.
   let percentTimer = null;
   function flashPercent(value) {
     percent = value;
@@ -119,10 +103,6 @@ async function start() {
     }, 1800);
   }
 
-  /* Progress through the day's three curves, and the score */
-
-  // Counts a number up on screen from one value to another, over about a second.
-  // People who have asked their device for less motion get the final number straight away.
   function countUp(target, from, to) {
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (still || from === to) {
@@ -133,7 +113,6 @@ async function start() {
     const began = performance.now();
     function step(now) {
       const done = Math.min(1, (now - began) / length);
-      // Easing: quick at first, slowing as it reaches the final number.
       const eased = 1 - (1 - done) ** 3;
       target.textContent = Math.round(from + (to - from) * eased);
       if (done < 1) requestAnimationFrame(step);
@@ -145,15 +124,12 @@ async function start() {
     return rounds.reduce((total, item) => total + (item.result ? item.result.score : 0), 0);
   }
 
-  // The total in the header. It is remembered so the next change can count up from it.
   let totalOnScreen = 0;
   function showTotal() {
     countUp(find('#total'), totalOnScreen, totalScore());
     totalOnScreen = totalScore();
   }
 
-  // The three curves are played in order. This shows which are done, which is being played
-  // and which are still locked. It is a list, not buttons: the player cannot skip ahead.
   function showProgress() {
     const list = find('#tabs');
     list.replaceChildren();
@@ -203,11 +179,9 @@ async function start() {
         ? `Cracked it in ${goesText(round.goes)}`
         : 'Out of attempts';
       find('#result-top').textContent = `/ ${game.topScore}`;
-      // The score counts up from zero, and the total in the header climbs by the same amount.
       countUp(find('#result-score'), 0, result.score);
       showTotal();
 
-      // How the score was reached, one line for each thing that changed it.
       const extraGoes = round.goes - 1;
       const lines = [`${result.accuracy}% accurate: ${result.accuracy * (game.topScore / 100)}`];
       if (extraGoes > 0) lines.push(`${goesText(extraGoes).replace('attempt', 'extra attempt')}: −${extraGoes * game.goPenalty}`);
@@ -225,14 +199,11 @@ async function start() {
     showGraph();
   }
 
-  /* The end screen */
-
   function showSummary() {
     const rows = find('#summary-rows');
     rows.replaceChildren();
     rounds.forEach((item, index) => {
       const row = document.createElement('li');
-      // Each row arrives a little after the one before it.
       row.style.setProperty('--order', index);
       const detail = `${item.result.familyName} · ${goesText(item.goes)}`
         + (item.dots.length > 0 ? ` · ${item.dots.length === 1 ? '1 hint' : `${item.dots.length} hints`}` : '');
@@ -286,12 +257,9 @@ async function start() {
     }
   });
 
-  /* Strokes */
-
   function startStroke(position) {
     if (round.result || waiting) return false;
     beforeMarks = { shown: round.shown, ghost: round.ghost, missed: round.missed };
-    // The first stroke of a new go pushes the last marked go into the background.
     if (round.strokes.length === 0 && round.shown) {
       round.ghost = round.shown;
       round.shown = null;
@@ -306,13 +274,11 @@ async function start() {
     return true;
   }
 
-  // Adds a pen position to the stroke being drawn.
   function extendStroke(position) {
     const stroke = round.strokes[round.strokes.length - 1];
     const [lastX, lastY] = stroke[stroke.length - 1];
     const moved = Math.hypot(position.x - lastX, position.y - lastY);
     if (moved < PEN_SPACING) return;
-    // The server refuses drawings with too many positions, so the pen stops adding them at the limit.
     const points = round.strokes.reduce((total, item) => total + item.length, 0);
     if (points >= game.mostPoints) return;
 
@@ -321,9 +287,7 @@ async function start() {
     showGraphSoon();
   }
 
-  // Called when the pen is lifted. Once enough strokes are down, the go is sent to be marked.
   async function endStroke() {
-    // A stroke the pen barely moved in is treated as a stray tap and undone.
     if (strokeLength < game.shortestStroke) {
       round.strokes.pop();
       round.shown = beforeMarks.shown;
@@ -356,13 +320,10 @@ async function start() {
     } catch (error) {
       message(error.message);
     }
-    // Whether it worked or not, the next go starts from a clean drawing.
     marking.strokes = [];
     waiting = false;
     showRound();
   }
-
-  /* Drawing with a mouse, finger or stylus */
 
   let drawing = false;
   graph.addEventListener('pointerdown', (event) => {
@@ -380,8 +341,6 @@ async function start() {
   }
   graph.addEventListener('pointerup', liftPointer);
   graph.addEventListener('pointercancel', liftPointer);
-
-  /* Drawing with the keyboard */
 
   graph.addEventListener('keydown', (event) => {
     const moves = { ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0], ArrowUp: [0, 0.2], ArrowDown: [0, -0.2] };
@@ -410,7 +369,6 @@ async function start() {
     showGraph();
   });
 
-  // The graph is drawn at its real size, so it needs redrawing when the window changes.
   window.addEventListener('resize', showGraph);
 
   const date = new Date(`${game.date}T00:00`);

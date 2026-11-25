@@ -1,8 +1,3 @@
-/* Design tokens: every colour, font and space used on the site is named here once.
-   The graph itself is clean. Everything around it looks drawn by hand. */
-
-/* A handwriting font that comes with the site, so it looks the same on every device.
-   Patrick Hand, SIL Open Font License. The licence is in public/fonts. */
 @font-face {
   font-family: "Patrick Hand";
   src: url("/fonts/patrick-hand.woff2") format("woff2");
@@ -17,7 +12,6 @@
   --grid-major: #c3cad2;
   --fresh: #1b4fc4;
   --wrong: #c22f27;
-  /* Closeness, from spot on to way off. */
   --level-0: #1c8139;
   --level-1: #7da511;
   --level-2: #d8a200;
@@ -28,7 +22,6 @@
   --hand: "Patrick Hand", "Bradley Hand", "Segoe Print", cursive;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* An uneven corner radius makes a box look drawn with a pen instead of a ruler. */
   --wobble: 255px 15px 225px 15px / 15px 225px 15px 255px;
 }
 
@@ -36,7 +29,6 @@
   box-sizing: border-box;
 }
 
-/* Makes the hidden attribute win over display rules set further down. */
 [hidden] {
   display: none !important;
 }
@@ -57,8 +49,6 @@ body {
   white-space: nowrap;
 }
 
-/* Layout */
-
 .top,
 main,
 footer {
@@ -66,8 +56,6 @@ footer {
   margin-inline: auto;
 }
 
-/* On a phone the page is one column: the lead, then the graph, then the rest.
-   On a wide screen the graph fills the left and everything else sits in a column beside it. */
 .layout {
   display: grid;
   gap: 0 2.5rem;
@@ -99,7 +87,6 @@ footer {
     align-items: start;
   }
 
-  /* The graph is as big as fits on screen without scrolling. */
   .graph {
     max-width: calc(100vh - 8rem);
     margin-inline: auto;
@@ -186,8 +173,6 @@ p {
   color: var(--muted);
   font-size: 0.9375rem;
 }
-
-/* Progress through the day's three curves: done, now, and locked */
 
 .tabs {
   display: flex;
@@ -312,8 +297,6 @@ button.primary:hover:not(:disabled) {
   background: #ffffff;
 }
 
-/* The graph: square, plain and clean like a graphing calculator */
-
 .graph {
   display: block;
   width: 100%;
@@ -321,7 +304,6 @@ button.primary:hover:not(:disabled) {
   border: 2px solid var(--ink);
   border-radius: 4px;
   cursor: crosshair;
-  /* The graph is for drawing on, so a finger must not scroll the page from here. */
   touch-action: none;
   user-select: none;
 }
@@ -330,7 +312,6 @@ button.primary:hover:not(:disabled) {
   cursor: default;
 }
 
-/* Clicking the graph with a mouse should not draw a focus ring. Keyboard focus still does. */
 .graph:focus:not(:focus-visible) {
   outline: none;
 }
@@ -358,8 +339,6 @@ button.primary:hover:not(:disabled) {
   font: 12px var(--text);
 }
 
-/* Lines on the graph */
-
 .stroke,
 .mark,
 .truth {
@@ -368,13 +347,11 @@ button.primary:hover:not(:disabled) {
   stroke-linejoin: round;
 }
 
-/* The line being drawn right now. */
 .stroke {
   stroke: var(--fresh);
   stroke-width: 6;
 }
 
-/* A marked line. The closer to the curve, the greener and thicker it is. */
 .mark.l0 {
   stroke: var(--level-0);
   stroke-width: 8;
@@ -400,7 +377,6 @@ button.primary:hover:not(:disabled) {
   stroke-width: 4;
 }
 
-/* The go before last, left behind to trace over. */
 .faded {
   opacity: 0.25;
 }
@@ -410,7 +386,6 @@ button.primary:hover:not(:disabled) {
   stroke-width: 3.5;
 }
 
-/* The score across the middle of the graph. The white edge keeps it readable over the grid. */
 .percent {
   animation: flash 1.8s ease-in forwards;
   fill: var(--ink);
@@ -434,14 +409,12 @@ button.primary:hover:not(:disabled) {
   fill: var(--ink);
 }
 
-/* A clue dot: a spot that is definitely on the curve. */
 .dot {
   fill: var(--ink);
   stroke: #ffffff;
   stroke-width: 2;
 }
 
-/* A nudge: a small arrow from a badly-off part of the line towards the curve. */
 .nudge {
   fill: none;
   stroke: var(--ink);
@@ -464,8 +437,6 @@ button.primary:hover:not(:disabled) {
   fill: var(--fresh);
 }
 
-/* Under the graph */
-
 .under-graph {
   display: flex;
   align-items: center;
@@ -473,7 +444,6 @@ button.primary:hover:not(:disabled) {
   margin-top: 0.75rem;
 }
 
-/* The hint button sits at the far end of the row. */
 #hint {
   margin-left: auto;
 }
@@ -505,8 +475,6 @@ button.primary:hover:not(:disabled) {
   font-weight: 600;
 }
 
-/* Result */
-
 .result {
   margin-top: 1rem;
   padding: 1rem 1.25rem;
@@ -530,7 +498,6 @@ button.primary:hover:not(:disabled) {
   font-size: 1.5rem;
 }
 
-/* The working out under the score. */
 .working {
   margin: 0.375rem 0 0.75rem;
   padding: 0;
@@ -538,8 +505,6 @@ button.primary:hover:not(:disabled) {
   color: var(--muted);
   font-size: 0.9375rem;
 }
-
-/* The formula with a crayon loop scribbled round it */
 
 .circled {
   position: relative;
@@ -567,11 +532,8 @@ button.primary:hover:not(:disabled) {
   stroke-width: 3;
   stroke-linecap: round;
   opacity: 0.8;
-  /* Keeps the crayon the same thickness however far the loop is stretched. */
   vector-effect: non-scaling-stroke;
 }
-
-/* Key */
 
 .key {
   margin-top: 2rem;
@@ -638,7 +600,6 @@ summary {
   cursor: pointer;
 }
 
-/* The score appears at full strength, holds, then fades away. */
 @keyframes flash {
   0%,
   45% {
@@ -649,8 +610,6 @@ summary {
     opacity: 0;
   }
 }
-
-/* The end screen takes the place of the graph once all three curves are done */
 
 .summary {
   grid-area: board;
@@ -704,12 +663,9 @@ summary {
   font-size: 0.9375rem;
 }
 
-/* Movement on the end screen. Left out for people who ask their device for less motion. */
-
 @media (prefers-reduced-motion: no-preference) {
   .summary-rows li {
     animation: arrive 0.45s ease-out both;
-    /* --order is 0, 1 or 2, so each row starts a little after the one above. */
     animation-delay: calc(0.3s + var(--order) * 0.25s);
   }
 

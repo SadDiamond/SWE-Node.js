@@ -8,10 +8,8 @@ const port = Number(process.env.PORT) || 3000;
 const publicDirectory = path.join(__dirname, '..', 'public');
 
 app.disable('x-powered-by');
-// Big enough for the most detailed drawing the game allows, small enough to refuse anything silly.
 app.use(express.json({ limit: '100kb' }));
 
-// Security headers: only this site's own scripts, styles and images may load.
 app.use((_request, response, next) => {
   response.set({
     'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
@@ -23,12 +21,10 @@ app.use((_request, response, next) => {
 });
 app.use(express.static(publicDirectory, { extensions: ['html'] }));
 
-// Runs a route and passes any database error to the error handler at the bottom.
 function route(handler) {
   return (request, response, next) => handler(request, response).catch(next);
 }
 
-// Today's three curves. Only what the page needs to set up the game; nothing about the curves themselves.
 app.get('/api/today', route(async (_request, response) => {
   const machines = await rules.machinesFor(rules.todayDate());
   response.json({
@@ -44,15 +40,12 @@ app.get('/api/today', route(async (_request, response) => {
     curves: machines.map((machine) => ({
       id: machine.id,
       slot: machine.slot,
-      // How many strokes make up one go. More than one means the curve has breaks in it.
       strokesPerGo: rules.pieces(machine),
-      // Where the curve leaves the graph is shown from the start, so the first go is not a blind guess.
       exits: rules.exits(machine)
     }))
   });
 }));
 
-// Marks one go: a freehand drawing made of strokes, each a list of [x, y] pen positions.
 app.post('/api/machines/:id/go', route(async (request, response) => {
   const id = Number.parseInt(request.params.id, 10);
   const { drawing, go, hints } = request.body;
@@ -87,7 +80,6 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
     solved: result.solved,
     finished
   };
-  // The real curve is only sent once the round is over.
   if (finished) {
     reply.curve = rules.visibleCurve(machine);
     reply.score = rules.scoreFor(result.accuracy, go, hints);
@@ -98,7 +90,6 @@ app.post('/api/machines/:id/go', route(async (request, response) => {
   response.json(reply);
 }));
 
-// Gives one hint: a spot that is on the curve. number is 1 for the first hint, 2 for the second, and so on.
 app.post('/api/machines/:id/hint', route(async (request, response) => {
   const id = Number.parseInt(request.params.id, 10);
   const { number } = request.body;

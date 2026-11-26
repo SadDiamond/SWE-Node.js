@@ -264,8 +264,8 @@ function directionsOf(strokes) {
   }));
 }
 
-// The way the curve runs just to the left and just to the right of a column, so a sharp
-// corner (like the point of a V) accepts a line coming along either arm.
+// The way the curve runs just to the left and just to the right of a column. At a sharp
+// corner (like the point of a V), a line coming along either arm is accepted.
 function tangentsAt(whole, column) {
   const way = (from, to) => {
     if (whole[from] === null || whole[from] === undefined || whole[to] === null || whole[to] === undefined) return null;
@@ -365,8 +365,8 @@ function resample(points, count) {
 
 // When a loop is drawn as a loop, each part of the drawing is paired with the part of the real
 // loop it stands for (top with top, bottom with bottom). The colours, the score and the arrows
-// then judge each part only against its partner. Judging against the nearest part of the curve
-// instead would call the bottom of a squashed loop "on the curve" because it is near the top.
+// then judge each part only against its partner. This stops the bottom of a squashed loop
+// counting as on the curve just because it is near the top.
 const MATCH_WINDOW = 12;
 
 function loopMatch(stroke, curve) {
@@ -1028,8 +1028,8 @@ function revealed(curve, accuracy, cracked, attempts, hints) {
 }
 
 // Marks one attempt and builds the reply the page shows.
-// The right shape in slightly the wrong place only counts on the last attempt, so it can
-// rescue a curve that would otherwise be failed but never ends one that could still be improved.
+// The right shape in slightly the wrong place only counts on the last attempt. It can rescue
+// a curve that would otherwise be failed, but never ends one that could still be improved.
 function markAttempt(drawing, curve, attempt, hints) {
   const result = judge(drawing, curve);
   const lastAttempt = attempt === MAX_ATTEMPTS;

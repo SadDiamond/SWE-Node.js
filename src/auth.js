@@ -4,8 +4,8 @@ const { all, run } = require('./db');
 
 const SESSION_DAYS = 30;
 
-// Passwords are never stored. Only a salted scrypt hash is kept, which cannot be turned back
-// into the password. scrypt is slow on purpose, so guessing passwords takes a very long time.
+// Only a salted scrypt hash of each password is kept. scrypt is slow on purpose, which makes
+// guessing passwords slow too.
 const scrypt = util.promisify(crypto.scrypt);
 
 async function hashPassword(password, salt) {
@@ -16,8 +16,8 @@ function newSalt() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-// Checking against a made-up account when the username doesn't exist takes just as long,
-// so how fast the answer comes back doesn't give away which usernames are real.
+// A username that doesn't exist is checked against a made-up account. Both cases take the same
+// time, and the speed of the answer doesn't give away which usernames are real.
 const NOBODY = { password_salt: newSalt(), password_hash: '0'.repeat(128) };
 
 async function passwordMatches(password, user) {

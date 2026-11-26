@@ -20,7 +20,7 @@ self.addEventListener('activate', (event) => {
 });
 
 // Online, the newest copy of a file is used and kept for later. Offline, the kept copy is used.
-// Answers from the server are never kept, so scores and curves are always up to date.
+// Answers from the server are never kept. Scores and curves are always up to date.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;

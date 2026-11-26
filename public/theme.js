@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     label();
   };
 
-  // The new theme spreads out from the button like ink, or shrinks back into it when going light.
+  // The chosen theme spreads out from the button like ink, or shrinks back into it when going light.
   // Browsers without view transitions, and people who ask for less motion, get an instant switch.
   button.addEventListener('click', () => {
     const next = isDark() ? 'light' : 'dark';

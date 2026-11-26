@@ -13,7 +13,7 @@ function element(tag, text, className) {
   return item;
 }
 
-// The server builds this MathML from the curve's own numbers, so it is safe to put straight into the page.
+// The server builds this MathML from the curve's own numbers, which makes it safe to put straight into the page.
 function mathNode(markup) {
   const holder = document.createElement('span');
   holder.className = 'math';

@@ -4,8 +4,8 @@ const path = require('node:path');
 const { all, run } = require('./db');
 const curves = require('../public/curves');
 
-// The maths is public so Endless can be played offline, so the daily curves also depend on a
-// secret only the server knows. Without it anyone could work out tomorrow's curves in advance.
+// Endless needs the curve maths in the browser to work offline. The daily curves also use a
+// secret only the server knows, which stops anyone working out tomorrow's curves in advance.
 const secretPath = path.join(__dirname, '..', 'data', 'daily-secret');
 function dailySecret() {
   if (process.env.DAILY_SECRET) return process.env.DAILY_SECRET;

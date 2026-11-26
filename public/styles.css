@@ -499,8 +499,8 @@ button.primary:hover:not(:disabled) {
   stroke-width: 6;
 }
 
-/* Well off and way off are dashed as well as coloured, so they read clearly without telling
-   red from green. The dots used for crossing an asymptote are a third, different pattern. */
+/* Well off and way off are dashed as well as coloured. People who can't tell red from green
+   can still read them. The dots used for crossing an asymptote are a third, different pattern. */
 .mark.l3 {
   stroke: var(--level-3);
   stroke-width: 5;

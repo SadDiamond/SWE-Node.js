@@ -36,7 +36,7 @@
 -- Every type of curve, for the History filter (src/server.js, /api/types)
 -- SELECT id, name, difficulty, description FROM curve_types ORDER BY id;
 
--- Save a day's three curves; already-saved days are left alone (src/rules.js)
+-- Save a day's three curves. Days that are already saved are left alone (src/rules.js)
 -- INSERT OR IGNORE INTO curves
 --   (play_date, slot, type_id, a, b, c, extra_type_id, extra_a, extra_b, extra_c, d)
 -- VALUES ('2026-11-23', 1, 4, 2, -1, 3, NULL, NULL, NULL, NULL, NULL);

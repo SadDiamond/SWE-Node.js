@@ -66,7 +66,7 @@ function limiter(most, minutes) {
   };
 }
 
-// A whole classroom can share one address, so the limits per address are generous.
+// A whole classroom can share one address. The limits per address are generous for that reason.
 const wrongPasswords = limiter(5, 15);
 const accountRequests = limiter(100, 15);
 const playerMarking = limiter(60, 1);
@@ -133,14 +133,14 @@ app.post('/api/signup', limitAccounts, route(async (request, response) => {
 app.post('/api/login', limitAccounts, route(async (request, response) => {
   const username = cleanText(request.body.username, 20).toLowerCase();
   const password = typeof request.body.password === 'string' ? request.body.password : '';
-  // Counted per address as well, so someone guessing from elsewhere can't lock the real owner out.
+  // Counted per address as well. Someone guessing from elsewhere can't lock the real owner out.
   const guessKey = `${username} ${request.ip}`;
   if (wrongPasswords.full(guessKey)) {
     return response.status(429).json({ error: 'Too many wrong passwords. Wait 15 minutes and try again.' });
   }
 
-  // The same message is used for a wrong username and a wrong password,
-  // so nobody can use this form to find out which usernames exist.
+  // A wrong username and a wrong password get the same message. Nobody can use this form
+  // to find out which usernames exist.
   const users = await all('SELECT * FROM users WHERE username = ?', [username]);
   if (!(await auth.passwordMatches(password, users[0]))) {
     wrongPasswords.add(guessKey);

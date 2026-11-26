@@ -79,8 +79,9 @@ async function main() {
         assert.match(await status(page), /\d+%/);
       }
       await page.waitForSelector('#result:not([hidden])');
-      const cracked = (await page.locator('#result-heading').textContent()).startsWith('Cracked');
-      if (cracked) {
+      const heading = await page.locator('#result-heading').textContent();
+      const found = /^(Found it|Nailed it|Spot on)/.test(heading);
+      if (found) {
         assert.ok((await page.locator('#result-formula').textContent()).length > 0, 'the formula is revealed');
       } else {
         assert.ok(await page.locator('#result-kept').isVisible(), "a guest who missed today's curve is told the answer comes tomorrow");
@@ -243,7 +244,7 @@ async function main() {
       assert.strictEqual(first.finished, false, 'the first attempt is not ended by being close enough');
       assert.strictEqual(first.closeEnough, true, 'but the player is told it is the right shape');
       const last = await attempt(5);
-      assert.strictEqual(last.cracked, true, 'on the last attempt it counts as cracked');
+      assert.strictEqual(last.found, true, 'on the last attempt it counts as found');
     });
 
     await check('too many wrong passwords or requests are refused for a while', async () => {

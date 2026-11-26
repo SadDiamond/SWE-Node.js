@@ -6,7 +6,7 @@ const STEPS_PER_UNIT = 10;
 const COLUMNS = 2 * LIMIT * STEPS_PER_UNIT + 1;
 
 const MAX_ATTEMPTS = 5;
-const CRACKED_AT = 85;
+const FOUND_AT = 85;
 const BANDS = [0.6, 1.25, 1.9, 2.6];
 const SHORTEST_STROKE = 1.5;
 const REACH = 10;
@@ -529,8 +529,8 @@ function judge(strokes, curve) {
   const precision = inkLength === 0 ? 0 : inkOnCurve / inkLength;
   const accuracy = Math.round(((precision + coverage) / 2) * 100);
 
-  const closeEnough = accuracy < CRACKED_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
-  return { levels, nudges, missed, missedRows, accuracy, closeEnough, cracked: accuracy >= CRACKED_AT };
+  const closeEnough = accuracy < FOUND_AT && accuracy >= SHAPE_FLOOR && rightShape(strokes, whole, visible, walls);
+  return { levels, nudges, missed, missedRows, accuracy, closeEnough, found: accuracy >= FOUND_AT };
 }
 
 function accuracyOf(strokes, whole, visible, walls) {
@@ -577,7 +577,7 @@ function rightShape(strokes, whole, visible, walls) {
           middleX + (x - middleX) * scale + across,
           middleY + (y - middleY) * scale + up
         ]));
-        if (followsClosely(moved, whole, walls) && accuracyOf(moved, whole, visible, walls) >= CRACKED_AT) return true;
+        if (followsClosely(moved, whole, walls) && accuracyOf(moved, whole, visible, walls) >= FOUND_AT) return true;
       }
     }
   }
@@ -1014,10 +1014,10 @@ function pastDates() {
 }
 
 // Everything shown once a curve is finished, apart from the formula drawn as maths.
-function revealed(curve, accuracy, cracked, attempts, hints) {
+function revealed(curve, accuracy, found, attempts, hints) {
   return {
     accuracy,
-    cracked,
+    found,
     finished: true,
     score: scoreFor(accuracy, attempts, hints),
     curve: visibleBranches(curve),
@@ -1033,10 +1033,10 @@ function revealed(curve, accuracy, cracked, attempts, hints) {
 function markAttempt(drawing, curve, attempt, hints) {
   const result = judge(drawing, curve);
   const lastAttempt = attempt === MAX_ATTEMPTS;
-  const cracked = result.cracked || (result.closeEnough && lastAttempt);
-  const reply = cracked || lastAttempt
-    ? revealed(curve, result.accuracy, cracked, attempt, hints)
-    : { accuracy: result.accuracy, cracked: false, finished: false };
+  const found = result.found || (result.closeEnough && lastAttempt);
+  const reply = found || lastAttempt
+    ? revealed(curve, result.accuracy, found, attempt, hints)
+    : { accuracy: result.accuracy, found: false, finished: false };
   return {
     ...reply,
     closeEnough: result.closeEnough,
@@ -1084,7 +1084,7 @@ publish({
   SIDEWAYS_V, SIDEWAYS_HYPERBOLA, UPRIGHT_HYPERBOLA, asymptotes, describe, numberMaker, evaluate, exits,
   inputFor, judge, curveFromSeed, hintDots, inkFor, inkUsed, isRelation, typeName, pastDates, pieces,
   scoreFor, shapeOf, startDot, thinned, todayDate, stopsShort, validDrawing, visibleBranches, visibleCurve, wholeCurve, TYPES,
-  CRACKED_AT, dayNumber, hintFor, markAttempt, revealed
+  FOUND_AT, dayNumber, hintFor, markAttempt, revealed
 });
 }((api) => {
   if (typeof module === 'object' && module.exports) module.exports = api;

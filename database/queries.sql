@@ -81,7 +81,7 @@
 
 -- Finish the curve (src/server.js)
 -- UPDATE plays
--- SET attempts = 2, status = 'cracked', accuracy = 91, score = 760, finished_at = CURRENT_TIMESTAMP
+-- SET attempts = 2, status = 'found', accuracy = 91, score = 760, finished_at = CURRENT_TIMESTAMP
 -- WHERE id = 3;
 
 -- Use a hint (src/server.js, /api/curves/:id/hint)
@@ -116,7 +116,7 @@
 -- WHERE plays.user_id = 1 AND plays.status != 'playing'
 --   AND curves.slot = 3
 --   AND (curves.type_id = 15 OR curves.extra_type_id = 15)
---   AND plays.status = 'cracked'
+--   AND plays.status = 'found'
 -- ORDER BY plays.score DESC, curves.play_date DESC
 -- LIMIT 200;
 
@@ -124,7 +124,7 @@
 
 -- Totals across everything someone has finished (src/server.js, /api/stats)
 -- SELECT COUNT(*) AS played,
---        COALESCE(SUM(plays.status = 'cracked'), 0) AS cracked,
+--        COALESCE(SUM(plays.status = 'found'), 0) AS found,
 --        COALESCE(SUM(plays.score), 0) AS points,
 --        ROUND(AVG(plays.score)) AS average_score,
 --        MAX(plays.score) AS best_score,
@@ -147,7 +147,7 @@
 -- How it's going on easy, medium and hard
 -- SELECT curves.slot,
 --        COUNT(*) AS played,
---        SUM(plays.status = 'cracked') AS cracked,
+--        SUM(plays.status = 'found') AS found,
 --        ROUND(AVG(plays.score)) AS average_score,
 --        ROUND(AVG(plays.attempts), 1) AS average_attempts
 -- FROM plays
@@ -159,7 +159,7 @@
 -- Each type of curve, best average first, leaving out types never played
 -- SELECT curve_types.name,
 --        COUNT(plays.id) AS played,
---        SUM(plays.status = 'cracked') AS cracked,
+--        SUM(plays.status = 'found') AS found,
 --        ROUND(AVG(plays.score)) AS average_score,
 --        MAX(plays.score) AS best_score
 -- FROM curve_types
@@ -194,3 +194,7 @@
 --   FROM plays;
 -- DROP TABLE plays;
 -- ALTER TABLE plays_new RENAME TO plays;
+
+-- Upgrade 14 renames the 'cracked' status to 'found', rebuilding plays the same way
+-- INSERT INTO plays_new SELECT id, user_id, curve_id, CASE status WHEN 'cracked' THEN 'found' ELSE status END,
+--   attempts, hints, accuracy, score, started_at, finished_at FROM plays;

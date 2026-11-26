@@ -200,8 +200,8 @@ async function openPlay(userId, curve) {
   return { play };
 }
 
-function reveal(curve, accuracy, cracked, attempts, hints) {
-  return { ...rules.revealed(curve, accuracy, cracked, attempts, hints), formulaMath: formulaMath(curve, true) };
+function reveal(curve, accuracy, found, attempts, hints) {
+  return { ...rules.revealed(curve, accuracy, found, attempts, hints), formulaMath: formulaMath(curve, true) };
 }
 
 async function savedState(userId, curve) {
@@ -216,7 +216,7 @@ async function savedState(userId, curve) {
     last: null
   };
   if (play.status !== 'playing') {
-    saved.result = reveal(curve, play.accuracy, play.status === 'cracked', play.attempts, play.hints);
+    saved.result = reveal(curve, play.accuracy, play.status === 'found', play.attempts, play.hints);
   }
   const attempts = await all('SELECT drawing FROM attempts WHERE play_id = ? ORDER BY number DESC LIMIT 1', [play.id]);
   if (attempts.length > 0) {
@@ -343,7 +343,7 @@ app.post('/api/curves/:id/attempts', limitMarking, route(async (request, respons
   const reply = rules.markAttempt(drawing, curve, attempt, hints);
   // A guest picks their own attempt number, so they could skip straight to the last one.
   // Today's answer is kept back from guests who didn't crack it until the day is over.
-  const keepBack = !request.user && !curve.endless && curve.play_date === rules.todayDate() && !reply.cracked;
+  const keepBack = !request.user && !curve.endless && curve.play_date === rules.todayDate() && !reply.found;
   if (reply.finished && keepBack) {
     for (const key of ['curve', 'formula', 'typeName']) delete reply[key];
     reply.asymptotes = [];
@@ -362,7 +362,7 @@ app.post('/api/curves/:id/attempts', limitMarking, route(async (request, respons
         `UPDATE plays
          SET attempts = ?, status = ?, accuracy = ?, score = ?, finished_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
-        [attempt, reply.cracked ? 'cracked' : 'failed', reply.accuracy, reply.score, play.id]
+        [attempt, reply.found ? 'found' : 'failed', reply.accuracy, reply.score, play.id]
       );
     } else {
       await run('UPDATE plays SET attempts = ? WHERE id = ?', [attempt, play.id]);
@@ -419,7 +419,7 @@ app.get('/api/history', auth.requireUser, route(async (request, response) => {
     conditions.push('(curves.type_id = ? OR curves.extra_type_id = ?)');
     values.push(type, type);
   }
-  if (['cracked', 'failed'].includes(status)) {
+  if (['found', 'failed'].includes(status)) {
     conditions.push('plays.status = ?');
     values.push(status);
   }
@@ -473,7 +473,7 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
 
   const totals = await all(`
     SELECT COUNT(*) AS played,
-           COALESCE(SUM(plays.status = 'cracked'), 0) AS cracked,
+           COALESCE(SUM(plays.status = 'found'), 0) AS found,
            COALESCE(SUM(plays.score), 0) AS points,
            ROUND(AVG(plays.score)) AS average_score,
            MAX(plays.score) AS best_score,
@@ -498,7 +498,7 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
   const byDifficulty = await all(`
     SELECT curves.slot,
            COUNT(*) AS played,
-           SUM(plays.status = 'cracked') AS cracked,
+           SUM(plays.status = 'found') AS found,
            ROUND(AVG(plays.score)) AS average_score,
            ROUND(AVG(plays.attempts), 1) AS average_attempts
     FROM plays
@@ -511,7 +511,7 @@ app.get('/api/stats', auth.requireUser, route(async (request, response) => {
   const byType = await all(`
     SELECT curve_types.name,
            COUNT(plays.id) AS played,
-           SUM(plays.status = 'cracked') AS cracked,
+           SUM(plays.status = 'found') AS found,
            ROUND(AVG(plays.score)) AS average_score,
            MAX(plays.score) AS best_score
     FROM curve_types

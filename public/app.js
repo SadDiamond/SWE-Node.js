@@ -339,7 +339,12 @@ async function playPage(endless) {
     if (round.result) {
       const result = round.result;
       let heading = 'Out of attempts';
-      if (result.cracked) heading = `Cracked it in ${attemptsText(round.attempts)}`;
+      if (result.found) {
+        let feat = 'Found it';
+        if (result.accuracy >= 95) feat = 'Nailed it';
+        if (result.accuracy === 100) feat = 'Spot on';
+        heading = `${feat} in ${attemptsText(round.attempts)}`;
+      }
       if (result.closeEnough) heading = `Close enough in ${attemptsText(round.attempts)}`;
       find('#result-heading').textContent = heading;
       find('#result-close').hidden = !result.closeEnough;
@@ -620,7 +625,7 @@ async function playPage(endless) {
   if (rounds.every((item) => item.result)) showSummary();
 }
 
-const STATUS_NAMES = { cracked: 'Cracked', failed: 'Out of attempts' };
+const STATUS_NAMES = { found: 'Found', failed: 'Out of attempts' };
 
 function shortDate(date) {
   return new Date(`${date}T00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -694,7 +699,7 @@ async function statsPage() {
   find('#stat-days').textContent = totals.days;
   find('#stat-streak').textContent = days(stats.streak.current);
   find('#stat-best-streak').textContent = days(stats.streak.best);
-  find('#stat-cracked').textContent = `${totals.cracked} of ${totals.played}`;
+  find('#stat-found').textContent = `${totals.found} of ${totals.played}`;
   find('#stat-average').textContent = totals.average_score ?? '–';
   find('#stat-attempts').textContent = totals.average_attempts ?? '–';
   if (stats.bestDay) {
@@ -705,10 +710,10 @@ async function statsPage() {
   }
 
   stats.byDifficulty.forEach((row) => {
-    addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.cracked, row.average_score, row.average_attempts]);
+    addRow(find('#difficulty-rows'), [SLOT_NAMES[row.slot], row.played, row.found, row.average_score, row.average_attempts]);
   });
   stats.byType.forEach((row) => {
-    addRow(find('#type-rows'), [row.name, row.played, row.cracked, row.average_score, row.best_score]);
+    addRow(find('#type-rows'), [row.name, row.played, row.found, row.average_score, row.best_score]);
   });
 }
 

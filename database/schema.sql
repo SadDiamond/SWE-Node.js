@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS plays (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   curve_id INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'playing' CHECK (status IN ('playing', 'cracked', 'failed')),
+  status TEXT NOT NULL DEFAULT 'playing' CHECK (status IN ('playing', 'found', 'failed')),
   attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
   hints INTEGER NOT NULL DEFAULT 0 CHECK (hints BETWEEN 0 AND 3),
   accuracy INTEGER CHECK (accuracy BETWEEN 0 AND 100),

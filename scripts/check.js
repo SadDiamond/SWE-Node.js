@@ -75,7 +75,7 @@ function traced(values, across = 0, up = 0) {
 
 const perfect = rules.judge(traced(steepValues), steep);
 assert.strictEqual(perfect.accuracy, 100);
-assert.strictEqual(perfect.cracked, true);
+assert.strictEqual(perfect.found, true);
 
 const sideways = rules.judge(traced(steepValues, 0.4), steep);
 assert.ok(sideways.accuracy >= 85, `a steep line drawn just to one side scores ${sideways.accuracy}`);
@@ -150,7 +150,7 @@ const bowlCurve = rules.visibleCurve(bowl);
 const shifted = rules.judge(traced(bowlCurve, 1.5, 1), bowl);
 assert.ok(shifted.accuracy < 85, `a parabola drawn 1.5 across and 1 up misses the pass mark, got ${shifted.accuracy}`);
 assert.strictEqual(shifted.closeEnough, true, 'but it is the right shape, so it can be accepted');
-assert.strictEqual(shifted.cracked, false, 'only on the last attempt, which the server decides');
+assert.strictEqual(shifted.found, false, 'only on the last attempt, which the server decides');
 assert.ok(rules.scoreFor(shifted.accuracy, 1, 0) < rules.scoreFor(100, 1, 0), 'and it scores less than a perfect one');
 
 const spotOn = rules.judge(traced(bowlCurve), bowl);
@@ -439,7 +439,7 @@ const upgraded = execFileSync(process.execPath, ['-e', `
   });
 `], { cwd: path.join(__dirname, '..'), env: { ...process.env, DATABASE_PATH: path.join(upgradeFolder, 'old.db') } });
 const afterUpgrade = JSON.parse(upgraded);
-assert.deepStrictEqual(afterUpgrade.play, { score: 900, status: 'cracked', attempts: 1, curve_id: 1 },
+assert.deepStrictEqual(afterUpgrade.play, { score: 900, status: 'found', attempts: 1, curve_id: 1 },
   "upgrading the database keeps everyone's scores");
 assert.deepStrictEqual(afterUpgrade.attempt, { accuracy: 90 }, 'and their drawings');
 assert.ok(afterUpgrade.description.includes('pointing up or down'), 'and makes the changes in place');

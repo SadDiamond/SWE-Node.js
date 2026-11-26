@@ -86,7 +86,27 @@ const UPGRADES = [
    UPDATE curve_types SET description = 'It rises and falls over and over in a regular pattern.' WHERE id = 5;
    UPDATE curve_types SET description = 'It looks like a sideways S that''s steep in the middle and flattens out on both sides.' WHERE id = 6;
    UPDATE curve_types SET description = 'It''s almost flat on one side and then shoots away faster and faster on the other.' WHERE id = 7;
-   UPDATE curve_types SET description = 'It''s flat on one side, climbs or drops smoothly in the middle, and then goes flat again at a new level.' WHERE id = 11;`
+   UPDATE curve_types SET description = 'It''s flat on one side, climbs or drops smoothly in the middle, and then goes flat again at a new level.' WHERE id = 11;`,
+  // 14: 'cracked' -> 'found'. plays is rebuilt again for the new CHECK rule.
+  `CREATE TABLE plays_new (
+     id INTEGER PRIMARY KEY,
+     user_id INTEGER NOT NULL,
+     curve_id INTEGER NOT NULL,
+     status TEXT NOT NULL DEFAULT 'playing' CHECK (status IN ('playing', 'found', 'failed')),
+     attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts BETWEEN 0 AND 5),
+     hints INTEGER NOT NULL DEFAULT 0 CHECK (hints BETWEEN 0 AND 3),
+     accuracy INTEGER CHECK (accuracy BETWEEN 0 AND 100),
+     score INTEGER CHECK (score BETWEEN 0 AND 1000),
+     started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     finished_at TEXT,
+     UNIQUE (user_id, curve_id),
+     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+     FOREIGN KEY (curve_id) REFERENCES curves(id)
+   );
+   INSERT INTO plays_new SELECT id, user_id, curve_id, CASE status WHEN 'cracked' THEN 'found' ELSE status END,
+     attempts, hints, accuracy, score, started_at, finished_at FROM plays;
+   DROP TABLE plays;
+   ALTER TABLE plays_new RENAME TO plays;`
 ];
 const SCHEMA_VERSION = OLDEST_KEPT + UPGRADES.length;
 

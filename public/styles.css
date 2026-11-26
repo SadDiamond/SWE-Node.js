@@ -26,7 +26,7 @@
 }
 
 :root {
-  --page: #ffffff;
+  --page: #fbfaf6;
   --card: #ffffff;
   --ink: #26282b;
   --muted: #5d6268;
@@ -76,7 +76,7 @@
     --rule: #33463c;
     --margin-line: #a05248;
     --highlight: #5a5520;
-    --note-1: #4a4626;
+    --note-1: #57511d;
     --note-2: #33452a;
     --note-3: #24404c;
     --note-4: #4a2a38;
@@ -103,7 +103,7 @@
   --rule: #33463c;
   --margin-line: #a05248;
   --highlight: #5a5520;
-  --note-1: #4a4626;
+  --note-1: #57511d;
   --note-2: #33452a;
   --note-3: #24404c;
   --note-4: #4a2a38;

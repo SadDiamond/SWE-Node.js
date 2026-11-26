@@ -28,7 +28,7 @@
         <p class="details"><span id="today-date">Loading...</span> - <span id="total" class="total">0</span> points</p>
         <p class="intro">
           Three curves are hidden today, from easy to hard. The arrows on the edges show where each one
-          leaves the graph.
+          leaves the graph. They're a good place to start.
         </p>
 
         <ol id="tabs" class="tabs" aria-label="Today's three curves"></ol>
@@ -61,7 +61,7 @@
 
         <section id="result" class="result" aria-labelledby="result-heading" hidden>
           <h2 id="result-heading"></h2>
-          <p id="result-close" class="help" hidden>It was the right shape, just a bit out of place. That still counts as cracked.</p>
+          <p id="result-close" class="help" hidden>The shape was right but a bit out of place, and that still counts as cracked.</p>
           <p class="score"><span id="result-score"></span> <span id="result-top" class="score-top"></span></p>
           <ul id="result-working" class="working"></ul>
           <p>Type of curve: <strong id="result-family"></strong></p>
@@ -79,36 +79,29 @@
             </svg>
           </p>
           <p class="help">
-            The black line is the real curve, with your last attempt faded behind it, and the dashed
-            lines are asymptotes.
+            The bold line is the real curve and your last attempt is faded out behind it.
           </p>
           <button type="button" id="next-curve" class="primary">Next curve</button>
         </section>
 
         <section class="key" aria-labelledby="key-heading">
-          <h2 id="key-heading">Reading your line</h2>
+          <h2 id="key-heading">Reading the graph</h2>
           <div class="scale" aria-hidden="true">
             <span class="l0"></span><span class="l1"></span><span class="l2"></span><span class="l3"></span><span class="l4"></span>
           </div>
           <p class="scale-labels"><span>Spot on</span><span>Way off</span></p>
           <ul>
-            <li>Your line is thick and green where you're on the curve, and gets thinner and redder the further off you are.</li>
-            <li>Red can also mean there's no curve in that spot at all.</li>
             <li><strong>Dot</strong>: a spot on the curve. You get these from hints.</li>
-            <li><strong>Scoring</strong>: each curve is out of 1000 depending on how close you get. You lose 100 for each extra attempt and 150 for each hint, and scores never go below 0.</li>
             <li><strong>Arrow on an edge</strong>: where the curve leaves the graph.</li>
             <li><strong>Arrow on your line</strong>: you're way off here, and the curve is that way.</li>
             <li><strong>Grey bar along the bottom</strong>: part of the curve you haven't drawn yet. Look above the bar.</li>
-            <li>Your last attempt stays faded on the graph, so you can trace over the good bits.</li>
-            <li>You can draw any shape you like, even loops and lines that go straight up and down.</li>
-            <li><strong>Ink</strong>: you only get so much ink, so you can't just scribble over the whole graph.</li>
           </ul>
 
           <details>
             <summary>Drawing with a keyboard</summary>
             <p id="keyboard-help">
-              Tab to the graph and use the arrow keys to move the pen. Press Space to put the pen
-              down, move around to draw, then press Space again to lift it and finish the stroke.
+              Tab to the graph and move the pen with the arrow keys. Press Space to put it down and
+            Space again to lift it.
             </p>
           </details>
         </section>
@@ -120,7 +113,7 @@
         <ol id="summary-rows" class="summary-rows"></ol>
         <p id="save-prompt" class="save-prompt" hidden>
           <a href="/account.html" class="button primary">Log in to save your score</a>
-          <span class="help">If you don't have one, you can sign up there too.</span>
+          <span class="help">If you don't have an account, you can sign up there too.</span>
         </p>
         <button type="button" id="copy-result">Copy result</button>
         <p id="copy-status" class="help" role="status" aria-live="polite"></p>

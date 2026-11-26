@@ -34,7 +34,7 @@ async function request(url, options = {}) {
 
   const isJson = (response.headers.get('Content-Type') || '').includes('application/json');
   const data = isJson ? await response.json() : null;
-  if (!response.ok) throw new Error(data?.error || 'Something went wrong, so try that again.');
+  if (!response.ok) throw new Error(data?.error || 'Something went wrong. Try again.');
   return data;
 }
 
@@ -209,12 +209,12 @@ async function todayPage() {
     find('#hint').disabled = hintsLeft === 0;
     find('#hint-text').textContent = hintsLeft === 0
       ? "You've used all your hints for this curve."
-      : `Each hint shows a spot on the curve and costs ${game.hintPenalty} points (${hintsLeft} left).`;
+      : `Each hint shows a spot on the curve for ${game.hintPenalty} points (${hintsLeft} left).`;
     find('#hint-text').hidden = Boolean(round.result);
 
     find('#stroke-info').textContent = round.strokesPerGo === 1
-      ? "You get one stroke per attempt and it's marked when you lift your pen."
-      : `This one's in ${round.strokesPerGo} pieces, so you get ${round.strokesPerGo} strokes each attempt.`;
+      ? "You get one stroke per attempt. It's marked when you lift your pen."
+      : `This one comes in ${round.strokesPerGo} pieces. You get ${round.strokesPerGo} strokes per attempt.`;
     find('#stroke-info').hidden = Boolean(round.result);
     find('.under-graph').hidden = Boolean(round.result);
     graph.classList.toggle('finished', Boolean(round.result));
@@ -364,11 +364,11 @@ async function todayPage() {
       round.ghost = beforeMarks.ghost;
       round.missed = beforeMarks.missed;
       showGraph();
-      return message('That line was too short to count, so try drawing a longer one.');
+      return message('That line was too short to count. Try a longer one.');
     }
     if (round.strokes.length < round.strokesPerGo) {
       showGraph();
-      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}, now draw the next one.`);
+      return message(`That's piece ${round.strokes.length} of ${round.strokesPerGo}. Now draw the next one.`);
     }
 
     waiting = true;
@@ -386,7 +386,7 @@ async function todayPage() {
         message('');
       } else {
         flashPercent(result.accuracy);
-        message(`${result.accuracy}%, keep the green bits and fix up the rest.`);
+        message(`${result.accuracy}%. Trace over the green bits and fix the rest.`);
       }
     } catch (error) {
       message(error.message);
@@ -431,7 +431,7 @@ async function todayPage() {
         endStroke();
       } else if (startStroke(pen)) {
         pen.down = true;
-        message('Your pen is down, so move it with the arrow keys and press Space to lift it.');
+        message('Your pen is down. Use the arrow keys to draw and press Space to lift it.');
       }
     }
     if (moves[event.key]) {

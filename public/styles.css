@@ -26,23 +26,23 @@
 }
 
 :root {
-  --page: #fbfaf6;
+  --page: #ffffff;
   --card: #ffffff;
-  --ink: #1f2328;
-  --muted: #5a626c;
-  --grid: #e3e7eb;
-  --grid-major: #c3cad2;
-  --fresh: #1b4fc4;
-  --button: #1b4fc4;
-  --pen: #1b4fc4;
-  --tape: rgba(214, 196, 140, 0.55);
-  --rule: #dce5f0;
-  --margin-line: #eeb1ab;
-  --highlight: #fff0a0;
-  --note-1: #fff2ad;
-  --note-2: #daf1d2;
-  --note-3: #d9e7fa;
-  --note-4: #fbdfe1;
+  --ink: #26282b;
+  --muted: #5d6268;
+  --grid: #d3e8da;
+  --grid-major: #a9cfb6;
+  --fresh: #1d3c9e;
+  --button: #1d3c9e;
+  --pen: #1d3c9e;
+  --tape: rgba(222, 205, 160, 0.7);
+  --rule: #bcd4ec;
+  --margin-line: #e2574c;
+  --highlight: #fff36b;
+  --note-1: #fff68f;
+  --note-2: #c8f08f;
+  --note-3: #a8dcf5;
+  --note-4: #ffb3d1;
   --wrong: #c22f27;
   --level-0: #1c8139;
   --level-1: #6f930c;
@@ -63,56 +63,56 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --page: #16181b;
-    --card: #1f2226;
-    --ink: #e9e6df;
-    --muted: #a3aab3;
-    --grid: #2b2f35;
-    --grid-major: #474e57;
-    --fresh: #5585ec;
+    --page: #1b2620;
+    --card: #22302a;
+    --ink: #eef0e8;
+    --muted: #a9b5ad;
+    --grid: #2c3c34;
+    --grid-major: #45594e;
+    --fresh: #8db8ff;
     --button: #3d6fd9;
-    --pen: #7eaaff;
-    --tape: rgba(214, 196, 140, 0.22);
-    --rule: #2a313b;
-    --margin-line: #6e3b3b;
-    --highlight: #4d4421;
-    --note-1: #3b3620;
-    --note-2: #233628;
-    --note-3: #222f45;
-    --note-4: #3a2629;
-    --wrong: #f2665c;
+    --pen: #9cc4ff;
+    --tape: rgba(230, 220, 190, 0.18);
+    --rule: #33463c;
+    --margin-line: #a05248;
+    --highlight: #5a5520;
+    --note-1: #4a4626;
+    --note-2: #33452a;
+    --note-3: #24404c;
+    --note-4: #4a2a38;
+    --wrong: #ff7a6e;
     --level-0: #3fba60;
     --level-1: #a4cb3a;
     --level-2: #e8b726;
     --level-3: #f08b3d;
-    --level-4: #f2665c;
+    --level-4: #ff7a6e;
   }
 }
 
 :root[data-theme="dark"] {
-  --page: #16181b;
-  --card: #1f2226;
-  --ink: #e9e6df;
-  --muted: #a3aab3;
-  --grid: #2b2f35;
-  --grid-major: #474e57;
-  --fresh: #5585ec;
+  --page: #1b2620;
+  --card: #22302a;
+  --ink: #eef0e8;
+  --muted: #a9b5ad;
+  --grid: #2c3c34;
+  --grid-major: #45594e;
+  --fresh: #8db8ff;
   --button: #3d6fd9;
-  --pen: #7eaaff;
-  --tape: rgba(214, 196, 140, 0.22);
-  --rule: #2a313b;
-  --margin-line: #6e3b3b;
-  --highlight: #4d4421;
-  --note-1: #3b3620;
-  --note-2: #233628;
-  --note-3: #222f45;
-  --note-4: #3a2629;
-  --wrong: #f2665c;
+  --pen: #9cc4ff;
+  --tape: rgba(230, 220, 190, 0.18);
+  --rule: #33463c;
+  --margin-line: #a05248;
+  --highlight: #5a5520;
+  --note-1: #4a4626;
+  --note-2: #33452a;
+  --note-3: #24404c;
+  --note-4: #4a2a38;
+  --wrong: #ff7a6e;
   --level-0: #3fba60;
   --level-1: #a4cb3a;
   --level-2: #e8b726;
   --level-3: #f08b3d;
-  --level-4: #f2665c;
+  --level-4: #ff7a6e;
 
   color-scheme: dark;
 }
@@ -435,7 +435,7 @@ button.primary {
 }
 
 button.primary:hover:not(:disabled) {
-  background: #163f9c;
+  background: #142b73;
 }
 
 :focus-visible {
@@ -1022,7 +1022,7 @@ a.button {
 }
 
 a.button:hover {
-  background: #163f9c;
+  background: #142b73;
 }
 
 .save-prompt {
@@ -1141,7 +1141,7 @@ tbody th {
 }
 
 .figures dt {
-  color: var(--muted);
+  color: var(--ink);
   font-size: 0.9375rem;
 }
 

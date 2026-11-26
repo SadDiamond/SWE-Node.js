@@ -55,6 +55,8 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --wobble: 230px 15px 225px 15px / 15px 225px 15px 255px;
+  --wobble-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --wobble-3: 255px 25px 225px 25px / 25px 225px 25px 255px;
 
   color-scheme: light dark;
 }
@@ -327,6 +329,14 @@ p {
   font: 400 1.1875rem var(--hand);
 }
 
+.tab:nth-child(2) {
+  border-radius: var(--wobble-2);
+}
+
+.tab:nth-child(3) {
+  border-radius: var(--wobble-3);
+}
+
 .tab.current {
   background: var(--ink);
   color: var(--page);
@@ -392,6 +402,23 @@ button {
 .switch label:has(input:focus-visible) {
   outline: 3px solid var(--fresh);
   outline-offset: 2px;
+}
+
+button.primary,
+a.button {
+  border-radius: var(--wobble-2);
+}
+
+button:active:not(:disabled),
+a.button:active,
+.levels a:active {
+  transform: translate(1px, 1px);
+}
+
+button:disabled {
+  border-style: dashed;
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 button:hover:not(:disabled),
@@ -639,7 +666,8 @@ button.primary:hover:not(:disabled) {
   font-weight: 600;
 }
 
-.intro + .status:empty {
+.intro + .status:empty,
+h1 + .status:empty {
   min-height: 0;
   margin: 0;
 }
@@ -1080,6 +1108,7 @@ tbody th {
   font-variant-numeric: tabular-nums;
 }
 
+/* Points and streak are the two that matter most, so they get the big notes on the top row. */
 .figures {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1125,9 +1154,25 @@ tbody th {
   font-size: 1.25rem;
 }
 
+.figures .big {
+  grid-column: span 2;
+}
+
+.figures .big dd {
+  font-size: 3rem;
+}
+
 @media (min-width: 48rem) {
   .figures {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .figures div {
+    grid-column: span 2;
+  }
+
+  .figures .big {
+    grid-column: span 3;
   }
 }
 
@@ -1141,6 +1186,14 @@ main > h2,
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 1rem 0 0;
+}
+
+.levels a:nth-child(3n + 2) {
+  border-radius: var(--wobble-2);
+}
+
+.levels a:nth-child(3n + 3) {
+  border-radius: var(--wobble-3);
 }
 
 .levels a {
